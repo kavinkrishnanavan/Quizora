@@ -4,6 +4,16 @@ exports.handler = async (event) => {
     if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
     try {
+        if (!process.env.GROQ_API_KEY) {
+            return {
+                statusCode: 500,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    error: "Missing GROQ_API_KEY. Set it in your Netlify site environment variables.",
+                }),
+            };
+        }
+
         const data = JSON.parse(event.body);
         const { row, topic, grade, subject, curriculum, maxMarks, requests, questionCount } = data;
         const qCount = Math.max(1, Math.min(50, Number.parseInt(questionCount ?? 3, 10) || 3));
@@ -34,11 +44,32 @@ exports.handler = async (event) => {
             model: "llama-3.3-70b-versatile",
         });
 
+        const text = completion?.choices?.[0]?.message?.content;
+        if (!text) {
+            throw new Error("Groq returned no content.");
+        }
+
         return {
             statusCode: 200,
-            body: JSON.stringify({ text: completion.choices[0].message.content }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
         };
     } catch (error) {
-        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+        const requestId =
+            event.headers?.["x-nf-request-id"] ||
+            event.headers?.["x-request-id"] ||
+            event.headers?.["x-amzn-trace-id"] ||
+            "";
+
+        console.error("generate error", { requestId, message: error?.message, stack: error?.stack });
+
+        return {
+            statusCode: 500,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                error: error?.message || "Unknown error",
+                requestId,
+            }),
+        };
     }
 };

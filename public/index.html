@@ -120,7 +120,18 @@
                     })
                 });
 
-                const data = await response.json();
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    data = null;
+                }
+
+                if (!response.ok) {
+                    const errMsg = data?.error ? String(data.error) : `Request failed (${response.status})`;
+                    const errRid = data?.requestId ? `\nRequest ID: ${data.requestId}` : "";
+                    throw new Error(errMsg + errRid);
+                }
                 
                 const card = document.createElement('div');
                 card.className = 'quiz-card';
