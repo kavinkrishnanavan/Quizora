@@ -41,7 +41,8 @@ exports.handler = async (event) => {
            }
         3. Generate exactly ${qCount} items in "questions" with sequential "number" values from 1..${qCount}.
         4. Adjust difficulty based on previous score (lower score = more scaffolding; higher score = higher-order thinking).
-        5. Ensure questions align with ${curriculum} standards.`;
+        5. Ensure questions align with ${curriculum} standards.
+        6. Special Requirements : ${requests}`;
 
         const completion = await groq.chat.completions.create({
             messages: [
