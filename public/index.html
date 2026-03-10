@@ -176,7 +176,8 @@
             return { page, y, maxWidth };
         };
 
-        let { page, y, maxWidth } = startPage({ withMarks: true });
+        // Marks box should only be on the student-facing question sheet.
+        let { page, y, maxWidth } = startPage({ withMarks: !includeAnswers });
 
         const qFontSize = 11;
         const aFontSize = 10;
