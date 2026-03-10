@@ -42,14 +42,16 @@ exports.handler = async (event) => {
         3. Generate exactly ${qCount} items in "questions" with sequential "number" values from 1..${qCount}.
         4. Adjust difficulty based on previous score (lower score = more scaffolding; higher score = higher-order thinking).
         5. Ensure questions align with ${curriculum} standards.
-        6. Special Requirements : ${requests}`;
+        6. Special Requirements : ${requests}
+        7. Reminder : Questions must only be about ${topic}`;
+        
 
         const completion = await groq.chat.completions.create({
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: `DATA ROW: ${row}\nSPECIAL REQUESTS: ${requests}` }
             ],
-            model: "llama-3.3-70b-versatile",
+            model: "openai/gpt-oss-120B",
         });
 
         const text = completion?.choices?.[0]?.message?.content;
