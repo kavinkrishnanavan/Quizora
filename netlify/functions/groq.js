@@ -8,7 +8,7 @@ exports.handler = async (event, context) => {
 
     try {
         const { row, topic, grade, subject, requests } = JSON.parse(event.body);
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const groq = new Groq({ apiKey: process.env.GROQ_API });
 
         const completion = await groq.chat.completions.create({
             messages: [
