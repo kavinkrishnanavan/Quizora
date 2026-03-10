@@ -43,7 +43,8 @@ exports.handler = async (event) => {
         4. Adjust difficulty based on previous score (lower score = more scaffolding; higher score = higher-order thinking).
         5. Ensure questions align with ${curriculum} standards.
         6. Special Requirements : ${requests}
-        7. Reminder : Questions must only be about ${topic}`;
+        7. Reminder : Questions must only be about ${topic}
+        8.Warning : Don't use any special characters. Only the numbers and the alphabet.`;
         
 
         const completion = await groq.chat.completions.create({
