@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Quiz Master | Groq + Netlify</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f4f4f9; padding: 40px; }
+        .container { background: white; max-width: 800px; margin: auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #666; }
+        .card { background: #fff; border: 1px solid #eee; padding: 20px; margin-top: 20px; border-radius: 8px; border-left: 5px solid #000; }
+        pre { white-space: pre-wrap; font-family: inherit; background: #fafafa; padding: 15px; border-radius: 5px; }
+        #status { margin: 20px 0; font-weight: bold; color: #007bff; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>AI Quiz Generator (Groq Powered)</h2>
+    <div class="grid">
+        <input id="subject" placeholder="Subject">
+        <input id="topic" placeholder="Topic">
+        <input id="grade" placeholder="Grade">
+        <input type="number" id="mCol" placeholder="Score Column (1, 2...)">
+        <div style="grid-column: span 2;">
+            <input type="file" id="csvFile" accept=".csv">
+        </div>
+    </div>
+    <button id="genBtn" onclick="run()">Generate Quizzes</button>
+    <div id="status"></div>
+    <div id="output"></div>
+</div>
+
+<script>
+    async function run() {
+        const file = document.getElementById('csvFile').files[0];
+        if (!file) return alert("Select CSV");
+
+        const btn = document.getElementById('genBtn');
+        const status = document.getElementById('status');
+        const output = document.getElementById('output');
+
+        btn.disabled = true;
+        status.style.display = "block";
+        output.innerHTML = "";
+
+        const text = await file.text();
+        const rows = text.split('\n').filter(r => r.trim() !== "");
+        rows.shift(); // Remove header
+
+        status.innerText = `Processing ${rows.length} students via Groq...`;
+
+        // Process all at once with Groq's insane speed
+        const promises = rows.map(async (row, index) => {
+            // Small stagger to prevent hitting Netlify's function concurrency limit
+            await new Promise(r => setTimeout(r, index * 100)); 
+
+            const res = await fetch('/.netlify/functions/groq', {
+                method: 'POST',
+                body: JSON.stringify({
+                    row: row,
+                    topic: document.getElementById('topic').value,
+                    subject: document.getElementById('subject').value,
+                    grade: document.getElementById('grade').value
+                })
+            });
+            const data = await res.json();
+            
+            // Create UI element as soon as data arrives
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `<pre>${data.text || "Error generating quiz"}</pre>`;
+            output.appendChild(div);
+        });
+
+        await Promise.all(promises);
+        status.innerText = "Done!";
+        btn.disabled = false;
+    }
+</script>
+
+</body>
+</html>
