@@ -84,7 +84,163 @@
     <div id="output"></div>
 </div>
 
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
+    function sanitizeFilename(name) {
+        return String(name || "Student")
+            .trim()
+            .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+            .replace(/\s+/g, " ")
+            .slice(0, 80);
+    }
+
+    function wrapLines(text, font, size, maxWidth) {
+        const inputLines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+        const out = [];
+
+        for (const rawLine of inputLines) {
+            const words = rawLine.split(/\s+/).filter(Boolean);
+            if (words.length === 0) {
+                out.push("");
+                continue;
+            }
+
+            let line = words[0];
+            for (let i = 1; i < words.length; i++) {
+                const candidate = line + " " + words[i];
+                const width = font.widthOfTextAtSize(candidate, size);
+                if (width <= maxWidth) {
+                    line = candidate;
+                } else {
+                    out.push(line);
+                    line = words[i];
+                }
+            }
+            out.push(line);
+        }
+
+        return out;
+    }
+
+    async function buildWorksheetPdf({ quiz, meta, includeAnswers }) {
+        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+        const doc = await PDFDocument.create();
+        const font = await doc.embedFont(StandardFonts.Helvetica);
+        const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+        const margin = 48;
+        const headerText = "Quiz-Wiz : Worksheets Empowered";
+        const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+
+        const form = doc.getForm();
+        const sheetTitle = includeAnswers ? "Teacher Answer Sheet" : "Student Question Sheet";
+
+        const startPage = ({ withMarks }) => {
+            const page = doc.addPage();
+            const { width, height } = page.getSize();
+            const maxWidth = width - margin * 2;
+            let y = height - margin;
+
+            page.drawText(headerText, { x: margin, y, size: 14, font: fontBold, color: rgb(0.12, 0.2, 0.35) });
+            y -= 18;
+            page.drawText(`Generated: ${dateStr}`, { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) });
+            y -= 18;
+
+            page.drawText(`Student: ${quiz.studentName}`, { x: margin, y, size: 12, font: fontBold });
+            y -= 18;
+
+            if (withMarks) {
+                page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
+                const marksField = form.createTextField(`marks_${Math.random().toString(16).slice(2)}`);
+                marksField.setText("");
+                marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
+                page.drawText(`/ ${meta.maxMarks}`, { x: margin + 180, y, size: 11, font });
+                y -= 24;
+            } else {
+                y -= 6;
+            }
+
+            page.drawText(`${meta.subject} | ${meta.topic} | ${meta.grade} | ${meta.curriculum}`, {
+                x: margin,
+                y,
+                size: 10,
+                font,
+                color: rgb(0.35, 0.45, 0.55),
+            });
+            y -= 24;
+
+            page.drawText(sheetTitle, { x: margin, y, size: 12, font: fontBold });
+            y -= 18;
+
+            return { page, y, maxWidth };
+        };
+
+        let { page, y, maxWidth } = startPage({ withMarks: true });
+
+        const qFontSize = 11;
+        const aFontSize = 10;
+        const qLineGap = 14;
+        const aLineGap = 12;
+        const minY = margin + 54;
+
+        const ensureSpace = (needed) => {
+            if (y - needed < minY) {
+                ({ page, y, maxWidth } = startPage({ withMarks: false }));
+            }
+        };
+
+        for (const q of quiz.questions) {
+            const qText = `${q.number}. ${q.question}`;
+            const qLines = wrapLines(qText, font, qFontSize, maxWidth);
+
+            ensureSpace(qLines.length * qLineGap + 18);
+            for (const line of qLines) {
+                page.drawText(line, { x: margin, y, size: qFontSize, font });
+                y -= qLineGap;
+            }
+
+            if (includeAnswers) {
+                const aText = `Answer: ${q.answer}`;
+                const aLines = wrapLines(aText, font, aFontSize, maxWidth - 18);
+                ensureSpace(aLines.length * aLineGap + 12);
+                for (const line of aLines) {
+                    page.drawText(line, { x: margin + 18, y, size: aFontSize, font, color: rgb(0.15, 0.3, 0.2) });
+                    y -= aLineGap;
+                }
+            } else {
+                // Space for student work when printed.
+                ensureSpace(46);
+                for (let i = 0; i < 3; i++) {
+                    page.drawLine({
+                        start: { x: margin, y: y - 2 },
+                        end: { x: margin + maxWidth, y: y - 2 },
+                        thickness: 1,
+                        color: rgb(0.86, 0.89, 0.92),
+                    });
+                    y -= 14;
+                }
+            }
+
+            y -= 10;
+        }
+
+        form.updateFieldAppearances(font);
+        return await doc.save();
+    }
+
+    async function downloadPdf(bytes, filename) {
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
     async function run() {
         const file = document.getElementById('csvFile').files[0];
         if (!file) return alert("Please upload a CSV file.");
@@ -133,9 +289,74 @@
                     throw new Error(errMsg + errRid);
                 }
                 
+                const quiz = data?.quiz;
+                if (!quiz || typeof quiz.studentName !== "string" || !Array.isArray(quiz.questions)) {
+                    throw new Error("Server returned an unexpected quiz format.");
+                }
+
+                const meta = {
+                    subject: document.getElementById('subject').value,
+                    topic: document.getElementById('topic').value,
+                    grade: document.getElementById('grade').value,
+                    curriculum: document.getElementById('curriculum').value,
+                    maxMarks: document.getElementById('mMax').value
+                };
+
                 const card = document.createElement('div');
                 card.className = 'quiz-card';
-                card.innerHTML = `<pre>${data.text || "Error processing this row."}</pre>`;
+
+                const title = document.createElement('div');
+                title.style.fontWeight = "800";
+                title.style.marginBottom = "10px";
+                title.innerText = quiz.studentName;
+
+                const btnRow = document.createElement('div');
+                btnRow.style.display = "flex";
+                btnRow.style.gap = "10px";
+                btnRow.style.flexWrap = "wrap";
+                btnRow.style.marginBottom = "12px";
+
+                const qBtn = document.createElement('button');
+                qBtn.type = "button";
+                qBtn.innerText = "Download Question PDF";
+                qBtn.style.padding = "10px 12px";
+                qBtn.style.marginTop = "0";
+
+                const aBtn = document.createElement('button');
+                aBtn.type = "button";
+                aBtn.innerText = "Download Answer PDF";
+                aBtn.style.padding = "10px 12px";
+                aBtn.style.marginTop = "0";
+
+                qBtn.onclick = async () => {
+                    qBtn.disabled = true;
+                    try {
+                        const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false });
+                        await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`);
+                    } finally {
+                        qBtn.disabled = false;
+                    }
+                };
+
+                aBtn.onclick = async () => {
+                    aBtn.disabled = true;
+                    try {
+                        const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true });
+                        await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`);
+                    } finally {
+                        aBtn.disabled = false;
+                    }
+                };
+
+                btnRow.appendChild(qBtn);
+                btnRow.appendChild(aBtn);
+
+                const preview = document.createElement('pre');
+                preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
+
+                card.appendChild(title);
+                card.appendChild(btnRow);
+                card.appendChild(preview);
                 output.appendChild(card);
             }
             status.innerText = "✅ All quizzes generated successfully!";
