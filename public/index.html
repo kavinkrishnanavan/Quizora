@@ -92,7 +92,7 @@
         </div>
         <div class="field">
             <label>Grade Level</label>
-            <select id="grade">
+            <select id="grade" style="color: grey;">
                 <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
                 <option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>
                 <option>Grade 7</option><option>Grade 8</option><option selected>Grade 9</option>
@@ -101,15 +101,13 @@
         </div>
         <div class="field">
             <label>Curriculum</label>
-            <select id="curriculum">
+            <select id="curriculum" style="color: grey;">
                 <option>KSSR</option><option selected>KSSM</option>
                 <option>Cambridge IGCSE</option><option>IB</option><option>AP</option>
             </select>
         </div>
-        <div class="field">
-            <label>Score Column Number (1, 2...)</label>
-            <input type="number" id="mCol" value="2">
-        </div>
+        
+        
         <div class="field">
             <label>Marks Out Of (Total)</label>
             <input type="number" id="mMax" value="100">
@@ -120,14 +118,19 @@
         </div>
         <div class="field">
             <label>Question Style</label>
-            <select id="answerFormat">
+            <select id="answerFormat" style="color: grey;">
                 <option value="blank" selected>Blank lines</option>
                 <option value="mcq">Multiple choice (A-D)</option>
             </select>
         </div>
-        <div class="field full-width">
+        
+        <div class="field">
             <label>Upload Student Marks (CSV)</label>
             <input type="file" id="csvFile" accept=".csv">
+        </div>
+        <div class="field">
+            <label>Marks Column (choose after upload)</label>
+          <input type="text" id="mCol" value="" placeholder="Upload CSV to choose…" readonly>
         </div>
         <div class="field full-width">
             <label>Special Requests (Optional)</label>
@@ -139,6 +142,38 @@
         <button id="genBtn" onclick="run()">Generate Quizzes</button>
         <div id="status"></div>
         <div id="output"></div>
+
+        <div id="csvModal" style="display:none; position: fixed; inset: 0; z-index: 9999;">
+            <div id="csvModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
+            <div role="dialog" aria-modal="true" aria-labelledby="csvModalTitle" style="position: relative; max-width: 1100px; margin: 6vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;">
+                <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
+                    <div>
+                        <div id="csvModalTitle" style="font-weight: 800; font-size: 1.05rem;">Select Marks Column</div>
+                        <div id="csvModalSubtitle" style="color: var(--muted); font-size: 0.9rem;"></div>
+                    </div>
+                    <button type="button" id="csvModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
+                </div>
+
+                <div style="padding: 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px;">
+                    <div style="display:flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                        <div class="field" style="min-width: 260px; flex: 1;">
+                            <label>Marks Column</label>
+                            <select id="marksColumnSelect" style="color: grey;"></select>
+                        </div>
+                        <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use This Column</button>
+                    </div>
+
+                    <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                        <div style="padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.9rem;">
+                            Preview (first 10 rows)
+                        </div>
+                        <div style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
+                            <table id="csvPreviewTable" style="width: 100%; border-collapse: collapse; font-size: 0.95rem;"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
 
@@ -423,6 +458,141 @@
         return { headers, records };
     }
 
+    let csvState = null;
+
+    function fileKey(file) {
+        return file ? `${file.name}|${file.size}|${file.lastModified}` : "";
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function guessMarksHeader(headers) {
+        const re = /(mark|marks|score|points|total|result|grade)/i;
+        const hit = headers.find((h) => re.test(String(h)));
+        return hit || headers[1] || headers[0] || "";
+    }
+
+    function closeCsvModal() {
+        const modal = document.getElementById("csvModal");
+        if (modal) modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+
+    function openCsvModal(state) {
+        const modal = document.getElementById("csvModal");
+        const subtitle = document.getElementById("csvModalSubtitle");
+        const select = document.getElementById("marksColumnSelect");
+        const table = document.getElementById("csvPreviewTable");
+
+        if (!modal || !select || !table) return;
+
+        if (subtitle) {
+            subtitle.textContent = `${state.fileName} • ${state.records.length} student rows`;
+        }
+
+        select.innerHTML = "";
+        for (const h of state.headers) {
+            const opt = document.createElement("option");
+            opt.value = h;
+            opt.textContent = h;
+            select.appendChild(opt);
+        }
+
+        const defaultHeader = state.marksColumn || guessMarksHeader(state.headers);
+        if (defaultHeader) select.value = defaultHeader;
+
+        const previewRows = state.previewRows || [];
+        const cols = Math.min(state.headers.length || 0, 12) || Math.min((previewRows[0] || []).length || 0, 12) || 8;
+
+        const headCells = [];
+        for (let i = 0; i < Math.min(state.headers.length, cols); i++) {
+            headCells.push(`<th style="text-align:left; padding: 10px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--card);">${escapeHtml(state.headers[i])}</th>`);
+        }
+
+        const bodyRows = previewRows.slice(1, 11).map((r) => {
+            const tds = [];
+            for (let i = 0; i < cols; i++) {
+                tds.push(`<td style="padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top;">${escapeHtml(r?.[i] ?? "")}</td>`);
+            }
+            return `<tr>${tds.join("")}</tr>`;
+        });
+
+        table.innerHTML = `<thead><tr>${headCells.join("")}</tr></thead><tbody>${bodyRows.join("")}</tbody>`;
+
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    async function parseCsvToState(file) {
+        const text = await readTextSmart(file);
+        const delimiter = guessDelimiter(text);
+        const parsedRows = parseDelimited(text, delimiter);
+        const { headers, records } = rowsToObjects(parsedRows);
+
+        return {
+            key: fileKey(file),
+            fileName: file?.name || "CSV",
+            headers,
+            records,
+            previewRows: parsedRows.slice(0, 11),
+            marksColumn: "",
+        };
+    }
+
+    function ensureCsvStateMatchesFile(file) {
+        const key = fileKey(file);
+        if (!csvState || csvState.key !== key) return false;
+        return true;
+    }
+
+    (function initCsvModal() {
+        const fileInput = document.getElementById("csvFile");
+        const closeBtn = document.getElementById("csvModalClose");
+        const useBtn = document.getElementById("csvModalUse");
+        const backdrop = document.getElementById("csvModalBackdrop");
+
+        const close = () => closeCsvModal();
+        if (closeBtn) closeBtn.addEventListener("click", close);
+        if (backdrop) backdrop.addEventListener("click", close);
+
+        if (useBtn) {
+            useBtn.addEventListener("click", () => {
+                if (!csvState) return closeCsvModal();
+                const select = document.getElementById("marksColumnSelect");
+                const chosen = select ? String(select.value || "") : "";
+                if (!chosen) return;
+                csvState.marksColumn = chosen;
+                const mCol = document.getElementById("mCol");
+                if (mCol) mCol.value = chosen;
+                closeCsvModal();
+            });
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener("change", async () => {
+                const file = fileInput.files?.[0];
+                if (!file) return;
+                try {
+                    closeCsvModal();
+                    csvState = null;
+                    const mCol = document.getElementById("mCol");
+                    if (mCol) mCol.value = "";
+                    csvState = await parseCsvToState(file);
+                    openCsvModal(csvState);
+                } catch (e) {
+                    alert("Could not read this CSV. Please re-export as CSV UTF-8.\n\n" + (e?.message || String(e)));
+                }
+            });
+        }
+    })();
+
     async function run() {
         const file = document.getElementById('csvFile').files[0];
         if (!file) return alert("Please upload a CSV file.");
@@ -436,11 +606,22 @@
         output.innerHTML = "";
 
         try {
-            const text = await readTextSmart(file);
-            const delimiter = guessDelimiter(text);
-            const parsedRows = parseDelimited(text, delimiter);
-            const { records } = rowsToObjects(parsedRows);
-            if (!records.length) throw new Error("No data rows found in the CSV.");
+            if (!ensureCsvStateMatchesFile(file)) {
+                csvState = await parseCsvToState(file);
+                openCsvModal(csvState);
+                status.innerText = "Select the marks column, then click “Use This Column”.";
+                return;
+            }
+
+            if (!csvState.records.length) throw new Error("No data rows found in the CSV.");
+            if (!csvState.marksColumn) {
+                openCsvModal(csvState);
+                status.innerText = "Select the marks column, then click “Use This Column”.";
+                return;
+            }
+
+            const records = csvState.records;
+            const marksColumn = csvState.marksColumn;
 
             for (let i = 0; i < records.length; i++) {
                 status.innerText = `Generating quiz ${i + 1} of ${records.length}...`;
@@ -450,6 +631,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         rowObject: records[i],
+                        marksColumn,
+                        score: records[i]?.[marksColumn] ?? "",
                         subject: document.getElementById('subject').value,
                         topic: document.getElementById('topic').value,
                         grade: document.getElementById('grade').value,

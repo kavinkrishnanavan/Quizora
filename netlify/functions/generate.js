@@ -17,6 +17,8 @@ exports.handler = async (event) => {
         const data = JSON.parse(event.body);
         const { row, rowObject, topic, grade, subject, curriculum, maxMarks, requests, questionCount } = data;
         const answerFormat = String(data?.answerFormat || "blank") === "mcq" ? "mcq" : "blank";
+        const marksColumn = typeof data?.marksColumn === "string" ? data.marksColumn.trim() : "";
+        const score = String(data?.score ?? "").trim();
         const qCount = Math.max(1, Math.min(50, Number.parseInt(questionCount ?? 3, 10) || 3));
 
         const hasRowObject = rowObject && typeof rowObject === "object" && !Array.isArray(rowObject);
@@ -54,7 +56,7 @@ exports.handler = async (event) => {
         - Topic: ${topic}
         - Grade Level: ${grade}
         - Curriculum: ${curriculum}
-        - Student's Previous Score: (Found in data) out of ${maxMarks}
+        - Student's Previous Score: ${score ? score : "(Found in data)"} out of ${maxMarks}${marksColumn ? ` (Marks column: ${marksColumn})` : ""}
         
         Strict Requirements:
         1. Output ONLY valid JSON (no markdown fences, no extra commentary).
@@ -75,8 +77,8 @@ exports.handler = async (event) => {
                 {
                     role: "user",
                     content: hasRowObject
-                        ? `ANSWER_FORMAT: ${answerFormat}\nDATA ROW (JSON OBJECT): ${rowText}\nSPECIAL REQUESTS: ${requests}`
-                        : `ANSWER_FORMAT: ${answerFormat}\nDATA ROW (RAW CSV LINE): ${rowText}\nSPECIAL REQUESTS: ${requests}`,
+                        ? `ANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nSCORE: ${score}\nDATA ROW (JSON OBJECT): ${rowText}\nSPECIAL REQUESTS: ${requests}`
+                        : `ANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nSCORE: ${score}\nDATA ROW (RAW CSV LINE): ${rowText}\nSPECIAL REQUESTS: ${requests}`,
                 }
             ],
             model: "openai/gpt-oss-120B",
