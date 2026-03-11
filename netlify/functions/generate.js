@@ -15,13 +15,17 @@ exports.handler = async (event) => {
         }
 
         const data = JSON.parse(event.body);
-        const { row, topic, grade, subject, curriculum, maxMarks, requests, questionCount } = data;
+        const { row, rowObject, topic, grade, subject, curriculum, maxMarks, requests, questionCount } = data;
         const qCount = Math.max(1, Math.min(50, Number.parseInt(questionCount ?? 3, 10) || 3));
+
+        const hasRowObject = rowObject && typeof rowObject === "object" && !Array.isArray(rowObject);
+        const rowText = hasRowObject ? JSON.stringify(rowObject) : String(row ?? "").trim();
+        if (!rowText) throw new Error("Missing row data.");
         
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
         const systemPrompt = `You are an expert educator specializing in the ${curriculum} curriculum.
-        Your task is to extract a student's name from raw CSV data and generate a personalized ${qCount}-question quiz with answers.
+        Your task is to extract a student's name from the provided student row data and generate a personalized ${qCount}-question quiz with answers.
         
         Context:
         - Subject: ${subject}
@@ -50,7 +54,12 @@ exports.handler = async (event) => {
         const completion = await groq.chat.completions.create({
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `DATA ROW: ${row}\nSPECIAL REQUESTS: ${requests}` }
+                {
+                    role: "user",
+                    content: hasRowObject
+                        ? `DATA ROW (JSON OBJECT): ${rowText}\nSPECIAL REQUESTS: ${requests}`
+                        : `DATA ROW (RAW CSV LINE): ${rowText}\nSPECIAL REQUESTS: ${requests}`,
+                }
             ],
             model: "openai/gpt-oss-120B",
         });

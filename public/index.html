@@ -249,6 +249,105 @@
         URL.revokeObjectURL(url);
     }
 
+    async function readTextSmart(file) {
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+
+        const hasUtf8Bom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+        const hasUtf16leBom = bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe;
+        const hasUtf16beBom = bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff;
+
+        const nulCount = bytes.reduce((n, b) => n + (b === 0 ? 1 : 0), 0);
+        const nulRatio = bytes.length ? nulCount / bytes.length : 0;
+
+        let encoding = "utf-8";
+        if (hasUtf16leBom) encoding = "utf-16le";
+        else if (hasUtf16beBom) encoding = "utf-16be";
+        else if (hasUtf8Bom) encoding = "utf-8";
+        else if (nulRatio > 0.2) encoding = "utf-16le";
+
+        try {
+            return new TextDecoder(encoding).decode(bytes);
+        } catch (_) {
+            return new TextDecoder("utf-8").decode(bytes);
+        }
+    }
+
+    function guessDelimiter(text) {
+        const sample = text.slice(0, 4096);
+        const counts = {
+            ",": (sample.match(/,/g) || []).length,
+            ";": (sample.match(/;/g) || []).length,
+            "\t": (sample.match(/\t/g) || []).length,
+        };
+        const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        return best && best[1] > 0 ? best[0] : ",";
+    }
+
+    function parseDelimited(text, delimiter) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+
+            if (ch === '"') {
+                if (inQuotes && text[i + 1] === '"') {
+                    field += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+
+            if (!inQuotes && ch === delimiter) {
+                row.push(field);
+                field = "";
+                continue;
+            }
+
+            if (!inQuotes && (ch === "\n" || ch === "\r")) {
+                row.push(field);
+                field = "";
+                rows.push(row);
+                row = [];
+                if (ch === "\r" && text[i + 1] === "\n") i++;
+                continue;
+            }
+
+            field += ch;
+        }
+
+        row.push(field);
+        rows.push(row);
+
+        while (rows.length && rows[rows.length - 1].every((c) => String(c ?? "").trim() === "")) {
+            rows.pop();
+        }
+
+        return rows;
+    }
+
+    function rowsToObjects(rows) {
+        if (!rows.length) return { headers: [], records: [] };
+
+        const rawHeaders = rows[0].map((h) => String(h ?? "").replace(/^\uFEFF/, "").trim());
+        const headers = rawHeaders.map((h, idx) => (h ? h : `Column${idx + 1}`));
+
+        const records = [];
+        for (let i = 1; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || r.every((c) => String(c ?? "").trim() === "")) continue;
+            const obj = {};
+            for (let j = 0; j < headers.length; j++) obj[headers[j]] = String(r[j] ?? "").trim();
+            records.push(obj);
+        }
+        return { headers, records };
+    }
+
     async function run() {
         const file = document.getElementById('csvFile').files[0];
         if (!file) return alert("Please upload a CSV file.");
@@ -262,18 +361,20 @@
         output.innerHTML = "";
 
         try {
-            const text = await file.text();
-            const rows = text.split('\n').filter(r => r.trim() !== "");
-            rows.shift(); // Remove header
+            const text = await readTextSmart(file);
+            const delimiter = guessDelimiter(text);
+            const parsedRows = parseDelimited(text, delimiter);
+            const { records } = rowsToObjects(parsedRows);
+            if (!records.length) throw new Error("No data rows found in the CSV.");
 
-            for (let i = 0; i < rows.length; i++) {
-                status.innerText = `Generating quiz ${i + 1} of ${rows.length}...`;
+            for (let i = 0; i < records.length; i++) {
+                status.innerText = `Generating quiz ${i + 1} of ${records.length}...`;
                 
                 const response = await fetch('/.netlify/functions/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        row: rows[i],
+                        rowObject: records[i],
                         subject: document.getElementById('subject').value,
                         topic: document.getElementById('topic').value,
                         grade: document.getElementById('grade').value,
