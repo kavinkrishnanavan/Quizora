@@ -6,37 +6,78 @@
     <title>Quiz-Wiz</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #1e293b; padding: 20px; line-height: 1.6; }
-        .container { max-width: 900px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        :root {
+            color-scheme: light dark;
+
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --status-bg: #eff6ff;
+            --status-text: #2563eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b1220;
+                --card: #0f172a;
+                --text: #e2e8f0;
+                --muted: #94a3b8;
+                --border: #263145;
+                --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+                --status-bg: rgba(37, 99, 235, 0.18);
+                --status-text: #93c5fd;
+            }
+        }
+
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
+        .container { max-width: 900px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
         h2 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
+        a { color: var(--primary); }
+        hr { border-color: var(--border); }
         
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         .full-width { grid-column: 1 / -1; }
         
         .field { display: flex; flex-direction: column; }
-        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: #64748b; }
-        input, select, textarea { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; transition: all 0.2s; }
-        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+        input, select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: transparent; color: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
         
         button { background: var(--primary); color: white; padding: 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         button:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: #eff6ff; color: var(--primary); }
-        .quiz-card { background: white; border: 1px solid #e2e8f0; padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
-        pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: #334155; }
+        #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
+        .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
+        pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); }
+        body {
+            background: url("background.png");
+        }
+        .zoom {
+  width: 200px;
+  transition: transform 0.3s ease; /* smooth animation */
+}
+
+.zoom:hover {
+  transform: scale(1.2); /* increases size by 20% */
+}
     </style>
 </head>
 <body>
 
 <div class="container">
     <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="favicon.png" style="width: 100px;">
-        <h1>Quiz-Wiz : Worksheets Empowered</h1>
+        <img src="favicon.png" class="zoom" style="width: 200px;">
+        <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
     </div>
-
-
+    <div style="text-align: right;">
+    <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
+    <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+</div>
     <hr>
     <br>
 
@@ -78,7 +119,7 @@
             <input type="number" id="qCount" value="3" min="1" max="50">
         </div>
         <div class="field">
-            <label>Answer Style (Question Sheet)</label>
+            <label>Question Style</label>
             <select id="answerFormat">
                 <option value="blank" selected>Blank lines</option>
                 <option value="mcq">Multiple choice (A-D)</option>
@@ -94,7 +135,6 @@
         </div>
     </div>
 
-<a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 20px; margin-top: 20px;">Please Give Feedback !</a>
 
         <button id="genBtn" onclick="run()">Generate Quizzes</button>
         <div id="status"></div>
