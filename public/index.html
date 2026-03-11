@@ -34,8 +34,9 @@
     <div style="display: flex; align-items: center; gap: 10px;">
         <img src="favicon.png" style="width: 100px;">
         <h1>Quiz-Wiz : Worksheets Empowered</h1>
-    
     </div>
+
+
     <hr>
     <br>
 
@@ -76,6 +77,13 @@
             <label>Questions per Student</label>
             <input type="number" id="qCount" value="3" min="1" max="50">
         </div>
+        <div class="field">
+            <label>Answer Style (Question Sheet)</label>
+            <select id="answerFormat">
+                <option value="blank" selected>Blank lines</option>
+                <option value="mcq">Multiple choice (A-D)</option>
+            </select>
+        </div>
         <div class="field full-width">
             <label>Upload Student Marks (CSV)</label>
             <input type="file" id="csvFile" accept=".csv">
@@ -86,10 +94,13 @@
         </div>
     </div>
 
-    <button id="genBtn" onclick="run()">Generate Quizzes</button>
-    <div id="status"></div>
-    <div id="output"></div>
-</div>
+<a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 20px; margin-top: 20px;">Please Give Feedback !</a>
+
+        <button id="genBtn" onclick="run()">Generate Quizzes</button>
+        <div id="status"></div>
+        <div id="output"></div>
+
+
 
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
@@ -131,6 +142,7 @@
 
     async function buildWorksheetPdf({ quiz, meta, includeAnswers }) {
         const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const answerFormat = meta?.answerFormat === "mcq" ? "mcq" : "blank";
 
         const doc = await PDFDocument.create();
         const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -209,7 +221,11 @@
             }
 
             if (includeAnswers) {
-                const aText = `Answer: ${q.answer}`;
+                const extra =
+                    answerFormat === "mcq" && typeof q.correctOption === "string"
+                        ? `Correct option: ${q.correctOption}`
+                        : "";
+                const aText = extra ? `${extra}\nAnswer: ${q.answer}` : `Answer: ${q.answer}`;
                 const aLines = wrapLines(aText, font, aFontSize, maxWidth - 18);
                 ensureSpace(aLines.length * aLineGap + 12);
                 for (const line of aLines) {
@@ -217,16 +233,35 @@
                     y -= aLineGap;
                 }
             } else {
-                // Space for student work when printed.
-                ensureSpace(46);
-                for (let i = 0; i < 3; i++) {
-                    page.drawLine({
-                        start: { x: margin, y: y - 2 },
-                        end: { x: margin + maxWidth, y: y - 2 },
-                        thickness: 1,
-                        color: rgb(0.86, 0.89, 0.92),
-                    });
-                    y -= 14;
+                if (answerFormat === "mcq" && Array.isArray(q.options) && q.options.length) {
+                    const labels = ["A", "B", "C", "D", "E", "F"];
+                    const optFontSize = 10;
+                    const optLineGap = 12;
+
+                    const optLines = [];
+                    for (let idx = 0; idx < q.options.length; idx++) {
+                        const label = labels[idx] || String(idx + 1);
+                        const txt = `${label}) ${q.options[idx]}`;
+                        optLines.push(...wrapLines(txt, font, optFontSize, maxWidth - 18));
+                    }
+
+                    ensureSpace(optLines.length * optLineGap + 10);
+                    for (const line of optLines) {
+                        page.drawText(line, { x: margin + 18, y, size: optFontSize, font, color: rgb(0.2, 0.25, 0.32) });
+                        y -= optLineGap;
+                    }
+                } else {
+                    // Space for student work when printed.
+                    ensureSpace(46);
+                    for (let i = 0; i < 3; i++) {
+                        page.drawLine({
+                            start: { x: margin, y: y - 2 },
+                            end: { x: margin + maxWidth, y: y - 2 },
+                            thickness: 1,
+                            color: rgb(0.86, 0.89, 0.92),
+                        });
+                        y -= 14;
+                    }
                 }
             }
 
@@ -381,6 +416,7 @@
                         curriculum: document.getElementById('curriculum').value,
                         maxMarks: document.getElementById('mMax').value,
                         questionCount: parseInt(document.getElementById('qCount').value, 10),
+                        answerFormat: document.getElementById('answerFormat').value,
                         requests: document.getElementById('requests').value
                     })
                 });
@@ -408,7 +444,8 @@
                     topic: document.getElementById('topic').value,
                     grade: document.getElementById('grade').value,
                     curriculum: document.getElementById('curriculum').value,
-                    maxMarks: document.getElementById('mMax').value
+                    maxMarks: document.getElementById('mMax').value,
+                    answerFormat: document.getElementById('answerFormat').value
                 };
 
                 const card = document.createElement('div');

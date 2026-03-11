@@ -16,6 +16,7 @@ exports.handler = async (event) => {
 
         const data = JSON.parse(event.body);
         const { row, rowObject, topic, grade, subject, curriculum, maxMarks, requests, questionCount } = data;
+        const answerFormat = String(data?.answerFormat || "blank") === "mcq" ? "mcq" : "blank";
         const qCount = Math.max(1, Math.min(50, Number.parseInt(questionCount ?? 3, 10) || 3));
 
         const hasRowObject = rowObject && typeof rowObject === "object" && !Array.isArray(rowObject);
@@ -23,6 +24,27 @@ exports.handler = async (event) => {
         if (!rowText) throw new Error("Missing row data.");
         
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+        const schemaText =
+            answerFormat === "mcq"
+                ? `{
+             "studentName": "string",
+             "questions": [
+               {
+                 "number": 1,
+                 "question": "string",
+                 "options": ["string", "string", "string", "string"],
+                 "correctOption": "A",
+                 "answer": "string"
+               }
+             ]
+           }`
+                : `{
+             "studentName": "string",
+             "questions": [
+               { "number": 1, "question": "string", "answer": "string" }
+             ]
+           }`;
 
         const systemPrompt = `You are an expert educator specializing in the ${curriculum} curriculum.
         Your task is to extract a student's name from the provided student row data and generate a personalized ${qCount}-question quiz with answers.
@@ -37,13 +59,9 @@ exports.handler = async (event) => {
         Strict Requirements:
         1. Output ONLY valid JSON (no markdown fences, no extra commentary).
         2. The JSON schema must be:
-           {
-             "studentName": "string",
-             "questions": [
-               { "number": 1, "question": "string", "answer": "string" }
-             ]
-           }
+           ${schemaText}
         3. Generate exactly ${qCount} items in "questions" with sequential "number" values from 1..${qCount}.
+        ${answerFormat === "mcq" ? '3b. For each question, generate exactly 4 "options" and set "correctOption" to one of "A","B","C","D". The correct answer must match the selected option.' : ""}
         4. Adjust difficulty based on previous score (lower score = more scaffolding; higher score = higher-order thinking).
         5. Ensure questions align with ${curriculum} standards.
         6. Special Requirements : ${requests}
@@ -57,8 +75,8 @@ exports.handler = async (event) => {
                 {
                     role: "user",
                     content: hasRowObject
-                        ? `DATA ROW (JSON OBJECT): ${rowText}\nSPECIAL REQUESTS: ${requests}`
-                        : `DATA ROW (RAW CSV LINE): ${rowText}\nSPECIAL REQUESTS: ${requests}`,
+                        ? `ANSWER_FORMAT: ${answerFormat}\nDATA ROW (JSON OBJECT): ${rowText}\nSPECIAL REQUESTS: ${requests}`
+                        : `ANSWER_FORMAT: ${answerFormat}\nDATA ROW (RAW CSV LINE): ${rowText}\nSPECIAL REQUESTS: ${requests}`,
                 }
             ],
             model: "openai/gpt-oss-120B",
@@ -99,6 +117,17 @@ exports.handler = async (event) => {
         if (!quiz.studentName || typeof quiz.studentName !== "string") throw new Error("Missing studentName.");
         if (!Array.isArray(quiz.questions) || quiz.questions.length !== qCount) {
             throw new Error(`Expected exactly ${qCount} questions.`);
+        }
+
+        if (answerFormat === "mcq") {
+            for (const q of quiz.questions) {
+                if (!q || typeof q !== "object") throw new Error("Invalid question format.");
+                if (!Array.isArray(q.options) || q.options.length !== 4) throw new Error("MCQ requires exactly 4 options per question.");
+                if (!q.correctOption || typeof q.correctOption !== "string") throw new Error("MCQ requires correctOption.");
+                const letter = q.correctOption.trim().toUpperCase();
+                if (!["A", "B", "C", "D"].includes(letter)) throw new Error('correctOption must be one of "A","B","C","D".');
+                q.correctOption = letter;
+            }
         }
 
         return {
