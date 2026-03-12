@@ -327,8 +327,16 @@
                         y -= optLineGap;
                     }
                 } else {
-                    // Space for student work when printed.
-                    y -= 18;
+                    ensureSpace(46);
+                    for (let i = 0; i < 3; i++) {
+                        page.drawLine({
+                            start: { x: margin, y: y - 2 },
+                            end: { x: margin + maxWidth, y: y - 2 },
+                            thickness: 1,
+                            color: rgb(0.86, 0.89, 0.92),
+                        });
+                        y -= 14;
+                    }
                 }
             }
 
