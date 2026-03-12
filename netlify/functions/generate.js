@@ -69,7 +69,7 @@ exports.handler = async (event) => {
         1. Output ONLY valid JSON (no markdown fences, no extra commentary).
         2. The JSON schema must be:
            ${schemaText}
-        3. Set "studentName" to exactly: "Base Worksheet".
+        3. Set "studentName" to exactly: "Baseline Worksheet".
         4. Generate exactly ${qCount} items in "questions" with sequential "number" values from 1..${qCount}.
         ${answerFormat === "mcq" ? '4b. For each question, generate exactly 4 "options" and set "correctOption" to one of "A","B","C","D". The correct answer must match the selected option.' : ""}
         5. Do NOT tailor the worksheet to any student's marks or prior score.
