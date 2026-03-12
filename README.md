@@ -10,4 +10,4 @@ If a CSV converted from Excel “fails to load”, it’s usually because the fi
 
 ### If the data looks messy / causes errors
 
-If a row has lots of random/unrelated columns (or weird characters), the app will automatically send a simplified `.txt`-style version of that row to the AI (including the selected marks column plus name/id-like fields) and retry.
+CSV rows are sent to the AI in `.txt`-style (key-value lines) by default. If a row has lots of random/unrelated columns (or weird characters), the app retries with an even smaller `.txt` version that focuses on the selected marks column plus name/id-like fields.

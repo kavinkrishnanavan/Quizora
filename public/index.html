@@ -660,6 +660,27 @@
         return lines.join("\n");
     }
 
+    function buildRowTextAllColumns(rowObject) {
+        if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return "";
+
+        const keys = Object.keys(rowObject);
+        const lines = [];
+        let used = 0;
+
+        for (const k of keys) {
+            const raw = String(rowObject[k] ?? "");
+            const v = raw.trim().slice(0, 400);
+            if (!v) continue;
+            const line = `${k}: ${v}${raw.trim().length > 400 ? " (truncated)" : ""}`;
+            lines.push(line);
+            used += line.length + 1;
+            if (lines.length >= 60) break;
+            if (used >= 9000) break;
+        }
+
+        return lines.join("\n");
+    }
+
     function shouldSendTxtToAi(rowObject) {
         if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return true;
 
@@ -739,8 +760,9 @@
                 status.innerText = `Generating quiz ${i + 1} of ${records.length}...`;
 
                 const rowObject = records[i];
-                const rowText = buildRowTextForAi(rowObject, marksColumn);
-                const sendTxtFirst = shouldSendTxtToAi(rowObject);
+                const rowTextAll = buildRowTextAllColumns(rowObject);
+                const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn);
+                const isMessy = shouldSendTxtToAi(rowObject);
 
                 const basePayload = {
                     marksColumn,
@@ -759,13 +781,14 @@
                 try {
                     quiz = await requestQuiz({
                         ...basePayload,
-                        ...(sendTxtFirst ? { rowText } : { rowObject })
+                        // Always send uploaded CSV data as text format to the AI.
+                        rowText: rowTextAll || rowTextFiltered
                     });
                 } catch (e1) {
-                    // If the CSV row is "confusing" or causes errors, retry by sending a TXT version
-                    // that only includes the selected marks column + name/id-like fields.
-                    if (!sendTxtFirst && rowText) {
-                        quiz = await requestQuiz({ ...basePayload, rowText });
+                    // If the CSV row is confusing or causes errors, retry with a smaller TXT version
+                    // that focuses on the selected marks column + name/id-like fields.
+                    if (isMessy && rowTextFiltered) {
+                        quiz = await requestQuiz({ ...basePayload, rowText: rowTextFiltered });
                     } else {
                         throw e1;
                     }
