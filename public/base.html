@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz-Wiz • Base Worksheet Gen</title>
+    <title>Quiz-Wiz</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
         :root {
@@ -59,23 +59,47 @@
         pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); }
 
         body { background: url("background.png"); }
+        #bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 0px;
+            text-align: center;
+        }
+
+        .zoom {
+            width: 200px;
+            transition: transform 0.3s ease; /* smooth animation */
+        }
+
+        .zoom:hover {
+            transform: scale(1.2); /* increases size by 20% */
+        }
+
     </style>
 </head>
 <body>
-<div class="container">
-    <div style="display:flex; align-items:center; gap: 12px; flex-wrap: wrap;">
-        <img src="favicon.png" style="width: 64px; height: 64px;">
-        <div>
-            <div style="font-weight: 900; font-size: 1.35rem;">Quiz-Wiz</div>
-            <div style="color: var(--muted); font-weight: 650;">Base Worksheet Generator</div>
-        </div>
+    
+    <div id="bottom-bar">
+        <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
     </div>
+<div class="container">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="favicon.png" class="zoom" style="width: 200px;">
+        <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
+    </div>
+    <div style="text-align: right;">
+    <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
+    <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+</div>
 
     <div class="tabs">
-        <a class="tab" href="index.html">Personalized (CSV)</a>
-        <a class="tab active" href="base.html">Base Worksheet</a>
+        <a class="tab" href="index.html">Personalized Test</a>
+        <a class="tab active" href="base.html">Baseline Test</a>
     </div>
-
     <hr>
     <br>
 
@@ -86,20 +110,20 @@
         </div>
         <div class="field">
             <label>Topic</label>
-            <input id="topic" value="Fractions">
+            <input id="topic" value="Linear Equations">
         </div>
         <div class="field">
-            <label>Grade</label>
+            <label>Grade Level</label>
             <select id="grade" style="color: grey;">
                 <option>Grade 1</option>
                 <option>Grade 2</option>
-                <option selected>Grade 3</option>
+                <option>Grade 3</option>
                 <option>Grade 4</option>
                 <option>Grade 5</option>
                 <option>Grade 6</option>
                 <option>Grade 7</option>
                 <option>Grade 8</option>
-                <option>Grade 9</option>
+                <option selected>Grade 9</option>
                 <option>Grade 10</option>
                 <option>Grade 11</option>
                 <option>Grade 12</option>
@@ -108,16 +132,12 @@
         <div class="field">
             <label>Curriculum</label>
             <select id="curriculum" style="color: grey;">
-                <option selected>CBSE</option>
-                <option>Cambridge</option>
-                <option>IB</option>
-                <option>ICSE</option>
-                <option>State Board</option>
-                <option>Other</option>
+                <option>KSSR</option><option selected>KSSM</option>
+                <option>Cambridge IGCSE</option><option>IB</option><option>AP</option>
             </select>
         </div>
         <div class="field">
-            <label>Max Marks</label>
+            <label>Total Marks</label>
             <input type="number" id="mMax" value="20" min="1" max="200">
         </div>
         <div class="field">
@@ -133,11 +153,11 @@
         </div>
         <div class="field full-width">
             <label>Special Requests (Optional)</label>
-            <textarea id="requests" rows="2" placeholder="e.g. Include 2 word problems, no decimals..."></textarea>
+            <textarea id="requests" rows="2" placeholder="e.g. Include 1 word problem, funny tone..."></textarea>
         </div>
     </div>
 
-    <button id="genBtn" onclick="runBase()">Generate Base Worksheet</button>
+    <button id="genBtn" onclick="runBase()">Generate Worksheet</button>
     <div id="status"></div>
     <div id="output"></div>
 </div>
@@ -217,6 +237,14 @@
 
             page.drawText(`Worksheet: ${quiz.studentName}`, { x: margin, y, size: 12, font: fontBold });
             y -= 18;
+
+            if (!includeAnswers) {
+                page.drawText("Name:", { x: margin, y, size: 11, font: fontBold });
+                const nameField = form.createTextField(`name_${Math.random().toString(16).slice(2)}`);
+                nameField.setText("");
+                nameField.addToPage(page, { x: margin + 54, y: y - 2, width: 260, height: 16 });
+                y -= 24;
+            }
 
             if (withMarks) {
                 page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
@@ -437,4 +465,3 @@
 </script>
 </body>
 </html>
-
