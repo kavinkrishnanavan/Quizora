@@ -193,8 +193,8 @@
         </div>
         
         <div class="field">
-            <label>Upload Student Marks (CSV)</label>
-            <input type="file" id="csvFile" accept=".csv">
+            <label>Upload Student Names and Marks (CSV/Excel)</label>
+            <input type="file" id="csvFile" accept=".csv,.xlsx,.xls">
         </div>
         <div class="field">
             <label>Name Column (choose after upload)</label>
@@ -245,6 +245,7 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
     function sanitizeFilename(name) {
@@ -447,6 +448,11 @@
         } catch (_) {
             return new TextDecoder("utf-8").decode(bytes);
         }
+    }
+
+    async function readArrayBufferSmart(file) {
+        if (!file) return new ArrayBuffer(0);
+        return await file.arrayBuffer();
     }
 
     function guessDelimiter(text) {
@@ -849,6 +855,43 @@
         };
     }
 
+    function isExcelFile(file) {
+        const name = String(file?.name || "").toLowerCase();
+        return name.endsWith(".xlsx") || name.endsWith(".xls");
+    }
+
+    async function parseExcelToState(file) {
+        if (typeof XLSX === "undefined") {
+            throw new Error("Excel support failed to load. Please refresh and try again.");
+        }
+
+        const buf = await readArrayBufferSmart(file);
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheetName = wb.SheetNames?.[0];
+        if (!sheetName) throw new Error("No sheets found in this Excel file.");
+        const ws = wb.Sheets[sheetName];
+        const parsedRows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
+        const { headers, records } = rowsToObjects(parsedRows);
+
+        return {
+            key: fileKey(file),
+            fileName: file?.name || "Excel",
+            headers,
+            records,
+            dataRows: parsedRows.slice(1),
+            marksColumn: "",
+            nameColumn: "",
+            nameRange: null,
+            marksRange: null,
+            step: "name",
+        };
+    }
+
+    async function parseFileToState(file) {
+        if (isExcelFile(file)) return await parseExcelToState(file);
+        return await parseCsvToState(file);
+    }
+
     function ensureCsvStateMatchesFile(file) {
         const key = fileKey(file);
         if (!csvState || csvState.key !== key) return false;
@@ -927,7 +970,7 @@
                     const nCol = document.getElementById("nCol");
                     if (nCol) nCol.value = "";
                     csvSelection = null;
-                    csvState = await parseCsvToState(file);
+                    csvState = await parseFileToState(file);
                     csvState.nameRange = null;
                     csvState.marksRange = null;
                     csvState.step = "name";
@@ -1052,7 +1095,7 @@
 
         try {
             if (!ensureCsvStateMatchesFile(file)) {
-                csvState = await parseCsvToState(file);
+                csvState = await parseFileToState(file);
                 csvState.step = "name";
                 openCsvModal(csvState, "name");
                 status.innerText = "First select the Name cells, then the Marks cells.";
