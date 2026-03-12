@@ -1,18 +1,10 @@
 import Groq from "groq-sdk";
 
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
-
 export async function handler(event){
 
 try{
 
-const buffer = Buffer.from(event.body, "base64");
-
-const imageBase64 = buffer.toString("base64");
+const {image} = JSON.parse(event.body);
 
 const groq = new Groq({
 apiKey: process.env.GROQ_API_KEY
@@ -26,12 +18,12 @@ role: "user",
 content: [
 {
 type: "text",
-text: "Grade this worksheet. Identify questions and give marks out of 5."
+text: "Read this worksheet image and grade the answers. Give marks out of 5 per question."
 },
 {
 type: "image_url",
 image_url: {
-url: `data:image/png;base64,${imageBase64}`
+url: image
 }
 }
 ]
@@ -39,18 +31,16 @@ url: `data:image/png;base64,${imageBase64}`
 ]
 });
 
-const result = response.choices[0].message.content;
-
 return {
-statusCode:200,
-body:JSON.stringify({
-result
+statusCode: 200,
+body: JSON.stringify({
+result: response.choices[0].message.content
 })
 };
 
 }catch(err){
 
-return{
+return {
 statusCode:500,
 body:JSON.stringify({
 error:err.message
