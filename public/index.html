@@ -1156,7 +1156,7 @@
                 const nameHint = nameColumn ? String(rowObject?.[nameColumn] ?? "").trim() : "";
                 const marksText = marksValue ? `Marks: ${marksValue}/${document.getElementById('mMax').value}` : "Marks: (blank)";
                 const nameText = nameHint ? ` • ${nameHint}` : "";
-                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length}...${nameText} • ${marksText}`;
+                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length} for ${nameText}`;
 
                 const rowTextAll = buildRowTextAllColumns(rowObject);
                 const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn, nameColumn);
