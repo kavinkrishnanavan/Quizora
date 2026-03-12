@@ -1151,9 +1151,13 @@
             }
 
             for (let i = 0; i < selectedRecords.length; i++) {
-                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length}...`;
-
                 const rowObject = selectedRecords[i];
+                const marksValue = String(rowObject?.[marksColumn] ?? "").trim();
+                const nameHint = nameColumn ? String(rowObject?.[nameColumn] ?? "").trim() : "";
+                const marksText = marksValue ? `Marks: ${marksValue}/${document.getElementById('mMax').value}` : "Marks: (blank)";
+                const nameText = nameHint ? ` • ${nameHint}` : "";
+                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length}...${nameText} • ${marksText}`;
+
                 const rowTextAll = buildRowTextAllColumns(rowObject);
                 const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn, nameColumn);
                 const isMessy = shouldSendTxtToAi(rowObject);
@@ -1202,7 +1206,7 @@
                 const title = document.createElement('div');
                 title.style.fontWeight = "800";
                 title.style.marginBottom = "10px";
-                title.innerText = quiz.studentName;
+                title.innerText = `${quiz.studentName}${marksValue ? ` • Marks: ${marksValue}/${meta.maxMarks}` : ""}`;
 
                 const btnRow = document.createElement('div');
                 btnRow.style.display = "flex";
