@@ -1,144 +1,360 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>AI Worksheet Marker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz-Wiz</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        :root {
+            color-scheme: light dark;
 
-<style>
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --status-bg: #eff6ff;
+            --status-text: #2563eb;
+        }
 
-body{
-font-family:Arial;
-padding:40px;
-background:#f4f4f4;
-text-align:center;
-}
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b1220;
+                --card: #0f172a;
+                --text: #e2e8f0;
+                --muted: #94a3b8;
+                --border: #263145;
+                --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+                --status-bg: rgba(37, 99, 235, 0.18);
+                --status-text: #93c5fd;
+            }
+        }
 
-#results{
-margin-top:30px;
-max-width:700px;
-margin-left:auto;
-margin-right:auto;
-background:white;
-padding:20px;
-border-radius:10px;
-}
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
+        .container { max-width: 900px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
+        a { color: var(--primary); }
+        hr { border-color: var(--border); }
 
-.question{
-text-align:left;
-border-bottom:1px solid #ddd;
-padding:10px;
-}
+        .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
+        .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
+        .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
 
-.correct{
-color:green;
-}
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
 
-.incorrect{
-color:red;
-}
+        .field { display: flex; flex-direction: column; }
+        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+        input, select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: transparent; color: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
 
-</style>
+        button { background: var(--primary); color: white; padding: 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; opacity: 1; }
+
+        .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { opacity: 1; border-color: rgba(37, 99, 235, 0.55); }
+
+        #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
+        .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
+
+        body { background: url("background.png"); padding-bottom: 7%; }
+        #bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 0px;
+            text-align: center;
+        }
+
+        .zoom {
+            width: 200px;
+            transition: transform 0.3s ease;
+        }
+        .zoom:hover {
+            transform: scale(1.2);
+        }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 10px; }
+        .toolbar-left, .toolbar-right { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+        .preview-wrap { border: 1px solid var(--border); border-radius: 12px; background: rgba(148, 163, 184, 0.06); padding: 12px; }
+        .preview-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .preview-stage {
+            width: 100%;
+            max-height: 420px;
+            overflow: auto;
+            border-radius: 10px;
+            border: 1px dashed rgba(148, 163, 184, 0.45);
+            background: rgba(15, 23, 42, 0.02);
+            padding: 14px;
+        }
+        .preview-img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            transform-origin: center center;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--card);
+        }
+        .zoom-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .zoom-controls button { padding: 10px 12px; margin-top: 0; border-radius: 10px; }
+        .zoom-controls input[type="range"] { width: 180px; }
+        .muted { color: var(--muted); font-size: 0.9rem; }
+
+        .question { padding: 14px 0; border-top: 1px solid var(--border); }
+        .question:first-child { border-top: none; }
+        .question label { display: flex; gap: 10px; align-items: center; margin: 0 0 6px; color: var(--text); font-size: 1rem; }
+        .question p { margin: 6px 0; }
+        .score-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    </style>
 </head>
-
 <body>
+    <div id="bottom-bar">
+        <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. â™¥ï¸</h3>
+    </div>
 
-<h2>AI Worksheet Marker</h2>
+    <div class="container">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
+            <h1>Quiz-Wiz : Worksheets Empowered ðŸ“ƒðŸ–¥ï¸ðŸ«</h1>
+        </div>
+        <div style="text-align: right;">
+            <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
+            <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback â­ !</a>
+        </div>
 
-<input type="file" id="imageInput" accept="image/*">
-<br><br>
+        <div class="tabs">
+            <a class="tab" href="index.html">Personalized Tests</a>
+            <a class="tab" href="baseline.html">Baseline Test</a>
+            <a class="tab active" href="image.html">Worksheet Marker</a>
+        </div>
+        <hr>
+        <br>
 
-<button onclick="upload()">Mark Worksheet</button>
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <h2 style="margin: 0;">AI Worksheet Marker</h2>
+            </div>
+            <div class="toolbar-right">
+                <button type="button" class="btn-secondary" id="redirectBtn">Back to Home</button>
+            </div>
+        </div>
 
-<div id="results"></div>
+        <div class="form-grid" style="margin-top: 20px;">
+            <div class="field full-width">
+                <label for="imageInput">Upload worksheet image</label>
+                <input type="file" id="imageInput" accept="image/*">
+                <div class="muted" style="margin-top: 6px;">Preview appears below. Use scroll + zoom to inspect before grading.</div>
+            </div>
 
-<script>
+            <div class="full-width" id="previewSection" style="display:none;">
+                <div class="preview-wrap">
+                    <div class="preview-toolbar">
+                        <div class="zoom-controls">
+                            <button type="button" class="btn-secondary" id="zoomOutBtn" aria-label="Zoom out">−</button>
+                            <button type="button" class="btn-secondary" id="zoomInBtn" aria-label="Zoom in">+</button>
+                            <input id="zoomRange" type="range" min="25" max="300" value="100" step="5" aria-label="Zoom level">
+                            <span class="muted" id="zoomLabel">100%</span>
+                            <button type="button" class="btn-secondary" id="zoomResetBtn">Reset</button>
+                        </div>
+                        <div class="muted">Tip: use mouse wheel over preview to zoom.</div>
+                    </div>
+                    <div class="preview-stage" id="previewStage">
+                        <img id="previewImg" class="preview-img" alt="Worksheet preview">
+                    </div>
+                </div>
+            </div>
 
-function toBase64(file){
-return new Promise((resolve,reject)=>{
-const reader = new FileReader();
-reader.readAsDataURL(file);
-reader.onload = ()=>resolve(reader.result);
-reader.onerror = reject;
-});
-}
+            <div class="full-width">
+                <button id="markBtn" type="button" disabled>Mark Worksheet</button>
+                <div id="status"></div>
+            </div>
+        </div>
 
-async function upload(){
+        <div id="results" class="quiz-card" style="display:none;"></div>
+    </div>
 
-const file = document.getElementById("imageInput").files[0];
+    <script>
+        const imageInput = document.getElementById("imageInput");
+        const previewSection = document.getElementById("previewSection");
+        const previewImg = document.getElementById("previewImg");
+        const previewStage = document.getElementById("previewStage");
+        const zoomRange = document.getElementById("zoomRange");
+        const zoomLabel = document.getElementById("zoomLabel");
+        const zoomOutBtn = document.getElementById("zoomOutBtn");
+        const zoomInBtn = document.getElementById("zoomInBtn");
+        const zoomResetBtn = document.getElementById("zoomResetBtn");
+        const markBtn = document.getElementById("markBtn");
+        const status = document.getElementById("status");
+        const results = document.getElementById("results");
+        const redirectBtn = document.getElementById("redirectBtn");
 
-if(!file){
-alert("Upload an image first");
-return;
-}
+        function setStatus(message) {
+            status.style.display = "block";
+            status.textContent = message;
+        }
 
-document.getElementById("results").innerHTML="AI is grading...";
+        function clearStatus() {
+            status.style.display = "none";
+            status.textContent = "";
+        }
 
-const base64 = await toBase64(file);
+        function setZoom(percent) {
+            const safePercent = Math.max(25, Math.min(300, percent));
+            zoomRange.value = String(safePercent);
+            zoomLabel.textContent = safePercent + "%";
+            previewImg.style.transform = "scale(" + (safePercent / 100) + ")";
+        }
 
-const response = await fetch("/.netlify/functions/image",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-image:base64
-})
-});
+        function getSelectedFile() {
+            return imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+        }
 
-const data = await response.json();
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+            });
+        }
 
-renderResults(data.questions);
+        function showPreview(file) {
+            if (!file || !file.type || !file.type.startsWith("image/")) {
+                previewSection.style.display = "none";
+                previewImg.removeAttribute("src");
+                markBtn.disabled = true;
+                return;
+            }
 
-}
+            const reader = new FileReader();
+            reader.onload = () => {
+                previewImg.src = reader.result;
+                previewSection.style.display = "block";
+                markBtn.disabled = false;
+                setZoom(100);
+                previewStage.scrollTop = 0;
+                previewStage.scrollLeft = 0;
+            };
+            reader.readAsDataURL(file);
+        }
 
-function renderResults(questions){
+        async function upload() {
+            const file = getSelectedFile();
+            if (!file) {
+                alert("Upload an image first");
+                return;
+            }
 
-let html="";
+            results.style.display = "none";
+            results.innerHTML = "";
+            setStatus("AI is grading...");
+            markBtn.disabled = true;
 
-questions.forEach((q,i)=>{
+            try {
+                const base64 = await toBase64(file);
 
-const checked = q.correct ? "checked" : "";
+                const response = await fetch("/.netlify/functions/image", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: base64 })
+                });
 
-html += `
-<div class="question">
+                if (!response.ok) {
+                    throw new Error("Request failed (" + response.status + ")");
+                }
 
-<label>
-<input type="checkbox" ${checked} onchange="updateScore()">
-<strong>Question ${i+1}</strong>
-</label>
+                const data = await response.json();
+                renderResults((data && data.questions) ? data.questions : []);
+                clearStatus();
+            } catch (err) {
+                setStatus("Error: " + (err && err.message ? err.message : "Unable to grade worksheet"));
+            } finally {
+                markBtn.disabled = !getSelectedFile();
+            }
+        }
 
-<p><b>Student Answer:</b> ${q.student_answer}</p>
-<p><b>Correct Answer:</b> ${q.correct_answer}</p>
+        function escapeHtml(value) {
+            const str = String(value ?? "");
+            return str
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll("\"", "&quot;")
+                .replaceAll("'", "&#039;");
+        }
 
-<p>AI Score: ${q.score}</p>
+        function renderResults(questions) {
+            if (!Array.isArray(questions) || questions.length === 0) {
+                results.style.display = "block";
+                results.innerHTML = "<div class='muted'>No questions returned. Try a clearer photo or re-upload.</div>";
+                return;
+            }
 
-</div>
-`;
+            let html = "";
+            questions.forEach((q, i) => {
+                const checked = q && q.correct ? "checked" : "";
+                html += `
+                    <div class="question">
+                        <label>
+                            <input type="checkbox" ${checked} onchange="updateScore()">
+                            <strong>Question ${i + 1}</strong>
+                        </label>
+                        <p><b>Student Answer:</b> ${escapeHtml(q && q.student_answer)}</p>
+                        <p><b>Correct Answer:</b> ${escapeHtml(q && q.correct_answer)}</p>
+                        <p><b>AI Score:</b> ${escapeHtml(q && q.score)}</p>
+                    </div>
+                `;
+            });
 
-});
+            html += `
+                <div class="score-row" style="margin-top: 14px;">
+                    <h3 id="totalScore" style="margin: 0;"></h3>
+                    <div class="muted">Tick/untick to match your marking.</div>
+                </div>
+            `;
 
-html += `<h3 id="totalScore"></h3>`;
+            results.style.display = "block";
+            results.innerHTML = html;
+            updateScore();
+        }
 
-document.getElementById("results").innerHTML = html;
+        function updateScore() {
+            const boxes = document.querySelectorAll(".question input[type='checkbox']");
+            let score = 0;
+            boxes.forEach(box => { if (box.checked) score += 1; });
 
-updateScore();
-}
+            const totalEl = document.getElementById("totalScore");
+            if (totalEl) totalEl.textContent = "Teacher Score: " + score + " / " + boxes.length;
+        }
 
-function updateScore(){
+        imageInput.addEventListener("change", () => showPreview(getSelectedFile()));
+        markBtn.addEventListener("click", upload);
 
-const boxes = document.querySelectorAll(".question input");
-let score = 0;
+        zoomRange.addEventListener("input", () => setZoom(Number(zoomRange.value)));
+        zoomOutBtn.addEventListener("click", () => setZoom(Number(zoomRange.value) - 10));
+        zoomInBtn.addEventListener("click", () => setZoom(Number(zoomRange.value) + 10));
+        zoomResetBtn.addEventListener("click", () => setZoom(100));
 
-boxes.forEach(box=>{
-if(box.checked) score += 1;
-});
+        previewStage.addEventListener("wheel", (event) => {
+            if (!previewSection || previewSection.style.display === "none") return;
+            event.preventDefault();
+            const direction = event.deltaY > 0 ? -1 : 1;
+            const step = event.shiftKey ? 25 : 10;
+            setZoom(Number(zoomRange.value) + direction * step);
+        }, { passive: false });
 
-document.getElementById("totalScore").innerText =
-"Teacher Score: "+score;
-
-}
-
-</script>
-
+        redirectBtn.addEventListener("click", () => {
+            window.location.href = "index.html";
+        });
+    </script>
 </body>
 </html>
