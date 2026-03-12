@@ -1,224 +1,144 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz-Wiz</title>
-    <link rel="icon" type="image/png" href="favicon.png">
-    <style>
-        :root {
-            color-scheme: light dark;
+<meta charset="UTF-8">
+<title>AI Worksheet Marker</title>
 
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-            --muted: #64748b;
-            --border: #e2e8f0;
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --status-bg: #eff6ff;
-            --status-text: #2563eb;
-        }
+<style>
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0b1220;
-                --card: #0f172a;
-                --text: #e2e8f0;
-                --muted: #94a3b8;
-                --border: #263145;
-                --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
-                --status-bg: rgba(37, 99, 235, 0.18);
-                --status-text: #93c5fd;
-            }
-        }
+body{
+font-family:Arial;
+padding:40px;
+background:#f4f4f4;
+text-align:center;
+}
 
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
-        .container { max-width: 900px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
-        a { color: var(--primary); }
-        hr { border-color: var(--border); }
+#results{
+margin-top:30px;
+max-width:700px;
+margin-left:auto;
+margin-right:auto;
+background:white;
+padding:20px;
+border-radius:10px;
+}
 
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
-        .full-width { grid-column: 1 / -1; }
+.question{
+text-align:left;
+border-bottom:1px solid #ddd;
+padding:10px;
+}
 
-        .field { display: flex; flex-direction: column; }
-        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
-        input, select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: transparent; color: inherit; }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+.correct{
+color:green;
+}
 
-        button { background: var(--primary); color: white; padding: 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        button:disabled { background: #94a3b8; cursor: not-allowed; }
+.incorrect{
+color:red;
+}
 
-        .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
-        .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
-        .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
-
-        #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
-        .card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
-        pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); margin: 0; }
-
-        body { background: url("background.png"); padding-bottom: 7%; }
-
-        .zoom { width: 200px; transition: transform 0.3s ease; }
-        .zoom:hover { transform: scale(1.2); }
-
-        #bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--card);
-            border-top: 1px solid var(--border);
-            padding: 0px;
-            text-align: center;
-        }
-
-        .preview {
-            width: 100%;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            background: rgba(255,255,255,0.02);
-        }
-
-        .preview img {
-            display: block;
-            width: 100%;
-            height: auto;
-            max-height: 420px;
-            object-fit: contain;
-            background: rgba(0,0,0,0.15);
-        }
-    </style>
+</style>
 </head>
+
 <body>
-    <div id="bottom-bar">
-        <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
-    </div>
 
-    <div class="container">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="favicon.png" class="zoom" style="width: 200px;">
-            <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
-        </div>
+<h2>AI Worksheet Marker</h2>
 
-        <div style="text-align: right;">
-            <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
-            <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
-        </div>
+<input type="file" id="imageInput" accept="image/*">
+<br><br>
 
-        <div class="tabs">
-            <a class="tab" href="index.html">Personalized Tests</a>
-            <a class="tab" href="baseline.html">Baseline Test</a>
-            <a class="tab active" href="image.html">Worksheet Marker</a>
-        </div>
-        <hr>
-        <br>
-        
+<button onclick="upload()">Mark Worksheet</button>
 
-        <div class="form-grid">
-            <div class="field full-width">
-                <label>Upload a worksheet image</label>
-                <input type="file" id="imageInput" accept="image/*">
-            </div>
+<div id="results"></div>
 
-            <div class="field full-width">
-                <button id="markBtn" type="button">Mark Worksheet</button>
-                
-            </div>
-        </div>
+<script>
 
-        <div id="status"></div>
+function toBase64(file){
+return new Promise((resolve,reject)=>{
+const reader = new FileReader();
+reader.readAsDataURL(file);
+reader.onload = ()=>resolve(reader.result);
+reader.onerror = reject;
+});
+}
 
-        <div id="previewWrap" class="card" style="display:none;">
-            <h3 style="margin-top:0;">Preview</h3>
-            <div class="preview"><img id="previewImg" alt="Worksheet preview"></div>
-        </div>
+async function upload(){
 
-        <div id="resultCard" class="card" style="display:none;">
-            <h3 style="margin-top:0;">Result</h3>
-            <pre id="result"></pre>
-        </div>
-    </div>
+const file = document.getElementById("imageInput").files[0];
 
-    <script>
-        const input = document.getElementById("imageInput");
-        const markBtn = document.getElementById("markBtn");
-        const status = document.getElementById("status");
-        const resultCard = document.getElementById("resultCard");
-        const resultEl = document.getElementById("result");
-        const previewWrap = document.getElementById("previewWrap");
-        const previewImg = document.getElementById("previewImg");
+if(!file){
+alert("Upload an image first");
+return;
+}
 
-        function setStatus(text) {
-            status.style.display = "block";
-            status.innerText = text;
-        }
+document.getElementById("results").innerHTML="AI is grading...";
 
-        function clearStatus() {
-            status.style.display = "none";
-            status.innerText = "";
-        }
+const base64 = await toBase64(file);
 
-        function toBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-            });
-        }
+const response = await fetch("/.netlify/functions/image",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+image:base64
+})
+});
 
-        input.addEventListener("change", async () => {
-            const file = input.files?.[0] || null;
-            resultCard.style.display = "none";
-            resultEl.innerText = "";
+const data = await response.json();
 
-            if (!file) {
-                previewWrap.style.display = "none";
-                previewImg.removeAttribute("src");
-                return;
-            }
+renderResults(data.questions);
 
-            try {
-                const base64 = await toBase64(file);
-                previewImg.src = base64;
-                previewWrap.style.display = "block";
-            } catch {
-                previewWrap.style.display = "none";
-            }
-        });
+}
 
-        markBtn.addEventListener("click", async () => {
-            const file = input.files?.[0] || null;
-            if (!file) return alert("Upload an image first");
+function renderResults(questions){
 
-            markBtn.disabled = true;
-            resultCard.style.display = "none";
-            resultEl.innerText = "";
-            setStatus("Uploading...");
+let html="";
 
-            try {
-                const base64 = await toBase64(file);
-                const response = await fetch("/.netlify/functions/image", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ image: base64 }),
-                });
+questions.forEach((q,i)=>{
 
-                const data = await response.json().catch(() => ({}));
-                clearStatus();
-                resultCard.style.display = "block";
-                resultEl.innerText = data.result || data.error || `Request failed (HTTP ${response.status})`;
-            } catch (e) {
-                clearStatus();
-                resultCard.style.display = "block";
-                resultEl.innerText = e?.message || "Request failed.";
-            } finally {
-                markBtn.disabled = false;
-            }
-        });
-    </script>
+const checked = q.correct ? "checked" : "";
+
+html += `
+<div class="question">
+
+<label>
+<input type="checkbox" ${checked} onchange="updateScore()">
+<strong>Question ${i+1}</strong>
+</label>
+
+<p><b>Student Answer:</b> ${q.student_answer}</p>
+<p><b>Correct Answer:</b> ${q.correct_answer}</p>
+
+<p>AI Score: ${q.score}</p>
+
+</div>
+`;
+
+});
+
+html += `<h3 id="totalScore"></h3>`;
+
+document.getElementById("results").innerHTML = html;
+
+updateScore();
+}
+
+function updateScore(){
+
+const boxes = document.querySelectorAll(".question input");
+let score = 0;
+
+boxes.forEach(box=>{
+if(box.checked) score += 1;
+});
+
+document.getElementById("totalScore").innerText =
+"Teacher Score: "+score;
+
+}
+
+</script>
+
 </body>
 </html>
