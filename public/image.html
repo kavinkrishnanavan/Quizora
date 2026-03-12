@@ -1,35 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>AI Worksheet Marker</title>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
-
 <style>
 body{
-font-family: Arial;
+font-family:Arial;
 text-align:center;
 padding:40px;
 background:#f5f5f5;
 }
 
-h2{
-margin-bottom:20px;
-}
-
-button{
-padding:10px 20px;
-font-size:16px;
-cursor:pointer;
-}
-
 #result{
-margin-top:25px;
-background:white;
+margin-top:20px;
 padding:20px;
-border-radius:8px;
 border:1px solid #ccc;
+background:white;
 white-space:pre-wrap;
 max-width:600px;
 margin-left:auto;
@@ -45,61 +32,35 @@ margin-right:auto;
 <input type="file" id="imageInput" accept="image/*">
 <br><br>
 
-<button onclick="markWorksheet()">Mark Worksheet</button>
+<button onclick="upload()">Mark Worksheet</button>
 
 <div id="result"></div>
 
 <script>
 
-async function markWorksheet(){
+async function upload(){
 
 const file = document.getElementById("imageInput").files[0];
 
 if(!file){
-alert("Please upload a worksheet image.");
+alert("Upload an image first");
 return;
 }
 
 const resultBox = document.getElementById("result");
+resultBox.innerText = "Uploading image...";
 
-resultBox.innerText="Reading worksheet image...";
+const formData = new FormData();
+formData.append("image", file);
 
-try{
-
-// OCR step
-const ocr = await Tesseract.recognize(
-file,
-"eng"
-);
-
-const extractedText = ocr.data.text;
-
-resultBox.innerText="Text extracted. Sending to AI marker...";
-
-// Send to Netlify function
 const response = await fetch("/.netlify/functions/image",{
 method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-text:extractedText
-})
+body:formData
 });
 
 const data = await response.json();
 
-if(data.result){
-resultBox.innerText=data.result;
-}else{
-resultBox.innerText="Error: "+data.error;
-}
-
-}catch(err){
-
-resultBox.innerText="Error processing worksheet: "+err.message;
-
-}
+resultBox.innerText = data.result || data.error;
 
 }
 
