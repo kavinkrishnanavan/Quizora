@@ -66,7 +66,7 @@
   transform: scale(1.2); /* increases size by 20% */
 }
 
-#bottom-bar {
+        #bottom-bar {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -77,6 +77,22 @@
     
     text-align: center;
 }
+
+        .csv-equal-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 0.95rem;
+        }
+
+        .csv-equal-table td {
+            padding: 10px 10px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body>
@@ -181,11 +197,9 @@
                     </div>
 
                     <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-                        <div style="padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.9rem;">
-                            Preview (first 10 rows)
-                        </div>
+                        
                         <div style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
-                            <table id="csvPreviewTable" style="width: 100%; border-collapse: collapse; font-size: 0.95rem;"></table>
+                            <table id="csvPreviewTable" class="csv-equal-table"></table>
                         </div>
                     </div>
                 </div>
@@ -526,22 +540,25 @@
         if (defaultHeader) select.value = defaultHeader;
 
         const previewRows = state.previewRows || [];
-        const cols = Math.min(state.headers.length || 0, 12) || Math.min((previewRows[0] || []).length || 0, 12) || 8;
+        const cols = Math.max(
+            state.headers.length || 0,
+            ...previewRows.map((r) => (Array.isArray(r) ? r.length : 0))
+        ) || 1;
 
-        const headCells = [];
-        for (let i = 0; i < Math.min(state.headers.length, cols); i++) {
-            headCells.push(`<th style="text-align:left; padding: 10px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--card);">${escapeHtml(state.headers[i])}</th>`);
-        }
+        const colWidth = 160;
+        const colGroup = `<colgroup>${Array.from({ length: cols })
+            .map(() => `<col style="width: ${colWidth}px;">`)
+            .join("")}</colgroup>`;
 
-        const bodyRows = previewRows.slice(1, 11).map((r) => {
+        const bodyRows = previewRows.slice(0, 11).map((r) => {
             const tds = [];
             for (let i = 0; i < cols; i++) {
-                tds.push(`<td style="padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top;">${escapeHtml(r?.[i] ?? "")}</td>`);
+                tds.push(`<td>${escapeHtml(r?.[i] ?? "")}</td>`);
             }
             return `<tr>${tds.join("")}</tr>`;
         });
 
-        table.innerHTML = `<thead><tr>${headCells.join("")}</tr></thead><tbody>${bodyRows.join("")}</tbody>`;
+        table.innerHTML = `${colGroup}<tbody>${bodyRows.join("")}</tbody>`;
 
         modal.style.display = "block";
         document.body.style.overflow = "hidden";
@@ -610,6 +627,84 @@
         }
     })();
 
+    function buildRowTextForAi(rowObject, marksColumn) {
+        if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return "";
+
+        const keys = Object.keys(rowObject);
+        const nameKeys = keys.filter((k) => /(name|student|learner|candidate)/i.test(k));
+        const idKeys = keys.filter((k) => /(id|adm|admission|roll|index)/i.test(k));
+        const selected = [];
+
+        const addKey = (k) => {
+            if (!k) return;
+            if (selected.includes(k)) return;
+            selected.push(k);
+        };
+
+        for (const k of nameKeys.slice(0, 2)) addKey(k);
+        for (const k of idKeys.slice(0, 1)) addKey(k);
+        addKey(marksColumn);
+
+        if (selected.length === 0) {
+            for (const k of keys.slice(0, 6)) addKey(k);
+        }
+
+        const lines = [];
+        for (const k of selected) {
+            const raw = String(rowObject[k] ?? "");
+            const v = raw.trim().slice(0, 300);
+            if (!v) continue;
+            lines.push(`${k}: ${v}${raw.trim().length > 300 ? " (truncated)" : ""}`);
+        }
+
+        return lines.join("\n");
+    }
+
+    function shouldSendTxtToAi(rowObject) {
+        if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return true;
+
+        const keys = Object.keys(rowObject);
+        if (keys.length > 30) return true;
+
+        let totalLen = 0;
+        for (const k of keys) totalLen += String(rowObject[k] ?? "").length;
+        if (totalLen > 5000) return true;
+
+        // Heuristic: if there's a lot of non-printable characters, treat as "confusing" data.
+        const sample = keys.slice(0, 10).map((k) => String(rowObject[k] ?? "")).join("\n").slice(0, 1000);
+        const nonPrintable = (sample.match(/[^\x09\x0A\x0D\x20-\x7E]/g) || []).length;
+        if (sample.length && nonPrintable / sample.length > 0.2) return true;
+
+        return false;
+    }
+
+    async function requestQuiz(payload) {
+        const response = await fetch('/.netlify/functions/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (_) {
+            data = null;
+        }
+
+        if (!response.ok) {
+            const errMsg = data?.error ? String(data.error) : `Request failed (${response.status})`;
+            const errRid = data?.requestId ? `\nRequest ID: ${data.requestId}` : "";
+            throw new Error(errMsg + errRid);
+        }
+
+        const quiz = data?.quiz;
+        if (!quiz || typeof quiz.studentName !== "string" || !Array.isArray(quiz.questions)) {
+            throw new Error("Server returned an unexpected quiz format.");
+        }
+        return quiz;
+    }
+
     async function run() {
         const file = document.getElementById('csvFile').files[0];
         if (!file) return alert("Please upload a CSV file.");
@@ -642,41 +737,38 @@
 
             for (let i = 0; i < records.length; i++) {
                 status.innerText = `Generating quiz ${i + 1} of ${records.length}...`;
-                
-                const response = await fetch('/.netlify/functions/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        rowObject: records[i],
-                        marksColumn,
-                        score: records[i]?.[marksColumn] ?? "",
-                        subject: document.getElementById('subject').value,
-                        topic: document.getElementById('topic').value,
-                        grade: document.getElementById('grade').value,
-                        curriculum: document.getElementById('curriculum').value,
-                        maxMarks: document.getElementById('mMax').value,
-                        questionCount: parseInt(document.getElementById('qCount').value, 10),
-                        answerFormat: document.getElementById('answerFormat').value,
-                        requests: document.getElementById('requests').value
-                    })
-                });
 
-                let data = null;
+                const rowObject = records[i];
+                const rowText = buildRowTextForAi(rowObject, marksColumn);
+                const sendTxtFirst = shouldSendTxtToAi(rowObject);
+
+                const basePayload = {
+                    marksColumn,
+                    score: rowObject?.[marksColumn] ?? "",
+                    subject: document.getElementById('subject').value,
+                    topic: document.getElementById('topic').value,
+                    grade: document.getElementById('grade').value,
+                    curriculum: document.getElementById('curriculum').value,
+                    maxMarks: document.getElementById('mMax').value,
+                    questionCount: parseInt(document.getElementById('qCount').value, 10),
+                    answerFormat: document.getElementById('answerFormat').value,
+                    requests: document.getElementById('requests').value
+                };
+
+                let quiz = null;
                 try {
-                    data = await response.json();
-                } catch (_) {
-                    data = null;
-                }
-
-                if (!response.ok) {
-                    const errMsg = data?.error ? String(data.error) : `Request failed (${response.status})`;
-                    const errRid = data?.requestId ? `\nRequest ID: ${data.requestId}` : "";
-                    throw new Error(errMsg + errRid);
-                }
-                
-                const quiz = data?.quiz;
-                if (!quiz || typeof quiz.studentName !== "string" || !Array.isArray(quiz.questions)) {
-                    throw new Error("Server returned an unexpected quiz format.");
+                    quiz = await requestQuiz({
+                        ...basePayload,
+                        ...(sendTxtFirst ? { rowText } : { rowObject })
+                    });
+                } catch (e1) {
+                    // If the CSV row is "confusing" or causes errors, retry by sending a TXT version
+                    // that only includes the selected marks column + name/id-like fields.
+                    if (!sendTxtFirst && rowText) {
+                        quiz = await requestQuiz({ ...basePayload, rowText });
+                    } else {
+                        throw e1;
+                    }
                 }
 
                 const meta = {
