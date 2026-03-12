@@ -86,12 +86,40 @@
             font-size: 0.95rem;
         }
 
+        .csv-equal-table th,
         .csv-equal-table td {
             padding: 10px 10px;
-            border-bottom: 1px solid var(--border);
+            border: 1px solid var(--border);
             vertical-align: top;
             overflow-wrap: anywhere;
             word-break: break-word;
+        }
+
+        .csv-equal-table th {
+            position: sticky;
+            top: 0;
+            background: var(--card);
+            font-weight: 700;
+            z-index: 1;
+        }
+
+        .csv-equal-table.is-selecting {
+            user-select: none;
+            cursor: cell;
+        }
+
+        .csv-cell-selected {
+            background: rgba(37, 99, 235, 0.18);
+        }
+
+        .csv-col-name {
+            outline: 2px solid rgba(16, 185, 129, 0.7);
+            outline-offset: -2px;
+        }
+
+        .csv-col-marks {
+            outline: 2px solid rgba(245, 158, 11, 0.75);
+            outline-offset: -2px;
         }
     </style>
 </head>
@@ -162,6 +190,10 @@
             <input type="file" id="csvFile" accept=".csv">
         </div>
         <div class="field">
+            <label>Name Column (optional, choose after upload)</label>
+            <input type="text" id="nCol" value="" placeholder="Upload CSV to choose…" readonly>
+        </div>
+        <div class="field">
             <label>Marks Column (choose after upload)</label>
           <input type="text" id="mCol" value="" placeholder="Upload CSV to choose…" readonly>
         </div>
@@ -181,7 +213,7 @@
             <div role="dialog" aria-modal="true" aria-labelledby="csvModalTitle" style="position: relative; max-width: 1100px; margin: 6vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;">
                 <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
                     <div>
-                        <div id="csvModalTitle" style="font-weight: 800; font-size: 1.05rem;">Select Marks Column</div>
+                        <div id="csvModalTitle" style="font-weight: 800; font-size: 1.05rem;">Select Columns</div>
                         <div id="csvModalSubtitle" style="color: var(--muted); font-size: 0.9rem;"></div>
                     </div>
                     <button type="button" id="csvModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
@@ -190,10 +222,18 @@
                 <div style="padding: 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px;">
                     <div style="display:flex; flex-wrap: wrap; gap: 12px; align-items: end;">
                         <div class="field" style="min-width: 260px; flex: 1;">
+                            <label>Name Column (optional)</label>
+                            <select id="nameColumnSelect" style="color: grey;"></select>
+                        </div>
+                        <div class="field" style="min-width: 260px; flex: 1;">
                             <label>Marks Column</label>
                             <select id="marksColumnSelect" style="color: grey;"></select>
                         </div>
-                        <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use This Column</button>
+                        <div style="display:flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;">
+                            <button type="button" id="csvSetNameFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Name from Selection</button>
+                            <button type="button" id="csvSetMarksFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Marks from Selection</button>
+                            <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use Selected Columns</button>
+                        </div>
                     </div>
 
                     <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
@@ -510,6 +550,162 @@
         return hit || headers[1] || headers[0] || "";
     }
 
+    function guessNameHeader(headers) {
+        const re = /(name|student|learner|candidate)/i;
+        const hit = headers.find((h) => re.test(String(h)));
+        return hit || "";
+    }
+
+    let csvSelection = null;
+
+    function buildCsvPreviewTable(table, headers, previewRows) {
+        table.textContent = "";
+
+        const cols = Math.max(1, headers?.length || 0);
+        const colWidth = 160;
+
+        const colgroup = document.createElement("colgroup");
+        for (let c = 0; c < cols; c++) {
+            const col = document.createElement("col");
+            col.style.width = `${colWidth}px`;
+            colgroup.appendChild(col);
+        }
+        table.appendChild(colgroup);
+
+        const thead = document.createElement("thead");
+        const trHead = document.createElement("tr");
+        for (let c = 0; c < cols; c++) {
+            const th = document.createElement("th");
+            th.textContent = String(headers?.[c] ?? `Column${c + 1}`);
+            th.dataset.r = "-1";
+            th.dataset.c = String(c);
+            trHead.appendChild(th);
+        }
+        thead.appendChild(trHead);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        const rows = Array.isArray(previewRows) ? previewRows.slice(0, 10) : [];
+        for (let r = 0; r < rows.length; r++) {
+            const tr = document.createElement("tr");
+            for (let c = 0; c < cols; c++) {
+                const td = document.createElement("td");
+                td.textContent = String(rows?.[r]?.[c] ?? "");
+                td.dataset.r = String(r);
+                td.dataset.c = String(c);
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+    }
+
+    function applyCsvSelectionHighlight(table) {
+        const cells = table.querySelectorAll("th[data-r][data-c], td[data-r][data-c]");
+        if (!csvSelection?.start || !csvSelection?.end) {
+            cells.forEach((el) => el.classList.remove("csv-cell-selected"));
+            return;
+        }
+
+        const r1 = Number(csvSelection.start.r);
+        const r2 = Number(csvSelection.end.r);
+        const c1 = Number(csvSelection.start.c);
+        const c2 = Number(csvSelection.end.c);
+
+        const rMin = Math.min(r1, r2);
+        const rMax = Math.max(r1, r2);
+        const cMin = Math.min(c1, c2);
+        const cMax = Math.max(c1, c2);
+
+        cells.forEach((el) => {
+            const r = Number(el.dataset.r);
+            const c = Number(el.dataset.c);
+            const inside = r >= rMin && r <= rMax && c >= cMin && c <= cMax;
+            el.classList.toggle("csv-cell-selected", inside);
+        });
+    }
+
+    function getCsvSelectedColumnRange() {
+        if (!csvSelection?.start || !csvSelection?.end) return null;
+        const c1 = Number(csvSelection.start.c);
+        const c2 = Number(csvSelection.end.c);
+        if (!Number.isFinite(c1) || !Number.isFinite(c2)) return null;
+        return { cMin: Math.min(c1, c2), cMax: Math.max(c1, c2) };
+    }
+
+    function applyChosenColumnClasses(table, headers, nameColumn, marksColumn) {
+        const nameIndex = nameColumn ? headers.indexOf(nameColumn) : -1;
+        const marksIndex = marksColumn ? headers.indexOf(marksColumn) : -1;
+        const cells = table.querySelectorAll("th[data-r][data-c], td[data-r][data-c]");
+
+        cells.forEach((el) => {
+            el.classList.remove("csv-col-name", "csv-col-marks");
+            const c = Number(el.dataset.c);
+            if (Number.isFinite(c) && c === nameIndex) el.classList.add("csv-col-name");
+            if (Number.isFinite(c) && c === marksIndex) el.classList.add("csv-col-marks");
+        });
+    }
+
+    function initCsvDragSelection(table) {
+        if (table.dataset.dragSelectInit) return;
+        table.dataset.dragSelectInit = "1";
+
+        const getCellFromEvent = (ev) => {
+            let cell = ev.target?.closest?.("td,th") || null;
+            if (!cell && typeof document.elementFromPoint === "function") {
+                const el = document.elementFromPoint(ev.clientX, ev.clientY);
+                cell = el?.closest?.("td,th") || null;
+            }
+            return cell;
+        };
+
+        const startSelection = (cell) => {
+            csvSelection = {
+                start: { r: Number(cell.dataset.r), c: Number(cell.dataset.c) },
+                end: { r: Number(cell.dataset.r), c: Number(cell.dataset.c) },
+            };
+            applyCsvSelectionHighlight(table);
+        };
+
+        table.addEventListener("pointerdown", (ev) => {
+            if (ev.button !== 0) return;
+            const cell = getCellFromEvent(ev);
+            if (!cell || !cell.dataset) return;
+
+            table.classList.add("is-selecting");
+            try {
+                table.setPointerCapture(ev.pointerId);
+            } catch (_) {}
+
+            startSelection(cell);
+            ev.preventDefault();
+        });
+
+        table.addEventListener("pointermove", (ev) => {
+            if (!table.classList.contains("is-selecting")) return;
+            const cell = getCellFromEvent(ev);
+            if (!cell || !cell.dataset || !csvSelection) return;
+
+            csvSelection.end = { r: Number(cell.dataset.r), c: Number(cell.dataset.c) };
+            applyCsvSelectionHighlight(table);
+        });
+
+        const end = (ev) => {
+            if (!table.classList.contains("is-selecting")) return;
+            table.classList.remove("is-selecting");
+            try {
+                table.releasePointerCapture(ev.pointerId);
+            } catch (_) {}
+        };
+
+        table.addEventListener("pointerup", end);
+        table.addEventListener("pointercancel", end);
+        table.addEventListener("pointerleave", (ev) => {
+            if (!table.classList.contains("is-selecting")) return;
+            end(ev);
+        });
+    }
+
     function closeCsvModal() {
         const modal = document.getElementById("csvModal");
         if (modal) modal.style.display = "none";
@@ -519,46 +715,48 @@
     function openCsvModal(state) {
         const modal = document.getElementById("csvModal");
         const subtitle = document.getElementById("csvModalSubtitle");
-        const select = document.getElementById("marksColumnSelect");
+        const nameSelect = document.getElementById("nameColumnSelect");
+        const marksSelect = document.getElementById("marksColumnSelect");
         const table = document.getElementById("csvPreviewTable");
 
-        if (!modal || !select || !table) return;
+        if (!modal || !marksSelect || !nameSelect || !table) return;
+        csvSelection = null;
 
         if (subtitle) {
-            subtitle.textContent = `${state.fileName} • ${state.records.length} student rows`;
+            subtitle.textContent = `${state.fileName} • ${state.records.length} student rows • Drag to select cells like Excel`;
         }
 
-        select.innerHTML = "";
-        for (const h of state.headers) {
+        nameSelect.innerHTML = "";
+        {
             const opt = document.createElement("option");
-            opt.value = h;
-            opt.textContent = h;
-            select.appendChild(opt);
+            opt.value = "";
+            opt.textContent = "(Auto-detect)";
+            nameSelect.appendChild(opt);
         }
 
-        const defaultHeader = state.marksColumn || guessMarksHeader(state.headers);
-        if (defaultHeader) select.value = defaultHeader;
+        marksSelect.innerHTML = "";
+        for (const h of state.headers) {
+            const optName = document.createElement("option");
+            optName.value = h;
+            optName.textContent = h;
+            nameSelect.appendChild(optName);
 
-        const previewRows = state.previewRows || [];
-        const cols = Math.max(
-            state.headers.length || 0,
-            ...previewRows.map((r) => (Array.isArray(r) ? r.length : 0))
-        ) || 1;
+            const optMarks = document.createElement("option");
+            optMarks.value = h;
+            optMarks.textContent = h;
+            marksSelect.appendChild(optMarks);
+        }
 
-        const colWidth = 160;
-        const colGroup = `<colgroup>${Array.from({ length: cols })
-            .map(() => `<col style="width: ${colWidth}px;">`)
-            .join("")}</colgroup>`;
+        const defaultNameHeader = state.nameColumn || guessNameHeader(state.headers) || "";
+        nameSelect.value = defaultNameHeader;
 
-        const bodyRows = previewRows.slice(0, 11).map((r) => {
-            const tds = [];
-            for (let i = 0; i < cols; i++) {
-                tds.push(`<td>${escapeHtml(r?.[i] ?? "")}</td>`);
-            }
-            return `<tr>${tds.join("")}</tr>`;
-        });
+        const defaultMarksHeader = state.marksColumn || guessMarksHeader(state.headers);
+        if (defaultMarksHeader) marksSelect.value = defaultMarksHeader;
 
-        table.innerHTML = `${colGroup}<tbody>${bodyRows.join("")}</tbody>`;
+        buildCsvPreviewTable(table, state.headers, state.previewRows);
+        initCsvDragSelection(table);
+        applyCsvSelectionHighlight(table);
+        applyChosenColumnClasses(table, state.headers, nameSelect.value, marksSelect.value);
 
         modal.style.display = "block";
         document.body.style.overflow = "hidden";
@@ -575,8 +773,9 @@
             fileName: file?.name || "CSV",
             headers,
             records,
-            previewRows: parsedRows.slice(0, 11),
+            previewRows: parsedRows.slice(1, 11),
             marksColumn: "",
+            nameColumn: "",
         };
     }
 
@@ -590,21 +789,71 @@
         const fileInput = document.getElementById("csvFile");
         const closeBtn = document.getElementById("csvModalClose");
         const useBtn = document.getElementById("csvModalUse");
+        const setNameBtn = document.getElementById("csvSetNameFromSelection");
+        const setMarksBtn = document.getElementById("csvSetMarksFromSelection");
         const backdrop = document.getElementById("csvModalBackdrop");
 
         const close = () => closeCsvModal();
         if (closeBtn) closeBtn.addEventListener("click", close);
         if (backdrop) backdrop.addEventListener("click", close);
 
+        const refreshChosen = () => {
+            if (!csvState) return;
+            const table = document.getElementById("csvPreviewTable");
+            const nameSelect = document.getElementById("nameColumnSelect");
+            const marksSelect = document.getElementById("marksColumnSelect");
+            if (!table || !nameSelect || !marksSelect) return;
+            applyChosenColumnClasses(
+                table,
+                csvState.headers || [],
+                String(nameSelect.value || ""),
+                String(marksSelect.value || "")
+            );
+        };
+
+        const setFromSelection = ({ which }) => {
+            if (!csvState) return;
+            const range = getCsvSelectedColumnRange();
+            if (!range) return;
+
+            const headers = csvState.headers || [];
+            const idx = which === "marks" ? range.cMax : range.cMin;
+            const header = headers[idx] || "";
+
+            if (which === "marks") {
+                const marksSelect = document.getElementById("marksColumnSelect");
+                if (marksSelect && header) marksSelect.value = header;
+            } else {
+                const nameSelect = document.getElementById("nameColumnSelect");
+                if (nameSelect) nameSelect.value = header;
+            }
+
+            refreshChosen();
+        };
+
+        if (setNameBtn) setNameBtn.addEventListener("click", () => setFromSelection({ which: "name" }));
+        if (setMarksBtn) setMarksBtn.addEventListener("click", () => setFromSelection({ which: "marks" }));
+
+        const nameSelectEl = document.getElementById("nameColumnSelect");
+        const marksSelectEl = document.getElementById("marksColumnSelect");
+        if (nameSelectEl) nameSelectEl.addEventListener("change", refreshChosen);
+        if (marksSelectEl) marksSelectEl.addEventListener("change", refreshChosen);
+
         if (useBtn) {
             useBtn.addEventListener("click", () => {
                 if (!csvState) return closeCsvModal();
-                const select = document.getElementById("marksColumnSelect");
-                const chosen = select ? String(select.value || "") : "";
-                if (!chosen) return;
-                csvState.marksColumn = chosen;
+                const marksSelect = document.getElementById("marksColumnSelect");
+                const nameSelect = document.getElementById("nameColumnSelect");
+                const chosenMarks = marksSelect ? String(marksSelect.value || "") : "";
+                const chosenName = nameSelect ? String(nameSelect.value || "") : "";
+                if (!chosenMarks) return;
+
+                csvState.marksColumn = chosenMarks;
+                csvState.nameColumn = chosenName;
                 const mCol = document.getElementById("mCol");
-                if (mCol) mCol.value = chosen;
+                if (mCol) mCol.value = chosenMarks;
+                const nCol = document.getElementById("nCol");
+                if (nCol) nCol.value = chosenName;
                 closeCsvModal();
             });
         }
@@ -618,6 +867,9 @@
                     csvState = null;
                     const mCol = document.getElementById("mCol");
                     if (mCol) mCol.value = "";
+                    const nCol = document.getElementById("nCol");
+                    if (nCol) nCol.value = "";
+                    csvSelection = null;
                     csvState = await parseCsvToState(file);
                     openCsvModal(csvState);
                 } catch (e) {
@@ -627,7 +879,7 @@
         }
     })();
 
-    function buildRowTextForAi(rowObject, marksColumn) {
+    function buildRowTextForAi(rowObject, marksColumn, nameColumn) {
         if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return "";
 
         const keys = Object.keys(rowObject);
@@ -641,6 +893,7 @@
             selected.push(k);
         };
 
+        addKey(nameColumn);
         for (const k of nameKeys.slice(0, 2)) addKey(k);
         for (const k of idKeys.slice(0, 1)) addKey(k);
         addKey(marksColumn);
@@ -742,30 +995,33 @@
             if (!ensureCsvStateMatchesFile(file)) {
                 csvState = await parseCsvToState(file);
                 openCsvModal(csvState);
-                status.innerText = "Select the marks column, then click “Use This Column”.";
+                status.innerText = "Select the columns, then click “Use Selected Columns”.";
                 return;
             }
 
             if (!csvState.records.length) throw new Error("No data rows found in the CSV.");
             if (!csvState.marksColumn) {
                 openCsvModal(csvState);
-                status.innerText = "Select the marks column, then click “Use This Column”.";
+                status.innerText = "Select the columns, then click “Use Selected Columns”.";
                 return;
             }
 
             const records = csvState.records;
             const marksColumn = csvState.marksColumn;
+            const nameColumn = csvState.nameColumn || "";
 
             for (let i = 0; i < records.length; i++) {
                 status.innerText = `Generating quiz ${i + 1} of ${records.length}...`;
 
                 const rowObject = records[i];
                 const rowTextAll = buildRowTextAllColumns(rowObject);
-                const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn);
+                const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn, nameColumn);
                 const isMessy = shouldSendTxtToAi(rowObject);
 
                 const basePayload = {
                     marksColumn,
+                    nameColumn,
+                    studentNameHint: nameColumn ? String(rowObject?.[nameColumn] ?? "").trim() : "",
                     score: rowObject?.[marksColumn] ?? "",
                     subject: document.getElementById('subject').value,
                     topic: document.getElementById('topic').value,
