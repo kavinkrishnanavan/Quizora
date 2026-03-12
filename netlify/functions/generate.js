@@ -15,6 +15,7 @@ exports.handler = async (event) => {
         }
 
         const data = JSON.parse(event.body);
+        const mode = String(data?.mode || "student").trim().toLowerCase() === "base" ? "base" : "student";
         const { row, rowObject, rowText, topic, grade, subject, curriculum, maxMarks, requests, questionCount, nameColumn, studentNameHint } = data;
         const answerFormat = String(data?.answerFormat || "blank") === "mcq" ? "mcq" : "blank";
         const marksColumn = typeof data?.marksColumn === "string" ? data.marksColumn.trim() : "";
@@ -25,8 +26,9 @@ exports.handler = async (event) => {
 
         const hasRowObject = rowObject && typeof rowObject === "object" && !Array.isArray(rowObject);
         const providedRowText = typeof rowText === "string" ? rowText.trim() : "";
-        const normalizedRowText = providedRowText || (hasRowObject ? JSON.stringify(rowObject) : String(row ?? "").trim());
-        if (!normalizedRowText) throw new Error("Missing row data.");
+        let normalizedRowText = providedRowText || (hasRowObject ? JSON.stringify(rowObject) : String(row ?? "").trim());
+        if (mode === "student" && !normalizedRowText) throw new Error("Missing row data.");
+        if (mode === "base" && !normalizedRowText) normalizedRowText = "(no student data)";
         
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -51,7 +53,31 @@ exports.handler = async (event) => {
              ]
            }`;
 
-        const systemPrompt = `You are an expert educator specializing in the ${curriculum} curriculum.
+        const systemPrompt =
+            mode === "base"
+                ? `You are an expert educator specializing in the ${curriculum} curriculum.
+        Your task is to generate a generic, non-personalized ${qCount}-question worksheet with answers.
+
+        Context:
+        - Subject: ${subject}
+        - Topic: ${topic}
+        - Grade Level: ${grade}
+        - Curriculum: ${curriculum}
+        - Max Marks: ${maxMarks}
+
+        Strict Requirements:
+        1. Output ONLY valid JSON (no markdown fences, no extra commentary).
+        2. The JSON schema must be:
+           ${schemaText}
+        3. Set "studentName" to exactly: "Base Worksheet".
+        4. Generate exactly ${qCount} items in "questions" with sequential "number" values from 1..${qCount}.
+        ${answerFormat === "mcq" ? '4b. For each question, generate exactly 4 "options" and set "correctOption" to one of "A","B","C","D". The correct answer must match the selected option.' : ""}
+        5. Do NOT tailor the worksheet to any student's marks or prior score.
+        6. Ensure questions align with ${curriculum} standards.
+        7. Special Requirements : ${requests}
+        8. Reminder : Questions must only be about ${topic}
+        9.Warning : Don't use any special characters. Only the numbers and the alphabet.`
+                : `You are an expert educator specializing in the ${curriculum} curriculum.
         Your task is to extract a student's name from the provided student row data and generate a personalized ${qCount}-question quiz with answers.
         
         Context:
@@ -82,8 +108,8 @@ exports.handler = async (event) => {
                 {
                     role: "user",
                     content: hasRowObject
-                        ? `ANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "JSON OBJECT"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`
-                        : `ANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "RAW CSV LINE"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`,
+                        ? `MODE: ${mode}\nANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "JSON OBJECT"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`
+                        : `MODE: ${mode}\nANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "RAW CSV LINE"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`,
                 }
             ],
             model: "openai/gpt-oss-120B",

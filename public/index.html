@@ -51,6 +51,10 @@
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         button:disabled { background: #94a3b8; cursor: not-allowed; }
 
+        .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
+        .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
+        .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
+
         #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
         .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
         pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); }
@@ -134,8 +138,13 @@
         <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
     </div>
     <div style="text-align: right;">
-        <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
-        <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+    <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
+    <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+</div>
+
+    <div class="tabs">
+        <a class="tab active" href="index.html">Personalized (CSV)</a>
+        <a class="tab" href="base.html">Base Worksheet</a>
     </div>
     <hr>
     <br>
@@ -187,7 +196,7 @@
             <input type="file" id="csvFile" accept=".csv">
         </div>
         <div class="field">
-            <label>Name Column (optional, choose after upload)</label>
+            <label>Name Column (choose after upload)</label>
             <input type="text" id="nCol" value="" placeholder="Upload CSV to choose…" readonly>
         </div>
         <div class="field">
