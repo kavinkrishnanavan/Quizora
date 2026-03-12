@@ -19,7 +19,7 @@ apiKey: process.env.GROQ_API_KEY
 });
 
 const response = await groq.chat.completions.create({
-model: "llama-3.2-11b-vision-preview",
+model: "openai/gpt-oss-120b",
 messages: [
 {
 role: "user",
