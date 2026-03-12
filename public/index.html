@@ -111,14 +111,14 @@
             background: rgba(37, 99, 235, 0.18);
         }
 
-        .csv-col-name {
-            outline: 2px solid rgba(16, 185, 129, 0.7);
-            outline-offset: -2px;
+        .csv-cell-name {
+            border-color: rgba(16, 185, 129, 0.9) !important;
+            box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.55);
         }
 
-        .csv-col-marks {
-            outline: 2px solid rgba(245, 158, 11, 0.75);
-            outline-offset: -2px;
+        .csv-cell-marks {
+            border-color: rgba(245, 158, 11, 0.95) !important;
+            box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.55);
         }
     </style>
 </head>
@@ -215,22 +215,14 @@
                 <button type="button" id="csvModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
             </div>
 
-            <div style="padding: 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px;">
-                <div style="display:flex; flex-wrap: wrap; gap: 12px; align-items: end;">
-                    <div class="field" style="min-width: 260px; flex: 1;">
-                        <label>Name Column (optional)</label>
-                        <select id="nameColumnSelect" style="color: grey;"></select>
+                <div style="padding: 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px;">
+                    <div style="display:flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+                        <div id="csvStepHint" style="color: var(--muted); font-size: 0.92rem;"></div>
+                        <div style="display:flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;">
+                            <button type="button" id="csvModalBack" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border); display:none;">Back</button>
+                            <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use Selection</button>
+                        </div>
                     </div>
-                    <div class="field" style="min-width: 260px; flex: 1;">
-                        <label>Marks Column</label>
-                        <select id="marksColumnSelect" style="color: grey;"></select>
-                    </div>
-                    <div style="display:flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;">
-                        <button type="button" id="csvSetNameFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Name from Selection</button>
-                        <button type="button" id="csvSetMarksFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Marks from Selection</button>
-                        <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use Selection</button>
-                    </div>
-                </div>
 
                 <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
                     <div style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
@@ -657,17 +649,33 @@
         return { cMin: range.cMin, cMax: range.cMax };
     }
 
-    function applyChosenColumnClasses(table, headers, nameColumn, marksColumn) {
-        const nameIndex = nameColumn ? headers.indexOf(nameColumn) : -1;
-        const marksIndex = marksColumn ? headers.indexOf(marksColumn) : -1;
-        const cells = table.querySelectorAll("th[data-r][data-c], td[data-r][data-c]");
+    function applySavedRanges(table, state) {
+        const clear = (key, className) => {
+            const prev = state?.[key];
+            if (Array.isArray(prev)) {
+                for (const el of prev) el?.classList?.remove?.(className);
+            }
+            state[key] = [];
+        };
 
-        cells.forEach((el) => {
-            el.classList.remove("csv-col-name", "csv-col-marks");
-            const c = Number(el.dataset.c);
-            if (Number.isFinite(c) && c === nameIndex) el.classList.add("csv-col-name");
-            if (Number.isFinite(c) && c === marksIndex) el.classList.add("csv-col-marks");
-        });
+        const paint = (range, className, storeKey) => {
+            if (!range) return;
+            const out = state[storeKey];
+            for (let r = range.rMin; r <= range.rMax; r++) {
+                for (let c = range.cMin; c <= range.cMax; c++) {
+                    const el = getCsvCell(table, r, c);
+                    if (!el) continue;
+                    el.classList.add(className);
+                    out.push(el);
+                }
+            }
+        };
+
+        clear("_nameEls", "csv-cell-name");
+        clear("_marksEls", "csv-cell-marks");
+
+        if (state?.nameRange) paint(state.nameRange, "csv-cell-name", "_nameEls");
+        if (state?.marksRange) paint(state.marksRange, "csv-cell-marks", "_marksEls");
     }
 
     function initCsvDragSelection(table) {
@@ -769,51 +777,43 @@
         document.body.style.overflow = "";
     }
 
-    function openCsvModal(state) {
+    function openCsvModal(state, step) {
         const modal = document.getElementById("csvModal");
+        const title = document.getElementById("csvModalTitle");
         const subtitle = document.getElementById("csvModalSubtitle");
-        const nameSelect = document.getElementById("nameColumnSelect");
-        const marksSelect = document.getElementById("marksColumnSelect");
+        const hint = document.getElementById("csvStepHint");
+        const backBtn = document.getElementById("csvModalBack");
+        const useBtn = document.getElementById("csvModalUse");
         const table = document.getElementById("csvPreviewTable");
 
-        if (!modal || !marksSelect || !nameSelect || !table) return;
+        if (!modal || !table || !useBtn) return;
+
+        const modalStep = step || state?.step || "name";
+        state.step = modalStep;
         csvSelection = null;
+
+        if (title) {
+            title.textContent = modalStep === "marks" ? "Select Marks Cells" : "Select Name Cells";
+        }
 
         if (subtitle) {
             subtitle.textContent = `${state.fileName} • ${state.records.length} student rows • Drag to select cells like Excel`;
         }
 
-        nameSelect.innerHTML = "";
-        {
-            const opt = document.createElement("option");
-            opt.value = "";
-            opt.textContent = "(Auto-detect)";
-            nameSelect.appendChild(opt);
+        if (hint) {
+            hint.textContent =
+                modalStep === "marks"
+                    ? "Drag to select the cells containing marks (one column)."
+                    : "Drag to select the cells containing student names (one column).";
         }
 
-        marksSelect.innerHTML = "";
-        for (const h of state.headers) {
-            const optName = document.createElement("option");
-            optName.value = h;
-            optName.textContent = h;
-            nameSelect.appendChild(optName);
-
-            const optMarks = document.createElement("option");
-            optMarks.value = h;
-            optMarks.textContent = h;
-            marksSelect.appendChild(optMarks);
-        }
-
-        const defaultNameHeader = state.nameColumn || guessNameHeader(state.headers) || "";
-        nameSelect.value = defaultNameHeader;
-
-        const defaultMarksHeader = state.marksColumn || guessMarksHeader(state.headers);
-        if (defaultMarksHeader) marksSelect.value = defaultMarksHeader;
+        if (backBtn) backBtn.style.display = modalStep === "marks" ? "inline-block" : "none";
+        useBtn.textContent = modalStep === "marks" ? "Use Marks Selection" : "Use Name Selection";
 
         buildCsvPreviewTable(table, state.headers, state.dataRows);
         initCsvDragSelection(table);
         applyCsvSelectionHighlight(table);
-        applyChosenColumnClasses(table, state.headers, nameSelect.value, marksSelect.value);
+        applySavedRanges(table, state);
 
         modal.style.display = "block";
         document.body.style.overflow = "hidden";
@@ -833,7 +833,9 @@
             dataRows: parsedRows.slice(1),
             marksColumn: "",
             nameColumn: "",
-            selectedRange: null,
+            nameRange: null,
+            marksRange: null,
+            step: "name",
         };
     }
 
@@ -847,97 +849,59 @@
         const fileInput = document.getElementById("csvFile");
         const closeBtn = document.getElementById("csvModalClose");
         const useBtn = document.getElementById("csvModalUse");
-        const setNameBtn = document.getElementById("csvSetNameFromSelection");
-        const setMarksBtn = document.getElementById("csvSetMarksFromSelection");
+        const backBtn = document.getElementById("csvModalBack");
         const backdrop = document.getElementById("csvModalBackdrop");
 
         const close = () => closeCsvModal();
         if (closeBtn) closeBtn.addEventListener("click", close);
         if (backdrop) backdrop.addEventListener("click", close);
 
-        const refreshChosen = () => {
-            if (!csvState) return;
-            const table = document.getElementById("csvPreviewTable");
-            const nameSelect = document.getElementById("nameColumnSelect");
-            const marksSelect = document.getElementById("marksColumnSelect");
-            if (!table || !nameSelect || !marksSelect) return;
-            applyChosenColumnClasses(
-                table,
-                csvState.headers || [],
-                String(nameSelect.value || ""),
-                String(marksSelect.value || "")
-            );
-        };
-
-        const setFromSelection = ({ which }) => {
-            if (!csvState) return;
-            const range = getCsvSelectedColumnRange();
-            if (!range) return;
-
-            const headers = csvState.headers || [];
-            const idx = which === "marks" ? range.cMax : range.cMin;
-            const header = headers[idx] || "";
-
-            if (which === "marks") {
-                const marksSelect = document.getElementById("marksColumnSelect");
-                if (marksSelect && header) marksSelect.value = header;
-            } else {
-                const nameSelect = document.getElementById("nameColumnSelect");
-                if (nameSelect) nameSelect.value = header;
-            }
-
-            refreshChosen();
-        };
-
-        if (setNameBtn) setNameBtn.addEventListener("click", () => setFromSelection({ which: "name" }));
-        if (setMarksBtn) setMarksBtn.addEventListener("click", () => setFromSelection({ which: "marks" }));
-
-        const nameSelectEl = document.getElementById("nameColumnSelect");
-        const marksSelectEl = document.getElementById("marksColumnSelect");
-        if (nameSelectEl) nameSelectEl.addEventListener("change", refreshChosen);
-        if (marksSelectEl) marksSelectEl.addEventListener("change", refreshChosen);
+        if (backBtn) {
+            backBtn.addEventListener("click", () => {
+                if (!csvState) return;
+                if (csvState.step === "marks") openCsvModal(csvState, "name");
+            });
+        }
 
         if (useBtn) {
             useBtn.addEventListener("click", () => {
                 if (!csvState) return closeCsvModal();
 
                 const headers = Array.isArray(csvState.headers) ? csvState.headers : [];
-                const marksSelect = document.getElementById("marksColumnSelect");
-                const nameSelect = document.getElementById("nameColumnSelect");
+                if (!headers.length) return;
 
                 const range = getCsvSelectedRange();
-                if (range && headers.length) {
-                    const rMin = Math.max(0, range.rMin);
-                    const rMax = Math.max(0, range.rMax);
-                    const cMin = Math.max(0, Math.min(headers.length - 1, range.cMin));
-                    const cMax = Math.max(0, Math.min(headers.length - 1, range.cMax));
+                if (!range) return alert("Drag to select cells first.");
 
-                    if (rMax >= rMin) csvState.selectedRange = { rMin, rMax, cMin, cMax };
+                const rMin = Math.max(0, range.rMin);
+                const rMax = Math.max(0, range.rMax);
+                const cMin = Math.max(0, Math.min(headers.length - 1, range.cMin));
+                const cMax = Math.max(0, Math.min(headers.length - 1, range.cMax));
 
-                    if (cMax > cMin) {
-                        const inferredName = headers[cMin] || "";
-                        const inferredMarks = headers[cMax] || "";
-                        if (nameSelect) nameSelect.value = inferredName;
-                        if (marksSelect) marksSelect.value = inferredMarks;
-                    } else {
-                        const inferredMarks = headers[cMin] || "";
-                        if (marksSelect) marksSelect.value = inferredMarks;
-                    }
-                } else {
-                    csvState.selectedRange = null;
+                if (rMax < rMin) return alert("Please select at least 1 row of cells.");
+                if (cMin !== cMax) return alert("Please select exactly 1 column (like Excel).");
+
+                const columnHeader = headers[cMin] || "";
+                const normalizedRange = { rMin, rMax, cMin, cMax };
+
+                const table = document.getElementById("csvPreviewTable");
+
+                if (csvState.step === "marks") {
+                    csvState.marksRange = normalizedRange;
+                    csvState.marksColumn = columnHeader;
+                    const mCol = document.getElementById("mCol");
+                    if (mCol) mCol.value = columnHeader;
+                    if (table) applySavedRanges(table, csvState);
+                    closeCsvModal();
+                    return;
                 }
 
-                const chosenMarks = marksSelect ? String(marksSelect.value || "") : "";
-                const chosenName = nameSelect ? String(nameSelect.value || "") : "";
-                if (!chosenMarks) return;
-
-                csvState.marksColumn = chosenMarks;
-                csvState.nameColumn = chosenName;
-                const mCol = document.getElementById("mCol");
-                if (mCol) mCol.value = chosenMarks;
+                csvState.nameRange = normalizedRange;
+                csvState.nameColumn = columnHeader;
                 const nCol = document.getElementById("nCol");
-                if (nCol) nCol.value = chosenName;
-                closeCsvModal();
+                if (nCol) nCol.value = columnHeader;
+                if (table) applySavedRanges(table, csvState);
+                openCsvModal(csvState, "marks");
             });
         }
 
@@ -954,7 +918,10 @@
                     if (nCol) nCol.value = "";
                     csvSelection = null;
                     csvState = await parseCsvToState(file);
-                    openCsvModal(csvState);
+                    csvState.nameRange = null;
+                    csvState.marksRange = null;
+                    csvState.step = "name";
+                    openCsvModal(csvState, "name");
                 } catch (e) {
                     alert("Could not read this CSV. Please re-export as CSV UTF-8.\n\n" + (e?.message || String(e)));
                 }
@@ -1076,15 +1043,16 @@
         try {
             if (!ensureCsvStateMatchesFile(file)) {
                 csvState = await parseCsvToState(file);
-                openCsvModal(csvState);
-                status.innerText = "Select a range in the CSV (rows + columns), then click “Use Selection”.";
+                csvState.step = "name";
+                openCsvModal(csvState, "name");
+                status.innerText = "First select the Name cells, then the Marks cells.";
                 return;
             }
 
             if (!csvState.records.length) throw new Error("No data rows found in the CSV.");
             if (!csvState.marksColumn) {
-                openCsvModal(csvState);
-                status.innerText = "Select a range in the CSV (rows + columns), then click “Use Selection”.";
+                openCsvModal(csvState, csvState.nameColumn ? "marks" : "name");
+                status.innerText = "First select the Name cells, then the Marks cells.";
                 return;
             }
 
@@ -1092,11 +1060,36 @@
             const marksColumn = csvState.marksColumn;
             const nameColumn = csvState.nameColumn || "";
 
-            const selectedRange = csvState.selectedRange;
-            const selectedRecords = selectedRange
+            const marksRange = csvState.marksRange;
+            const nameRange = csvState.nameRange;
+
+            let rMin = null;
+            let rMax = null;
+            if (marksRange) {
+                rMin = Number(marksRange.rMin);
+                rMax = Number(marksRange.rMax);
+            }
+            if (nameRange) {
+                const nrMin = Number(nameRange.rMin);
+                const nrMax = Number(nameRange.rMax);
+                if (rMin === null || rMax === null) {
+                    rMin = nrMin;
+                    rMax = nrMax;
+                } else if (Number.isFinite(nrMin) && Number.isFinite(nrMax)) {
+                    const iMin = Math.max(rMin, nrMin);
+                    const iMax = Math.min(rMax, nrMax);
+                    if (iMax >= iMin) {
+                        rMin = iMin;
+                        rMax = iMax;
+                    }
+                }
+            }
+
+            const hasRowRange = Number.isFinite(rMin) && Number.isFinite(rMax) && rMax >= rMin;
+            const selectedRecords = hasRowRange
                 ? records.filter((r) => {
                       const idx = Number(r?.__rowIndex);
-                      return Number.isFinite(idx) && idx >= selectedRange.rMin && idx <= selectedRange.rMax;
+                      return Number.isFinite(idx) && idx >= rMin && idx <= rMax;
                   })
                 : records;
 
