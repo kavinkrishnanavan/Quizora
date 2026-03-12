@@ -578,7 +578,7 @@
         const trHead = document.createElement("tr");
         for (let c = 0; c < cols; c++) {
             const th = document.createElement("th");
-            th.textContent = String(headers?.[c] ?? `Column${c + 1}`);
+            th.textContent = String(`Column${c + 1}`);
             th.dataset.r = "-1";
             th.dataset.c = String(c);
             trHead.appendChild(th);
@@ -1156,7 +1156,7 @@
                 const nameHint = nameColumn ? String(rowObject?.[nameColumn] ?? "").trim() : "";
                 const marksText = marksValue ? `Marks: ${marksValue}/${document.getElementById('mMax').value}` : "Marks: (blank)";
                 const nameText = nameHint ? ` • ${nameHint}` : "";
-                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length} for ${nameText}`;
+                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length} ${nameText}`;
 
                 const rowTextAll = buildRowTextAllColumns(rowObject);
                 const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn, nameColumn);
