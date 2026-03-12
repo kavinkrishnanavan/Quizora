@@ -57,17 +57,6 @@
 
         #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
         .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
-        .correction-card { background: transparent; border: 1px dashed var(--border); padding: 16px; border-radius: 12px; margin-top: 14px; }
-        .correction-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .correction-title { font-weight: 800; }
-        .correction-score { color: var(--muted); font-weight: 700; }
-        .qa-item { padding: 12px 0; border-top: 1px solid var(--border); }
-        .qa-top { display: flex; align-items: flex-start; gap: 10px; }
-        .qa-q { font-weight: 800; }
-        .qa-a { margin-top: 6px; color: var(--muted); }
-        .mcq-options { margin-top: 8px; padding-left: 0; list-style: none; }
-        .mcq-options li { padding: 4px 0; }
-        .mcq-correct { color: var(--text); font-weight: 800; }
         pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); }
         body {
             background: url("background.png");
@@ -1242,12 +1231,6 @@
                 aBtn.style.padding = "10px 12px";
                 aBtn.style.marginTop = "0";
 
-                const cBtn = document.createElement('button');
-                cBtn.type = "button";
-                cBtn.innerText = "Show Answers + Checkboxes";
-                cBtn.style.padding = "10px 12px";
-                cBtn.style.marginTop = "0";
-
                 qBtn.onclick = async () => {
                     qBtn.disabled = true;
                     try {
@@ -1270,127 +1253,13 @@
 
                 btnRow.appendChild(qBtn);
                 btnRow.appendChild(aBtn);
-                btnRow.appendChild(cBtn);
 
                 const preview = document.createElement('pre');
                 preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
 
-                const correction = document.createElement("div");
-                correction.className = "correction-card";
-                correction.style.display = "block";
-
-                const head = document.createElement("div");
-                head.className = "correction-head";
-
-                const headTitle = document.createElement("div");
-                headTitle.className = "correction-title";
-                headTitle.innerText = "Correction";
-
-                const headScore = document.createElement("div");
-                headScore.className = "correction-score";
-                headScore.innerText = `0/${quiz.questions.length} checked`;
-
-                const resetBtn = document.createElement("button");
-                resetBtn.type = "button";
-                resetBtn.innerText = "Reset checks";
-                resetBtn.style.padding = "10px 12px";
-                resetBtn.style.marginTop = "0";
-
-                head.appendChild(headTitle);
-                head.appendChild(headScore);
-                head.appendChild(resetBtn);
-                correction.appendChild(head);
-
-                const checkboxes = [];
-                const updateScore = () => {
-                    const checked = checkboxes.reduce((acc, cb) => acc + (cb.checked ? 1 : 0), 0);
-                    headScore.innerText = `${checked}/${checkboxes.length} checked`;
-                };
-
-                resetBtn.onclick = () => {
-                    for (const cb of checkboxes) cb.checked = false;
-                    updateScore();
-                };
-
-                const answerFormat = String(meta.answerFormat || "blank") === "mcq" ? "mcq" : "blank";
-
-                quiz.questions.forEach((q, idx) => {
-                    const item = document.createElement("div");
-                    item.className = "qa-item";
-
-                    const top = document.createElement("div");
-                    top.className = "qa-top";
-
-                    const cb = document.createElement("input");
-                    cb.type = "checkbox";
-                    cb.id = `qz-${Date.now()}-${Math.random().toString(16).slice(2)}-${idx}`;
-                    cb.addEventListener("change", updateScore);
-                    checkboxes.push(cb);
-
-                    const content = document.createElement("div");
-                    content.style.flex = "1";
-
-                    const qEl = document.createElement("div");
-                    qEl.className = "qa-q";
-                    qEl.innerText = `${q.number}. ${q.question}`;
-
-                    const aEl = document.createElement("div");
-                    aEl.className = "qa-a";
-
-                    if (answerFormat === "mcq" && Array.isArray(q.options)) {
-                        aEl.innerText = `Correct option: ${String(q.correctOption || "").trim() || "(missing)"}`;
-
-                        const ul = document.createElement("ul");
-                        ul.className = "mcq-options";
-
-                        const letters = ["A", "B", "C", "D"];
-                        const correct = String(q.correctOption || "").trim().toUpperCase();
-
-                        q.options.slice(0, 4).forEach((opt, i) => {
-                            const li = document.createElement("li");
-                            const letter = letters[i] || "";
-                            li.innerText = `${letter}. ${String(opt ?? "")}`;
-                            if (letter && correct === letter) li.className = "mcq-correct";
-                            ul.appendChild(li);
-                        });
-
-                        content.appendChild(qEl);
-                        content.appendChild(aEl);
-                        content.appendChild(ul);
-                    } else {
-                        aEl.innerText = `Answer: ${String(q.answer ?? "").trim() || "(missing)"}`;
-                        content.appendChild(qEl);
-                        content.appendChild(aEl);
-                    }
-
-                    const label = document.createElement("label");
-                    label.setAttribute("for", cb.id);
-                    label.style.display = "block";
-                    label.style.marginTop = "6px";
-                    label.style.color = "var(--muted)";
-                    label.style.fontWeight = "700";
-                    label.innerText = "Mark as correct";
-
-                    top.appendChild(cb);
-                    top.appendChild(content);
-
-                    item.appendChild(top);
-                    item.appendChild(label);
-                    correction.appendChild(item);
-                });
-
-                cBtn.innerText = "Hide Answers + Checkboxes";
-                cBtn.onclick = () => {
-                    const isOpen = correction.style.display !== "none";
-                    correction.style.display = isOpen ? "none" : "block";
-                    cBtn.innerText = isOpen ? "Show Answers + Checkboxes" : "Hide Answers + Checkboxes";
-                    if (!isOpen) updateScore();
-                };
-
                 card.appendChild(title);
                 card.appendChild(btnRow);
                 card.appendChild(preview);
-                card.appendChild(correction);
                 output.appendChild(card);
             }
             status.innerText = "✅ All Worksheets generated successfully!";
