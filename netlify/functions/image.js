@@ -4,7 +4,7 @@ export async function handler(event){
 
 try{
 
-const {image} = JSON.parse(event.body);
+const { image } = JSON.parse(event.body);
 
 const groq = new Groq({
 apiKey: process.env.GROQ_API_KEY
@@ -18,7 +18,7 @@ role: "user",
 content: [
 {
 type: "text",
-text: "Read this worksheet image and grade the answers. Give marks out of 5 per question."
+text: "Read this worksheet image and grade the answers. Give marks out of 5."
 },
 {
 type: "image_url",
@@ -32,18 +32,18 @@ url: image
 });
 
 return {
-statusCode: 200,
-body: JSON.stringify({
+statusCode:200,
+body:JSON.stringify({
 result: response.choices[0].message.content
 })
 };
 
 }catch(err){
 
-return {
+return{
 statusCode:500,
 body:JSON.stringify({
-error:err.message
+error: err.message
 })
 };
 
