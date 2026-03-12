@@ -58,25 +58,24 @@
             background: url("background.png");
         }
         .zoom {
-  width: 200px;
-  transition: transform 0.3s ease; /* smooth animation */
-}
+            width: 200px;
+            transition: transform 0.3s ease; /* smooth animation */
+        }
 
-.zoom:hover {
-  transform: scale(1.2); /* increases size by 20% */
-}
+        .zoom:hover {
+            transform: scale(1.2); /* increases size by 20% */
+        }
 
         #bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    padding: 0px;
-    
-    text-align: center;
-}
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 0px;
+            text-align: center;
+        }
 
         .csv-equal-table {
             width: max-content;
@@ -127,7 +126,6 @@
 
     <div id="bottom-bar">
         <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
-
     </div>
 
 <div class="container">
@@ -136,9 +134,9 @@
         <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
     </div>
     <div style="text-align: right;">
-    <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
-    <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
-</div>
+        <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
+        <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+    </div>
     <hr>
     <br>
 
@@ -168,7 +166,6 @@
             </select>
         </div>
         
-        
         <div class="field">
             <label>Marks Out Of (Total)</label>
             <input type="number" id="mMax" value="100">
@@ -195,7 +192,7 @@
         </div>
         <div class="field">
             <label>Marks Column (choose after upload)</label>
-          <input type="text" id="mCol" value="" placeholder="Upload CSV to choose…" readonly>
+            <input type="text" id="mCol" value="" placeholder="Upload CSV to choose…" readonly>
         </div>
         <div class="field full-width">
             <label>Special Requests (Optional)</label>
@@ -203,50 +200,48 @@
         </div>
     </div>
 
+    <button id="genBtn" onclick="run()">Generate Quizzes</button>
+    <div id="status"></div>
+    <div id="output"></div>
 
-        <button id="genBtn" onclick="run()">Generate Quizzes</button>
-        <div id="status"></div>
-        <div id="output"></div>
+    <div id="csvModal" style="display:none; position: fixed; inset: 0; z-index: 9999;">
+        <div id="csvModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
+        <div role="dialog" aria-modal="true" aria-labelledby="csvModalTitle" style="position: relative; max-width: 1100px; margin: 6vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;">
+            <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
+                <div>
+                    <div id="csvModalTitle" style="font-weight: 800; font-size: 1.05rem;">Select Range</div>
+                    <div id="csvModalSubtitle" style="color: var(--muted); font-size: 0.9rem;"></div>
+                </div>
+                <button type="button" id="csvModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
+            </div>
 
-        <div id="csvModal" style="display:none; position: fixed; inset: 0; z-index: 9999;">
-            <div id="csvModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
-            <div role="dialog" aria-modal="true" aria-labelledby="csvModalTitle" style="position: relative; max-width: 1100px; margin: 6vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;">
-                <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
-                    <div>
-                        <div id="csvModalTitle" style="font-weight: 800; font-size: 1.05rem;">Select Columns</div>
-                        <div id="csvModalSubtitle" style="color: var(--muted); font-size: 0.9rem;"></div>
+            <div style="padding: 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px;">
+                <div style="display:flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                    <div class="field" style="min-width: 260px; flex: 1;">
+                        <label>Name Column (optional)</label>
+                        <select id="nameColumnSelect" style="color: grey;"></select>
                     </div>
-                    <button type="button" id="csvModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
+                    <div class="field" style="min-width: 260px; flex: 1;">
+                        <label>Marks Column</label>
+                        <select id="marksColumnSelect" style="color: grey;"></select>
+                    </div>
+                    <div style="display:flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;">
+                        <button type="button" id="csvSetNameFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Name from Selection</button>
+                        <button type="button" id="csvSetMarksFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Marks from Selection</button>
+                        <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use Selection</button>
+                    </div>
                 </div>
 
-                <div style="padding: 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px;">
-                    <div style="display:flex; flex-wrap: wrap; gap: 12px; align-items: end;">
-                        <div class="field" style="min-width: 260px; flex: 1;">
-                            <label>Name Column (optional)</label>
-                            <select id="nameColumnSelect" style="color: grey;"></select>
-                        </div>
-                        <div class="field" style="min-width: 260px; flex: 1;">
-                            <label>Marks Column</label>
-                            <select id="marksColumnSelect" style="color: grey;"></select>
-                        </div>
-                        <div style="display:flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;">
-                            <button type="button" id="csvSetNameFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Name from Selection</button>
-                            <button type="button" id="csvSetMarksFromSelection" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border);">Set Marks from Selection</button>
-                            <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use Selected Columns</button>
-                        </div>
-                    </div>
-
-                    <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-                        
-                        <div style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
-                            <table id="csvPreviewTable" class="csv-equal-table"></table>
-                        </div>
+                <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                    <div style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
+                        <table id="csvPreviewTable" class="csv-equal-table"></table>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-
+</div>
 
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
@@ -341,7 +336,6 @@
             return { page, y, maxWidth };
         };
 
-        // Marks box should only be on the student-facing question sheet.
         let { page, y, maxWidth } = startPage({ withMarks: !includeAnswers });
 
         const qFontSize = 11;
@@ -397,7 +391,6 @@
                         y -= optLineGap;
                     }
                 } else {
-                    // Space for student work when printed.
                     ensureSpace(46);
                     for (let i = 0; i < 3; i++) {
                         page.drawLine({
@@ -524,6 +517,7 @@
             if (!r || r.every((c) => String(c ?? "").trim() === "")) continue;
             const obj = {};
             for (let j = 0; j < headers.length; j++) obj[headers[j]] = String(r[j] ?? "").trim();
+            obj.__rowIndex = i - 1;
             records.push(obj);
         }
         return { headers, records };
@@ -558,7 +552,7 @@
 
     let csvSelection = null;
 
-    function buildCsvPreviewTable(table, headers, previewRows) {
+    function buildCsvPreviewTable(table, headers, dataRows) {
         table.textContent = "";
 
         const cols = Math.max(1, headers?.length || 0);
@@ -585,7 +579,7 @@
         table.appendChild(thead);
 
         const tbody = document.createElement("tbody");
-        const rows = Array.isArray(previewRows) ? previewRows.slice(0, 10) : [];
+        const rows = Array.isArray(dataRows) ? dataRows : [];
         for (let r = 0; r < rows.length; r++) {
             const tr = document.createElement("tr");
             for (let c = 0; c < cols; c++) {
@@ -600,37 +594,67 @@
         table.appendChild(tbody);
     }
 
-    function applyCsvSelectionHighlight(table) {
-        const cells = table.querySelectorAll("th[data-r][data-c], td[data-r][data-c]");
-        if (!csvSelection?.start || !csvSelection?.end) {
-            cells.forEach((el) => el.classList.remove("csv-cell-selected"));
-            return;
+    function getCsvCell(table, r, c) {
+        const col = Number(c);
+        if (!Number.isFinite(col) || col < 0) return null;
+
+        if (Number(r) === -1) {
+            const th = table.tHead?.rows?.[0]?.cells?.[col] || null;
+            return th;
         }
+
+        const row = Number(r);
+        if (!Number.isFinite(row) || row < 0) return null;
+        const td = table.tBodies?.[0]?.rows?.[row]?.cells?.[col] || null;
+        return td;
+    }
+
+    function getCsvSelectedRange() {
+        if (!csvSelection?.start || !csvSelection?.end) return null;
 
         const r1 = Number(csvSelection.start.r);
         const r2 = Number(csvSelection.end.r);
         const c1 = Number(csvSelection.start.c);
         const c2 = Number(csvSelection.end.c);
+        if (![r1, r2, c1, c2].every((n) => Number.isFinite(n))) return null;
 
         const rMin = Math.min(r1, r2);
         const rMax = Math.max(r1, r2);
         const cMin = Math.min(c1, c2);
         const cMax = Math.max(c1, c2);
 
-        cells.forEach((el) => {
-            const r = Number(el.dataset.r);
-            const c = Number(el.dataset.c);
-            const inside = r >= rMin && r <= rMax && c >= cMin && c <= cMax;
-            el.classList.toggle("csv-cell-selected", inside);
-        });
+        return { rMin, rMax, cMin, cMax };
+    }
+
+    function applyCsvSelectionHighlight(table) {
+        // Fix for ghost highlights: use table property instead of the csvSelection object
+        // so highlights can be safely cleared even when csvSelection is set to null.
+        if (table._highlightedCells && Array.isArray(table._highlightedCells)) {
+            for (const el of table._highlightedCells) {
+                if (el && el.classList) el.classList.remove("csv-cell-selected");
+            }
+        }
+        table._highlightedCells = [];
+
+        if (!csvSelection) return;
+
+        const range = getCsvSelectedRange();
+        if (!range) return;
+
+        for (let r = range.rMin; r <= range.rMax; r++) {
+            for (let c = range.cMin; c <= range.cMax; c++) {
+                const el = getCsvCell(table, r, c);
+                if (!el) continue;
+                el.classList.add("csv-cell-selected");
+                table._highlightedCells.push(el);
+            }
+        }
     }
 
     function getCsvSelectedColumnRange() {
-        if (!csvSelection?.start || !csvSelection?.end) return null;
-        const c1 = Number(csvSelection.start.c);
-        const c2 = Number(csvSelection.end.c);
-        if (!Number.isFinite(c1) || !Number.isFinite(c2)) return null;
-        return { cMin: Math.min(c1, c2), cMax: Math.max(c1, c2) };
+        const range = getCsvSelectedRange();
+        if (!range) return null;
+        return { cMin: range.cMin, cMax: range.cMax };
     }
 
     function applyChosenColumnClasses(table, headers, nameColumn, marksColumn) {
@@ -650,6 +674,10 @@
         if (table.dataset.dragSelectInit) return;
         table.dataset.dragSelectInit = "1";
 
+        let isDragging = false;
+        let startCell = null;
+        let clickedAlreadySelected = false;
+
         const getCellFromEvent = (ev) => {
             let cell = ev.target?.closest?.("td,th") || null;
             if (!cell && typeof document.elementFromPoint === "function") {
@@ -659,50 +687,79 @@
             return cell;
         };
 
-        const startSelection = (cell) => {
-            csvSelection = {
-                start: { r: Number(cell.dataset.r), c: Number(cell.dataset.c) },
-                end: { r: Number(cell.dataset.r), c: Number(cell.dataset.c) },
-            };
-            applyCsvSelectionHighlight(table);
+        const isCellSelected = (r, c) => {
+            const range = getCsvSelectedRange();
+            if (!range) return false;
+            return r >= range.rMin && r <= range.rMax && c >= range.cMin && c <= range.cMax;
         };
 
         table.addEventListener("pointerdown", (ev) => {
-            if (ev.button !== 0) return;
+            if (ev.button !== 0) return; // Only process left-clicks
             const cell = getCellFromEvent(ev);
             if (!cell || !cell.dataset) return;
 
-            table.classList.add("is-selecting");
-            try {
-                table.setPointerCapture(ev.pointerId);
-            } catch (_) {}
+            const r = Number(cell.dataset.r);
+            const c = Number(cell.dataset.c);
 
-            startSelection(cell);
+            // Remember if we are clicking a cell that is already selected
+            clickedAlreadySelected = isCellSelected(r, c);
+
+            isDragging = true;
+            startCell = cell;
+
+            // Start a new selection tracking bounds
+            csvSelection = {
+                start: { r, c },
+                end: { r, c }
+            };
+
+            table.classList.add("is-selecting");
+            try { table.setPointerCapture(ev.pointerId); } catch (_) {}
+
+            applyCsvSelectionHighlight(table);
             ev.preventDefault();
         });
 
         table.addEventListener("pointermove", (ev) => {
-            if (!table.classList.contains("is-selecting")) return;
+            if (!isDragging) return;
             const cell = getCellFromEvent(ev);
             if (!cell || !cell.dataset || !csvSelection) return;
 
-            csvSelection.end = { r: Number(cell.dataset.r), c: Number(cell.dataset.c) };
-            applyCsvSelectionHighlight(table);
+            const r = Number(cell.dataset.r);
+            const c = Number(cell.dataset.c);
+
+            // Only update DOM if the boundary cell actually changed to avoid UI lag
+            if (csvSelection.end.r !== r || csvSelection.end.c !== c) {
+                csvSelection.end = { r, c };
+                applyCsvSelectionHighlight(table);
+            }
         });
 
-        const end = (ev) => {
-            if (!table.classList.contains("is-selecting")) return;
+        const endDrag = (ev) => {
+            if (!isDragging) return;
+            isDragging = false;
             table.classList.remove("is-selecting");
-            try {
-                table.releasePointerCapture(ev.pointerId);
-            } catch (_) {}
+            try { table.releasePointerCapture(ev.pointerId); } catch (_) {}
+
+            const cell = getCellFromEvent(ev);
+            
+            // Toggle logic: If the user just clicked (pointer up on the same cell) 
+            // and the cell was already selected before the click, unselect everything.
+            if (cell && cell === startCell && clickedAlreadySelected) {
+                csvSelection = null;
+                applyCsvSelectionHighlight(table);
+            }
+            
+            startCell = null;
         };
 
-        table.addEventListener("pointerup", end);
-        table.addEventListener("pointercancel", end);
-        table.addEventListener("pointerleave", (ev) => {
-            if (!table.classList.contains("is-selecting")) return;
-            end(ev);
+        table.addEventListener("pointerup", endDrag);
+        table.addEventListener("pointercancel", endDrag);
+        
+        // Fix for buggy drag drops:
+        // We catch pointerup globally if the user releases the mouse outside the table container
+        window.addEventListener("pointerup", (ev) => {
+             if (isDragging) endDrag(ev);
         });
     }
 
@@ -753,7 +810,7 @@
         const defaultMarksHeader = state.marksColumn || guessMarksHeader(state.headers);
         if (defaultMarksHeader) marksSelect.value = defaultMarksHeader;
 
-        buildCsvPreviewTable(table, state.headers, state.previewRows);
+        buildCsvPreviewTable(table, state.headers, state.dataRows);
         initCsvDragSelection(table);
         applyCsvSelectionHighlight(table);
         applyChosenColumnClasses(table, state.headers, nameSelect.value, marksSelect.value);
@@ -773,9 +830,10 @@
             fileName: file?.name || "CSV",
             headers,
             records,
-            previewRows: parsedRows.slice(1, 11),
+            dataRows: parsedRows.slice(1),
             marksColumn: "",
             nameColumn: "",
+            selectedRange: null,
         };
     }
 
@@ -842,8 +900,33 @@
         if (useBtn) {
             useBtn.addEventListener("click", () => {
                 if (!csvState) return closeCsvModal();
+
+                const headers = Array.isArray(csvState.headers) ? csvState.headers : [];
                 const marksSelect = document.getElementById("marksColumnSelect");
                 const nameSelect = document.getElementById("nameColumnSelect");
+
+                const range = getCsvSelectedRange();
+                if (range && headers.length) {
+                    const rMin = Math.max(0, range.rMin);
+                    const rMax = Math.max(0, range.rMax);
+                    const cMin = Math.max(0, Math.min(headers.length - 1, range.cMin));
+                    const cMax = Math.max(0, Math.min(headers.length - 1, range.cMax));
+
+                    if (rMax >= rMin) csvState.selectedRange = { rMin, rMax, cMin, cMax };
+
+                    if (cMax > cMin) {
+                        const inferredName = headers[cMin] || "";
+                        const inferredMarks = headers[cMax] || "";
+                        if (nameSelect) nameSelect.value = inferredName;
+                        if (marksSelect) marksSelect.value = inferredMarks;
+                    } else {
+                        const inferredMarks = headers[cMin] || "";
+                        if (marksSelect) marksSelect.value = inferredMarks;
+                    }
+                } else {
+                    csvState.selectedRange = null;
+                }
+
                 const chosenMarks = marksSelect ? String(marksSelect.value || "") : "";
                 const chosenName = nameSelect ? String(nameSelect.value || "") : "";
                 if (!chosenMarks) return;
@@ -882,7 +965,7 @@
     function buildRowTextForAi(rowObject, marksColumn, nameColumn) {
         if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return "";
 
-        const keys = Object.keys(rowObject);
+        const keys = Object.keys(rowObject).filter((k) => !String(k).startsWith("__"));
         const nameKeys = keys.filter((k) => /(name|student|learner|candidate)/i.test(k));
         const idKeys = keys.filter((k) => /(id|adm|admission|roll|index)/i.test(k));
         const selected = [];
@@ -916,7 +999,7 @@
     function buildRowTextAllColumns(rowObject) {
         if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return "";
 
-        const keys = Object.keys(rowObject);
+        const keys = Object.keys(rowObject).filter((k) => !String(k).startsWith("__"));
         const lines = [];
         let used = 0;
 
@@ -944,7 +1027,6 @@
         for (const k of keys) totalLen += String(rowObject[k] ?? "").length;
         if (totalLen > 5000) return true;
 
-        // Heuristic: if there's a lot of non-printable characters, treat as "confusing" data.
         const sample = keys.slice(0, 10).map((k) => String(rowObject[k] ?? "")).join("\n").slice(0, 1000);
         const nonPrintable = (sample.match(/[^\x09\x0A\x0D\x20-\x7E]/g) || []).length;
         if (sample.length && nonPrintable / sample.length > 0.2) return true;
@@ -995,14 +1077,14 @@
             if (!ensureCsvStateMatchesFile(file)) {
                 csvState = await parseCsvToState(file);
                 openCsvModal(csvState);
-                status.innerText = "Select the columns, then click “Use Selected Columns”.";
+                status.innerText = "Select a range in the CSV (rows + columns), then click “Use Selection”.";
                 return;
             }
 
             if (!csvState.records.length) throw new Error("No data rows found in the CSV.");
             if (!csvState.marksColumn) {
                 openCsvModal(csvState);
-                status.innerText = "Select the columns, then click “Use Selected Columns”.";
+                status.innerText = "Select a range in the CSV (rows + columns), then click “Use Selection”.";
                 return;
             }
 
@@ -1010,10 +1092,22 @@
             const marksColumn = csvState.marksColumn;
             const nameColumn = csvState.nameColumn || "";
 
-            for (let i = 0; i < records.length; i++) {
-                status.innerText = `Generating quiz ${i + 1} of ${records.length}...`;
+            const selectedRange = csvState.selectedRange;
+            const selectedRecords = selectedRange
+                ? records.filter((r) => {
+                      const idx = Number(r?.__rowIndex);
+                      return Number.isFinite(idx) && idx >= selectedRange.rMin && idx <= selectedRange.rMax;
+                  })
+                : records;
 
-                const rowObject = records[i];
+            if (!selectedRecords.length) {
+                throw new Error("No non-empty student rows found inside the selected range.");
+            }
+
+            for (let i = 0; i < selectedRecords.length; i++) {
+                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length}...`;
+
+                const rowObject = selectedRecords[i];
                 const rowTextAll = buildRowTextAllColumns(rowObject);
                 const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn, nameColumn);
                 const isMessy = shouldSendTxtToAi(rowObject);
@@ -1037,12 +1131,9 @@
                 try {
                     quiz = await requestQuiz({
                         ...basePayload,
-                        // Always send uploaded CSV data as text format to the AI.
                         rowText: rowTextAll || rowTextFiltered
                     });
                 } catch (e1) {
-                    // If the CSV row is confusing or causes errors, retry with a smaller TXT version
-                    // that focuses on the selected marks column + name/id-like fields.
                     if (isMessy && rowTextFiltered) {
                         quiz = await requestQuiz({ ...basePayload, rowText: rowTextFiltered });
                     } else {
