@@ -169,18 +169,19 @@
     <div id="status"></div>
     <div id="output"></div>
 
-    <div id="materialsModal" style="display:none; position: fixed; inset: 0; z-index: 10000;">
+    <div id="materialsModal" style="display:none; position: fixed; inset: 0; z-index: 10000; overflow: auto; padding: 6vh 12px; box-sizing: border-box;">
         <div id="materialsModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
-        <div role="dialog" aria-modal="true" aria-labelledby="materialsModalTitle" style="position: relative; max-width: 860px; margin: 10vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);">
+        <div role="dialog" aria-modal="true" aria-labelledby="materialsModalTitle" style="position: relative; width: 100%; max-width: 860px; margin: 0 auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;">
             <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
                 <div>
                     <div id="materialsModalTitle" style="font-weight: 800; font-size: 1.05rem;">Learning Materials</div>
-                    <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs, DOCX, and/or PowerPoint files (PPT/PPTX), or paste notes. Then analyze to guide baseline worksheet content.</div>
+                    <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs, DOCX, and/or PowerPoint files (PPT/PPTX), or paste notes. Then analyze to personalize quizzes.
+</div>
                 </div>
                 <button type="button" id="materialsModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
             </div>
 
-            <div style="padding: 16px 18px; display: grid; gap: 12px;">
+            <div style="padding: 16px 18px; display: grid; gap: 12px; flex: 1; overflow: auto; min-height: 0;">
                 <div class="field">
                     <label>Upload file(s)</label>
                     <input type="file" id="materialsFiles" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx" multiple>
