@@ -209,7 +209,7 @@
             <label>Learning Materials (Optional)</label>
             <div style="display: grid; gap: 10px;">
                 <input type="file" id="materialsPdf" accept="application/pdf,.pdf" multiple>
-                <textarea id="materialsUrls" rows="2" placeholder="Paste web link(s) to notes/lecture slides (one per line)"></textarea>
+                <textarea id="materialsText" rows="4" placeholder="Paste notes / what was taught (optional)"></textarea>
                 <div style="display:flex; gap: 10px; flex-wrap: wrap;">
                     <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
                     <button type="button" id="materialsClearBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Clear</button>
@@ -1139,9 +1139,9 @@
     function clearMaterials() {
         learnedContext = "";
         const pdfEl = document.getElementById("materialsPdf");
-        const urlEl = document.getElementById("materialsUrls");
+        const textEl = document.getElementById("materialsText");
         if (pdfEl) pdfEl.value = "";
-        if (urlEl) urlEl.value = "";
+        if (textEl) textEl.value = "";
         setMaterialsUi({ statusText: "Cleared.", previewText: "" });
         try {
             localStorage.removeItem(MATERIALS_STORAGE_KEY);
@@ -1163,29 +1163,16 @@
         });
     }
 
-    function parseUrls(text) {
-        const raw = String(text || "")
-            .split(/\r?\n|,/g)
-            .map((s) => s.trim())
-            .filter(Boolean);
-
-        const urls = [];
-        for (const u of raw) {
-            if (/^https?:\/\//i.test(u)) urls.push(u);
-        }
-        return Array.from(new Set(urls)).slice(0, 10);
-    }
-
     async function analyzeMaterials() {
         const btn = document.getElementById("materialsAnalyzeBtn");
         const pdfEl = document.getElementById("materialsPdf");
-        const urlEl = document.getElementById("materialsUrls");
+        const textEl = document.getElementById("materialsText");
 
         const files = pdfEl?.files ? Array.from(pdfEl.files) : [];
-        const urls = parseUrls(urlEl?.value || "");
+        const pastedText = String(textEl?.value || "").trim();
 
-        if (!files.length && !urls.length) {
-            alert("Add at least one PDF or web link.");
+        if (!files.length && !pastedText) {
+            alert("Add at least one PDF or paste some text.");
             return;
         }
 
@@ -1204,7 +1191,7 @@
 
             const payload = {
                 pdfs,
-                urls,
+                pastedText,
                 subject: document.getElementById('subject').value,
                 topic: document.getElementById('topic').value,
                 grade: document.getElementById('grade').value,
