@@ -207,15 +207,9 @@
         </div>
         <div class="field full-width">
             <label>Learning Materials (Optional)</label>
-            <div style="display: grid; gap: 10px;">
-                <input type="file" id="materialsPdf" accept="application/pdf,.pdf" multiple>
-                <textarea id="materialsText" rows="4" placeholder="Paste notes / what was taught (optional)"></textarea>
-                <div style="display:flex; gap: 10px; flex-wrap: wrap;">
-                    <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
-                    <button type="button" id="materialsClearBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Clear</button>
-                </div>
-                <div id="materialsStatus" style="color: var(--muted); font-size: 0.9rem;"></div>
-                <textarea id="materialsPreview" rows="4" readonly placeholder="Material summary used for personalized quizzes will appear here..."></textarea>
+            <div style="display:flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <button type="button" id="materialsOpenBtn" style="padding: 10px 12px; margin-top: 0;">Add learning materials</button>
+                <div id="materialsBadge" style="color: var(--muted); font-size: 0.9rem;"></div>
             </div>
         </div>
         <div class="field full-width">
@@ -252,6 +246,42 @@
                     <div style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
                         <table id="csvPreviewTable" class="csv-equal-table"></table>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="materialsModal" style="display:none; position: fixed; inset: 0; z-index: 10000;">
+        <div id="materialsModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
+        <div role="dialog" aria-modal="true" aria-labelledby="materialsModalTitle" style="position: relative; max-width: 860px; margin: 10vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;">
+            <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
+                <div>
+                    <div id="materialsModalTitle" style="font-weight: 800; font-size: 1.05rem;">Learning Materials</div>
+                    <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs and/or paste notes. Then analyze to personalize quizzes.</div>
+                </div>
+                <button type="button" id="materialsModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
+            </div>
+
+            <div style="padding: 16px 18px; display: grid; gap: 12px;">
+                <div class="field">
+                    <label>Upload PDF(s)</label>
+                    <input type="file" id="materialsPdf" accept="application/pdf,.pdf" multiple>
+                    <div style="color: var(--muted); font-size: 0.85rem;">Max 5 PDFs, 4MB each.</div>
+                </div>
+                <div class="field">
+                    <label>Paste text (optional)</label>
+                    <textarea id="materialsText" rows="5" placeholder="Paste notes / what was taught"></textarea>
+                </div>
+
+                <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
+                    <button type="button" id="materialsClearBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Clear</button>
+                    <div id="materialsStatus" style="color: var(--muted); font-size: 0.9rem;"></div>
+                </div>
+
+                <div class="field">
+                    <label>Summary used for quizzes</label>
+                    <textarea id="materialsPreview" rows="6" readonly placeholder="Material summary used for personalized quizzes will appear here..."></textarea>
                 </div>
             </div>
         </div>
@@ -1102,6 +1132,34 @@
     const MATERIALS_STORAGE_KEY = "quizwiz_materials_v1";
     let learnedContext = "";
 
+    function openMaterialsModal() {
+        const modal = document.getElementById("materialsModal");
+        if (!modal) return;
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeMaterialsModal() {
+        const modal = document.getElementById("materialsModal");
+        if (!modal) return;
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+
+    function updateMaterialsBadge() {
+        const badge = document.getElementById("materialsBadge");
+        const btn = document.getElementById("materialsOpenBtn");
+        if (!badge || !btn) return;
+
+        if (learnedContext && learnedContext.trim()) {
+            badge.innerText = "Ready";
+            btn.innerText = "Edit learning materials";
+        } else {
+            badge.innerText = "";
+            btn.innerText = "Add learning materials";
+        }
+    }
+
     function setMaterialsUi({ statusText = "", previewText = "" } = {}) {
         const statusEl = document.getElementById("materialsStatus");
         const previewEl = document.getElementById("materialsPreview");
@@ -1122,6 +1180,7 @@
                         previewText: learnedContext
                     });
                 }
+                updateMaterialsBadge();
             }
         } catch (_) {
             // ignore
@@ -1143,6 +1202,7 @@
         if (pdfEl) pdfEl.value = "";
         if (textEl) textEl.value = "";
         setMaterialsUi({ statusText: "Cleared.", previewText: "" });
+        updateMaterialsBadge();
         try {
             localStorage.removeItem(MATERIALS_STORAGE_KEY);
         } catch (_) {
@@ -1219,6 +1279,7 @@
 
             const warnText = Array.isArray(data?.warnings) && data.warnings.length ? ` Warnings: ${data.warnings.join(" | ")}` : "";
             setMaterialsUi({ statusText: "Materials summary ready. It will be used for quiz generation." + warnText, previewText: learnedContext });
+            updateMaterialsBadge();
         } finally {
             btn.disabled = false;
         }
@@ -1226,7 +1287,11 @@
 
     document.getElementById("materialsAnalyzeBtn")?.addEventListener("click", analyzeMaterials);
     document.getElementById("materialsClearBtn")?.addEventListener("click", clearMaterials);
+    document.getElementById("materialsOpenBtn")?.addEventListener("click", openMaterialsModal);
+    document.getElementById("materialsModalClose")?.addEventListener("click", closeMaterialsModal);
+    document.getElementById("materialsModalBackdrop")?.addEventListener("click", closeMaterialsModal);
     loadMaterialsFromStorage();
+    updateMaterialsBadge();
 
     async function run() {
         const file = document.getElementById('csvFile').files[0];

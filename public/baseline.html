@@ -153,6 +153,13 @@
             </select>
         </div>
         <div class="field full-width">
+            <label>Learning Materials (Optional)</label>
+            <div style="display:flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <button type="button" id="materialsOpenBtn" style="padding: 10px 12px; margin-top: 0;">Add learning materials</button>
+                <div id="materialsBadge" style="color: var(--muted); font-size: 0.9rem;"></div>
+            </div>
+        </div>
+        <div class="field full-width">
             <label>Special Requests (Optional)</label>
             <textarea id="requests" rows="2" placeholder="e.g. Include 1 word problem, funny tone..."></textarea>
         </div>
@@ -161,6 +168,42 @@
     <button id="genBtn" onclick="runBase()">Generate Worksheet</button>
     <div id="status"></div>
     <div id="output"></div>
+
+    <div id="materialsModal" style="display:none; position: fixed; inset: 0; z-index: 10000;">
+        <div id="materialsModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
+        <div role="dialog" aria-modal="true" aria-labelledby="materialsModalTitle" style="position: relative; max-width: 860px; margin: 10vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;">
+            <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
+                <div>
+                    <div id="materialsModalTitle" style="font-weight: 800; font-size: 1.05rem;">Learning Materials</div>
+                    <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs and/or paste notes. Then analyze to guide baseline worksheet content.</div>
+                </div>
+                <button type="button" id="materialsModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
+            </div>
+
+            <div style="padding: 16px 18px; display: grid; gap: 12px;">
+                <div class="field">
+                    <label>Upload PDF(s)</label>
+                    <input type="file" id="materialsPdf" accept="application/pdf,.pdf" multiple>
+                    <div style="color: var(--muted); font-size: 0.85rem;">Max 5 PDFs, 4MB each.</div>
+                </div>
+                <div class="field">
+                    <label>Paste text (optional)</label>
+                    <textarea id="materialsText" rows="5" placeholder="Paste notes / what was taught"></textarea>
+                </div>
+
+                <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
+                    <button type="button" id="materialsClearBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Clear</button>
+                    <div id="materialsStatus" style="color: var(--muted); font-size: 0.9rem;"></div>
+                </div>
+
+                <div class="field">
+                    <label>Summary used for worksheet</label>
+                    <textarea id="materialsPreview" rows="6" readonly placeholder="Material summary used for baseline worksheet will appear here..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
@@ -374,6 +417,170 @@
         return quiz;
     }
 
+    const MATERIALS_STORAGE_KEY = "quizwiz_materials_v1";
+    let learnedContext = "";
+
+    function openMaterialsModal() {
+        const modal = document.getElementById("materialsModal");
+        if (!modal) return;
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeMaterialsModal() {
+        const modal = document.getElementById("materialsModal");
+        if (!modal) return;
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+
+    function updateMaterialsBadge() {
+        const badge = document.getElementById("materialsBadge");
+        const btn = document.getElementById("materialsOpenBtn");
+        if (!badge || !btn) return;
+
+        if (learnedContext && learnedContext.trim()) {
+            badge.innerText = "Ready";
+            btn.innerText = "Edit learning materials";
+        } else {
+            badge.innerText = "";
+            btn.innerText = "Add learning materials";
+        }
+    }
+
+    function setMaterialsUi({ statusText = "", previewText = "" } = {}) {
+        const statusEl = document.getElementById("materialsStatus");
+        const previewEl = document.getElementById("materialsPreview");
+        if (statusEl) statusEl.innerText = statusText || "";
+        if (previewEl) previewEl.value = previewText || "";
+    }
+
+    function loadMaterialsFromStorage() {
+        try {
+            const raw = localStorage.getItem(MATERIALS_STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.learnedContext === "string") {
+                learnedContext = parsed.learnedContext.trim();
+                if (learnedContext) {
+                    setMaterialsUi({
+                        statusText: "Using saved learning materials summary.",
+                        previewText: learnedContext
+                    });
+                }
+                updateMaterialsBadge();
+            }
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function saveMaterialsToStorage() {
+        try {
+            localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify({ learnedContext }));
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function clearMaterials() {
+        learnedContext = "";
+        const pdfEl = document.getElementById("materialsPdf");
+        const textEl = document.getElementById("materialsText");
+        if (pdfEl) pdfEl.value = "";
+        if (textEl) textEl.value = "";
+        setMaterialsUi({ statusText: "Cleared.", previewText: "" });
+        updateMaterialsBadge();
+        try {
+            localStorage.removeItem(MATERIALS_STORAGE_KEY);
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error("Failed to read file."));
+            reader.onload = () => {
+                const result = String(reader.result || "");
+                const comma = result.indexOf(",");
+                resolve(comma >= 0 ? result.slice(comma + 1) : result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function analyzeMaterials() {
+        const btn = document.getElementById("materialsAnalyzeBtn");
+        const pdfEl = document.getElementById("materialsPdf");
+        const textEl = document.getElementById("materialsText");
+
+        const files = pdfEl?.files ? Array.from(pdfEl.files) : [];
+        const pastedText = String(textEl?.value || "").trim();
+
+        if (!files.length && !pastedText) {
+            alert("Add at least one PDF or paste some text.");
+            return;
+        }
+
+        btn.disabled = true;
+        setMaterialsUi({ statusText: "Analyzing materials...", previewText: "" });
+
+        try {
+            const maxBytesPerPdf = 4 * 1024 * 1024;
+            const pdfs = [];
+
+            for (const f of files.slice(0, 5)) {
+                if (f.size > maxBytesPerPdf) throw new Error(`PDF too large: ${f.name} (max 4MB).`);
+                const data = await fileToBase64(f);
+                pdfs.push({ name: f.name, data });
+            }
+
+            const payload = {
+                pdfs,
+                pastedText,
+                subject: document.getElementById('subject').value,
+                topic: document.getElementById('topic').value,
+                grade: document.getElementById('grade').value,
+                curriculum: document.getElementById('curriculum').value
+            };
+
+            const res = await fetch("/.netlify/functions/materials", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                const errMsg = data?.error ? String(data.error) : `Request failed (${res.status})`;
+                const errRid = data?.requestId ? `\nRequest ID: ${data.requestId}` : "";
+                throw new Error(errMsg + errRid);
+            }
+
+            const summary = typeof data?.learnedContext === "string" ? data.learnedContext.trim() : "";
+            if (!summary) throw new Error("No summary returned.");
+
+            learnedContext = summary;
+            saveMaterialsToStorage();
+
+            const warnText = Array.isArray(data?.warnings) && data.warnings.length ? ` Warnings: ${data.warnings.join(" | ")}` : "";
+            setMaterialsUi({ statusText: "Materials summary ready. It will be used for worksheet generation." + warnText, previewText: learnedContext });
+            updateMaterialsBadge();
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    document.getElementById("materialsAnalyzeBtn")?.addEventListener("click", analyzeMaterials);
+    document.getElementById("materialsClearBtn")?.addEventListener("click", clearMaterials);
+    document.getElementById("materialsOpenBtn")?.addEventListener("click", openMaterialsModal);
+    document.getElementById("materialsModalClose")?.addEventListener("click", closeMaterialsModal);
+    document.getElementById("materialsModalBackdrop")?.addEventListener("click", closeMaterialsModal);
+    loadMaterialsFromStorage();
+    updateMaterialsBadge();
+
     async function runBase() {
         const btn = document.getElementById('genBtn');
         const status = document.getElementById('status');
@@ -397,6 +604,7 @@
 
             const quiz = await requestQuiz({
                 mode: "base",
+                learnedContext,
                 subject: meta.subject,
                 topic: meta.topic,
                 grade: meta.grade,
