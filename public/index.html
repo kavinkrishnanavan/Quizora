@@ -257,16 +257,16 @@
             <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
                 <div>
                     <div id="materialsModalTitle" style="font-weight: 800; font-size: 1.05rem;">Learning Materials</div>
-                    <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs and/or paste notes. Then analyze to personalize quizzes.</div>
+                    <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs, DOCX, and/or PowerPoint files (PPT/PPTX), or paste notes. Then analyze to personalize quizzes.</div>
                 </div>
                 <button type="button" id="materialsModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">❌</button>
             </div>
 
             <div style="padding: 16px 18px; display: grid; gap: 12px;">
                 <div class="field">
-                    <label>Upload PDF(s)</label>
-                    <input type="file" id="materialsPdf" accept="application/pdf,.pdf" multiple>
-                    <div style="color: var(--muted); font-size: 0.85rem;">Max 5 PDFs, 4MB each.</div>
+                    <label>Upload file(s)</label>
+                    <input type="file" id="materialsFiles" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx" multiple>
+                    <div style="color: var(--muted); font-size: 0.85rem;">Max 5 files, 4MB each. For best results, use PPTX (older .ppt may not extract text well).</div>
                 </div>
                 <div class="field">
                     <label>Paste text (optional)</label>
@@ -1285,9 +1285,9 @@
 
     function clearMaterials() {
         learnedContext = "";
-        const pdfEl = document.getElementById("materialsPdf");
+        const filesEl = document.getElementById("materialsFiles");
         const textEl = document.getElementById("materialsText");
-        if (pdfEl) pdfEl.value = "";
+        if (filesEl) filesEl.value = "";
         if (textEl) textEl.value = "";
         setMaterialsUi({ statusText: "Cleared.", previewText: "" });
         updateMaterialsBadge();
@@ -1313,14 +1313,14 @@
 
     async function analyzeMaterials() {
         const btn = document.getElementById("materialsAnalyzeBtn");
-        const pdfEl = document.getElementById("materialsPdf");
+        const filesEl = document.getElementById("materialsFiles");
         const textEl = document.getElementById("materialsText");
 
-        const files = pdfEl?.files ? Array.from(pdfEl.files) : [];
+        const files = filesEl?.files ? Array.from(filesEl.files) : [];
         const pastedText = String(textEl?.value || "").trim();
 
         if (!files.length && !pastedText) {
-            alert("Add at least one PDF or paste some text.");
+            alert("Add at least one file (PDF/DOCX/PPT/PPTX) or paste some text.");
             return;
         }
 
@@ -1328,17 +1328,17 @@
         setMaterialsUi({ statusText: "Analyzing materials...", previewText: "" });
 
         try {
-            const maxBytesPerPdf = 4 * 1024 * 1024;
-            const pdfs = [];
+            const maxBytesPerFile = 4 * 1024 * 1024;
+            const materialsFiles = [];
 
             for (const f of files.slice(0, 5)) {
-                if (f.size > maxBytesPerPdf) throw new Error(`PDF too large: ${f.name} (max 4MB).`);
+                if (f.size > maxBytesPerFile) throw new Error(`File too large: ${f.name} (max 4MB).`);
                 const data = await fileToBase64(f);
-                pdfs.push({ name: f.name, data });
+                materialsFiles.push({ name: f.name, data, mime: f.type || "" });
             }
 
             const payload = {
-                pdfs,
+                files: materialsFiles,
                 pastedText,
                 subject: document.getElementById('subject').value,
                 topic: document.getElementById('topic').value,
