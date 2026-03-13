@@ -172,7 +172,13 @@
             </div>
 
             <div class="full-width">
-                <button id="markBtn" type="button" disabled>Mark Worksheet</button>
+                <div style="display:flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <button id="markBtn" type="button" disabled>Mark Worksheet</button>
+                    <div class="field" style="min-width: 180px; margin-top: 10px;">
+                        <label for="outOf" style="margin-bottom: 4px;">Out of</label>
+                        <input type="number" id="outOf" value="20" min="1" max="1000" step="1" style="padding: 10px 12px;">
+                    </div>
+                </div>
                 <div id="status"></div>
             </div>
         </div>
@@ -191,10 +197,13 @@
         const zoomInBtn = document.getElementById("zoomInBtn");
         const zoomResetBtn = document.getElementById("zoomResetBtn");
         const markBtn = document.getElementById("markBtn");
+        const outOfInput = document.getElementById("outOf");
         const status = document.getElementById("status");
         const results = document.getElementById("results");
         const redirectBtn = document.getElementById("redirectBtn");
         const selectedInfo = document.getElementById("selectedInfo");
+
+        let lastGradedBlockIds = [];
 
         function setStatus(message) {
             status.style.display = "block";
@@ -304,7 +313,8 @@
                 }
 
                 results.innerHTML = html || "<div class='muted'>No results returned. Try a clearer photo or re-upload.</div>";
-                for (let i = 0; i < files.length; i++) updateScore("img_" + i);
+                lastGradedBlockIds = files.map((_, i) => "img_" + i);
+                for (const id of lastGradedBlockIds) updateScore(id);
                 clearStatus();
             } catch (err) {
                 setStatus("Error: " + (err && err.message ? err.message : "Unable to grade worksheet"));
@@ -371,11 +381,31 @@
             boxes.forEach(box => { if (box.checked) score += 1; });
 
             const totalEl = document.getElementById(safeId ? ("totalScore_" + safeId) : "totalScore");
-            if (totalEl) totalEl.textContent = "Teacher Score: " + score + " / " + boxes.length;
+            if (!totalEl) return;
+
+            const outOfRaw = outOfInput && outOfInput.value ? Number(outOfInput.value) : NaN;
+            const outOf = Number.isFinite(outOfRaw) && outOfRaw > 0 ? outOfRaw : null;
+
+            if (!boxes.length) {
+                totalEl.textContent = "Student marks: 0";
+                return;
+            }
+
+            if (!outOf) {
+                totalEl.textContent = "Teacher Score: " + score + " / " + boxes.length;
+                return;
+            }
+
+            const scaled = (score / boxes.length) * outOf;
+            const scaledText = Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1);
+            totalEl.textContent = "Student marks: " + scaledText + " / " + outOf + " (Correct: " + score + " / " + boxes.length + ")";
         }
 
         imageInput.addEventListener("change", () => showPreview(getPreviewFile()));
         markBtn.addEventListener("click", upload);
+        outOfInput?.addEventListener("input", () => {
+            for (const id of lastGradedBlockIds) updateScore(id);
+        });
 
         zoomRange.addEventListener("input", () => setZoom(Number(zoomRange.value)));
         zoomOutBtn.addEventListener("click", () => setZoom(Number(zoomRange.value) - 10));
