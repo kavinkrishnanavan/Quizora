@@ -7,6 +7,7 @@ The frontend is a static site in `public/`, and the AI call runs server-side via
 ## Features
 
 - **Personalized Tests**: upload a CSV/XLSX of student names + marks, then generate quizzes whose difficulty adapts to each student's score.
+- **Learning Materials (PDF + Web links)**: upload PDFs and/or paste links to notes/slides to summarize what students have learned and generate more personalized quizzes.
 - **Baseline Test**: generate a generic worksheet (not personalized to student data).
 - **Answer formats**: blank-line answers or MCQ (A-D) with a correct option.
 - **CSV/XLSX picker**: drag-select the name column and marks column in a spreadsheet-like preview.

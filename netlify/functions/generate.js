@@ -18,6 +18,7 @@ exports.handler = async (event) => {
         const mode = String(data?.mode || "student").trim().toLowerCase() === "base" ? "base" : "student";
         const { row, rowObject, rowText, topic, grade, subject, curriculum, maxMarks, requests, questionCount, nameColumn, studentNameHint } = data;
         const answerFormat = String(data?.answerFormat || "blank") === "mcq" ? "mcq" : "blank";
+        const learnedContext = typeof data?.learnedContext === "string" ? data.learnedContext.trim() : "";
         const marksColumn = typeof data?.marksColumn === "string" ? data.marksColumn.trim() : "";
         const normalizedNameColumn = typeof nameColumn === "string" ? nameColumn.trim() : "";
         const normalizedStudentNameHint = typeof studentNameHint === "string" ? studentNameHint.trim() : "";
@@ -64,6 +65,7 @@ exports.handler = async (event) => {
         - Grade Level: ${grade}
         - Curriculum: ${curriculum}
         - Max Marks: ${maxMarks}
+        ${learnedContext ? `- Learning materials summary: ${learnedContext}` : ""}
 
         Strict Requirements:
         1. Output ONLY valid JSON (no markdown fences, no extra commentary).
@@ -76,7 +78,8 @@ exports.handler = async (event) => {
         6. Ensure questions align with ${curriculum} standards.
         7. Special Requirements : ${requests}
         8. Reminder : Questions must only be about ${topic}
-        9.Warning : Don't use any special characters. Only the numbers and the alphabet.`
+        ${learnedContext ? "9. Prefer questions that match the provided learning materials summary; avoid content outside what was taught." : ""}
+        10.Warning : Don't use any special characters. Only the numbers and the alphabet.`
                 : `You are an expert educator specializing in the ${curriculum} curriculum.
         Your task is to extract a student's name from the provided student row data and generate a personalized ${qCount}-question quiz with answers.
         
@@ -88,6 +91,7 @@ exports.handler = async (event) => {
         - Student's Previous Score: ${score ? score : "(Found in data)"} out of ${maxMarks}${marksColumn ? ` (Marks column: ${marksColumn})` : ""}
         ${normalizedNameColumn ? `- Student name column: ${normalizedNameColumn}` : ""}
         ${normalizedStudentNameHint ? `- Student name (from selected column): ${normalizedStudentNameHint}` : ""}
+        ${learnedContext ? `- Learning materials summary: ${learnedContext}` : ""}
         
         Strict Requirements:
         1. Output ONLY valid JSON (no markdown fences, no extra commentary).
@@ -99,7 +103,8 @@ exports.handler = async (event) => {
         5. Ensure questions align with ${curriculum} standards.
         6. Special Requirements : ${requests}
         7. Reminder : Questions must only be about ${topic}
-        8.Warning : Don't use any special characters. Only the numbers and the alphabet.`;
+        ${learnedContext ? "8. Prefer questions that match the provided learning materials summary; avoid content outside what was taught." : ""}
+        9.Warning : Don't use any special characters. Only the numbers and the alphabet.`;
         
 
         const completion = await groq.chat.completions.create({

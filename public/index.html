@@ -206,6 +206,19 @@
             <input type="text" id="mCol" value="" placeholder="Upload CSV to choose…" readonly>
         </div>
         <div class="field full-width">
+            <label>Learning Materials (Optional)</label>
+            <div style="display: grid; gap: 10px;">
+                <input type="file" id="materialsPdf" accept="application/pdf,.pdf" multiple>
+                <textarea id="materialsUrls" rows="2" placeholder="Paste web link(s) to notes/lecture slides (one per line)"></textarea>
+                <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
+                    <button type="button" id="materialsClearBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Clear</button>
+                </div>
+                <div id="materialsStatus" style="color: var(--muted); font-size: 0.9rem;"></div>
+                <textarea id="materialsPreview" rows="4" readonly placeholder="Material summary used for personalized quizzes will appear here..."></textarea>
+            </div>
+        </div>
+        <div class="field full-width">
             <label>Special Requests (Optional)</label>
             <textarea id="requests" rows="2" placeholder="e.g. Include 1 word problem, funny tone..."></textarea>
         </div>
@@ -1086,6 +1099,148 @@
         return quiz;
     }
 
+    const MATERIALS_STORAGE_KEY = "quizwiz_materials_v1";
+    let learnedContext = "";
+
+    function setMaterialsUi({ statusText = "", previewText = "" } = {}) {
+        const statusEl = document.getElementById("materialsStatus");
+        const previewEl = document.getElementById("materialsPreview");
+        if (statusEl) statusEl.innerText = statusText || "";
+        if (previewEl) previewEl.value = previewText || "";
+    }
+
+    function loadMaterialsFromStorage() {
+        try {
+            const raw = localStorage.getItem(MATERIALS_STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.learnedContext === "string") {
+                learnedContext = parsed.learnedContext.trim();
+                if (learnedContext) {
+                    setMaterialsUi({
+                        statusText: "Using saved learning materials summary.",
+                        previewText: learnedContext
+                    });
+                }
+            }
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function saveMaterialsToStorage() {
+        try {
+            localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify({ learnedContext }));
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function clearMaterials() {
+        learnedContext = "";
+        const pdfEl = document.getElementById("materialsPdf");
+        const urlEl = document.getElementById("materialsUrls");
+        if (pdfEl) pdfEl.value = "";
+        if (urlEl) urlEl.value = "";
+        setMaterialsUi({ statusText: "Cleared.", previewText: "" });
+        try {
+            localStorage.removeItem(MATERIALS_STORAGE_KEY);
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error("Failed to read file."));
+            reader.onload = () => {
+                const result = String(reader.result || "");
+                const comma = result.indexOf(",");
+                resolve(comma >= 0 ? result.slice(comma + 1) : result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function parseUrls(text) {
+        const raw = String(text || "")
+            .split(/\r?\n|,/g)
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+        const urls = [];
+        for (const u of raw) {
+            if (/^https?:\/\//i.test(u)) urls.push(u);
+        }
+        return Array.from(new Set(urls)).slice(0, 10);
+    }
+
+    async function analyzeMaterials() {
+        const btn = document.getElementById("materialsAnalyzeBtn");
+        const pdfEl = document.getElementById("materialsPdf");
+        const urlEl = document.getElementById("materialsUrls");
+
+        const files = pdfEl?.files ? Array.from(pdfEl.files) : [];
+        const urls = parseUrls(urlEl?.value || "");
+
+        if (!files.length && !urls.length) {
+            alert("Add at least one PDF or web link.");
+            return;
+        }
+
+        btn.disabled = true;
+        setMaterialsUi({ statusText: "Analyzing materials...", previewText: "" });
+
+        try {
+            const maxBytesPerPdf = 4 * 1024 * 1024;
+            const pdfs = [];
+
+            for (const f of files.slice(0, 5)) {
+                if (f.size > maxBytesPerPdf) throw new Error(`PDF too large: ${f.name} (max 4MB).`);
+                const data = await fileToBase64(f);
+                pdfs.push({ name: f.name, data });
+            }
+
+            const payload = {
+                pdfs,
+                urls,
+                subject: document.getElementById('subject').value,
+                topic: document.getElementById('topic').value,
+                grade: document.getElementById('grade').value,
+                curriculum: document.getElementById('curriculum').value
+            };
+
+            const res = await fetch("/.netlify/functions/materials", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                const errMsg = data?.error ? String(data.error) : `Request failed (${res.status})`;
+                const errRid = data?.requestId ? `\nRequest ID: ${data.requestId}` : "";
+                throw new Error(errMsg + errRid);
+            }
+
+            const summary = typeof data?.learnedContext === "string" ? data.learnedContext.trim() : "";
+            if (!summary) throw new Error("No summary returned.");
+
+            learnedContext = summary;
+            saveMaterialsToStorage();
+
+            const warnText = Array.isArray(data?.warnings) && data.warnings.length ? ` Warnings: ${data.warnings.join(" | ")}` : "";
+            setMaterialsUi({ statusText: "Materials summary ready. It will be used for quiz generation." + warnText, previewText: learnedContext });
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    document.getElementById("materialsAnalyzeBtn")?.addEventListener("click", analyzeMaterials);
+    document.getElementById("materialsClearBtn")?.addEventListener("click", clearMaterials);
+    loadMaterialsFromStorage();
+
     async function run() {
         const file = document.getElementById('csvFile').files[0];
         if (!file) return alert("Please upload a CSV file.");
@@ -1172,6 +1327,7 @@
                     nameColumn,
                     studentNameHint: nameColumn ? String(rowObject?.[nameColumn] ?? "").trim() : "",
                     score: rowObject?.[marksColumn] ?? "",
+                    learnedContext,
                     subject: document.getElementById('subject').value,
                     topic: document.getElementById('topic').value,
                     grade: document.getElementById('grade').value,
