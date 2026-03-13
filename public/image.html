@@ -137,21 +137,19 @@
             <a class="tab active" href="image.html">Worksheet Marker</a>
         </div>
         <hr>
-        <br>
+        
 
-        <div class="toolbar">
-            <div class="toolbar-left">
-                <h2 style="margin: 0;">AI Worksheet Marker [Beta]</h2>
-            </div>
-            
-        </div>
-
+       
         <div class="form-grid" style="margin-top: 20px;">
             <div class="field full-width">
                 <label for="imageInput">Upload worksheet image</label>
                 <input type="file" id="imageInput" accept="image/*" multiple>
                 <div class="muted" id="selectedInfo" style="margin-top: 6px;">You can select multiple images. Preview shows the first image. Use scroll + zoom to inspect before grading.</div>
             </div>
+            <div class="field" style="min-width: 180px; margin-top: 10px;">
+                        <label for="outOf" style="margin-bottom: 4px;">Marks Out of</label>
+                        <input type="number" id="outOf" value="20" min="1" max="1000" step="1" style="padding: 10px 12px;">
+                    </div>
 
             <div class="full-width" id="previewSection" style="display:none;">
                 <div class="preview-wrap">
@@ -174,10 +172,7 @@
             <div class="full-width">
                 <div style="display:flex; gap: 12px; flex-wrap: wrap; align-items: center;">
                     <button id="markBtn" type="button" disabled>Mark Worksheet</button>
-                    <div class="field" style="min-width: 180px; margin-top: 10px;">
-                        <label for="outOf" style="margin-bottom: 4px;">Out of</label>
-                        <input type="number" id="outOf" value="20" min="1" max="1000" step="1" style="padding: 10px 12px;">
-                    </div>
+                    
                 </div>
                 <div id="status"></div>
             </div>
