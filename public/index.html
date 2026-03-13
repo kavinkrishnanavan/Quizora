@@ -243,7 +243,7 @@
                     </div>
 
                 <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-                    <div style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
+                    <div id="csvPreviewScroll" style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
                         <table id="csvPreviewTable" class="csv-equal-table"></table>
                     </div>
                 </div>
@@ -749,6 +749,13 @@
         let isDragging = false;
         let startCell = null;
         let clickedAlreadySelected = false;
+        let lastPointer = { x: 0, y: 0 };
+        let autoScrollRaf = 0;
+
+        const scrollEl =
+            document.getElementById("csvPreviewScroll") ||
+            table?.parentElement ||
+            null;
 
         const getCellFromEvent = (ev) => {
             let cell = ev.target?.closest?.("td,th") || null;
@@ -759,6 +766,81 @@
             return cell;
         };
 
+        const getCellFromPoint = (x, y) => {
+            if (typeof document.elementFromPoint !== "function") return null;
+            const el = document.elementFromPoint(x, y);
+            return el?.closest?.("td,th") || null;
+        };
+
+        const stopAutoScroll = () => {
+            if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf);
+            autoScrollRaf = 0;
+        };
+
+        const ensureAutoScroll = () => {
+            if (autoScrollRaf) return;
+            autoScrollRaf = requestAnimationFrame(tickAutoScroll);
+        };
+
+        const tickAutoScroll = () => {
+            autoScrollRaf = 0;
+            if (!isDragging || !scrollEl || !csvSelection) return;
+
+            const rect = scrollEl.getBoundingClientRect();
+            const x = Number(lastPointer?.x || 0);
+            const y = Number(lastPointer?.y || 0);
+
+            const margin = 36;
+            const maxStep = 26;
+
+            const leftDist = rect.left + margin - x;
+            const rightDist = x - (rect.right - margin);
+            const topDist = rect.top + margin - y;
+            const bottomDist = y - (rect.bottom - margin);
+
+            let dx = 0;
+            let dy = 0;
+
+            if (leftDist > 0) dx = -Math.min(maxStep, Math.max(6, leftDist * 0.25));
+            else if (rightDist > 0) dx = Math.min(maxStep, Math.max(6, rightDist * 0.25));
+
+            if (topDist > 0) dy = -Math.min(maxStep, Math.max(6, topDist * 0.25));
+            else if (bottomDist > 0) dy = Math.min(maxStep, Math.max(6, bottomDist * 0.25));
+
+            if (dx !== 0 || dy !== 0) {
+                scrollEl.scrollLeft += dx;
+                scrollEl.scrollTop += dy;
+
+                const cx = Math.min(rect.right - 2, Math.max(rect.left + 2, x));
+                const cy = Math.min(rect.bottom - 2, Math.max(rect.top + 2, y));
+                const cell = getCellFromPoint(cx, cy);
+                if (cell && cell.dataset) {
+                    const r = Number(cell.dataset.r);
+                    const c = Number(cell.dataset.c);
+                    if (Number.isFinite(r) && Number.isFinite(c) && (csvSelection.end.r !== r || csvSelection.end.c !== c)) {
+                        csvSelection.end = { r, c };
+                        applyCsvSelectionHighlight(table);
+                    }
+                }
+
+                ensureAutoScroll();
+            } else {
+                // Still update selection while dragging even if not scrolling,
+                // because pointer capture means the cursor may be outside the cell.
+                const cx = Math.min(rect.right - 2, Math.max(rect.left + 2, x));
+                const cy = Math.min(rect.bottom - 2, Math.max(rect.top + 2, y));
+                const cell = getCellFromPoint(cx, cy);
+                if (cell && cell.dataset) {
+                    const r = Number(cell.dataset.r);
+                    const c = Number(cell.dataset.c);
+                    if (Number.isFinite(r) && Number.isFinite(c) && (csvSelection.end.r !== r || csvSelection.end.c !== c)) {
+                        csvSelection.end = { r, c };
+                        applyCsvSelectionHighlight(table);
+                    }
+                }
+            }
+        };
+
         const isCellSelected = (r, c) => {
             const range = getCsvSelectedRange();
             if (!range) return false;
@@ -767,6 +849,7 @@
 
         table.addEventListener("pointerdown", (ev) => {
             if (ev.button !== 0) return; // Only process left-clicks
+            lastPointer = { x: ev.clientX, y: ev.clientY };
             const cell = getCellFromEvent(ev);
             if (!cell || !cell.dataset) return;
 
@@ -789,11 +872,13 @@
             try { table.setPointerCapture(ev.pointerId); } catch (_) {}
 
             applyCsvSelectionHighlight(table);
+            ensureAutoScroll();
             ev.preventDefault();
         });
 
         table.addEventListener("pointermove", (ev) => {
             if (!isDragging) return;
+            lastPointer = { x: ev.clientX, y: ev.clientY };
             const cell = getCellFromEvent(ev);
             if (!cell || !cell.dataset || !csvSelection) return;
 
@@ -805,12 +890,15 @@
                 csvSelection.end = { r, c };
                 applyCsvSelectionHighlight(table);
             }
+
+            ensureAutoScroll();
         });
 
         const endDrag = (ev) => {
             if (!isDragging) return;
             isDragging = false;
             table.classList.remove("is-selecting");
+            stopAutoScroll();
             try { table.releasePointerCapture(ev.pointerId); } catch (_) {}
 
             const cell = getCellFromEvent(ev);
