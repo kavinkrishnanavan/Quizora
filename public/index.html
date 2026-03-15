@@ -432,7 +432,7 @@ if (isMobile()) {
             if (includeAnswers) {
                 const extra =
                     answerFormat === "mcq" && typeof q.correctOption === "string"
-                        ? `Correct option: ${q.correctOption}`
+                        ? ``
                         : "";
                 const aText = extra ? `${extra}\nAnswer: ${q.answer}` : `Answer: ${q.answer}`;
                 const aLines = wrapLines(aText, font, aFontSize, maxWidth - 18);
