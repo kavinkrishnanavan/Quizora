@@ -135,8 +135,8 @@
 
 <div class="container">
     <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="favicon.png" class="zoom" style="width: 200px;">
-        <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
+        <img src="favicon.png" class="zoom" style="width: 200px;" id="logo-bar">
+        <h1 id="title">Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
     </div>
     <div style="text-align: right;">
     <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
@@ -292,6 +292,22 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
+
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
+
+if (isMobile()) {
+    const banner = document.getElementById("bottom-bar");
+    banner.remove();
+    const logo = document.getElementById("title");
+    logo.remove();
+  console.log("User is on mobile");
+
+} else {
+  console.log("User is on desktop");
+}
+
     function sanitizeFilename(name) {
         return String(name || "Student")
             .trim()
