@@ -182,6 +182,9 @@
     </div>
 
     <script>
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
         if (isMobile()) {
     const banner = document.getElementById("bottom-bar");
     banner.remove();

@@ -209,6 +209,10 @@
 
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
+
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
     if (isMobile()) {
     const banner = document.getElementById("bottom-bar");
     banner.remove();
@@ -219,8 +223,8 @@
 } else {
   console.log("User is on desktop");
 }
-</script>
-<script>
+
+
     function sanitizeFilename(name) {
         return String(name || "Worksheet")
             .trim()
