@@ -182,6 +182,16 @@
     </div>
 
     <script>
+        if (isMobile()) {
+    const banner = document.getElementById("bottom-bar");
+    banner.remove();
+    const logo = document.getElementById("title");
+    logo.remove();
+  console.log("User is on mobile");
+
+} else {
+  console.log("User is on desktop");
+}
         const imageInput = document.getElementById("imageInput");
         const previewSection = document.getElementById("previewSection");
         const previewImg = document.getElementById("previewImg");
