@@ -126,6 +126,8 @@
             <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
             <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
         </div>
+         <h1 id="mobile1">Quiz-Wiz</h1>
+    <h3 id="mobile2">Worksheets Empowered</h3>
         <div style="text-align: right;">
             <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
             <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
@@ -194,6 +196,10 @@ function isMobile() {
 
 } else {
   console.log("User is on desktop");
+  const mobile1 = document.getElementById("mobile1");
+    const mobile2 = document.getElementById("mobile2");
+    mobile1.remove();
+    mobile2.remove();
 }
         const imageInput = document.getElementById("imageInput");
         const previewSection = document.getElementById("previewSection");
