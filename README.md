@@ -92,6 +92,8 @@ The Personalized Tests page includes a Teacher Portal that lets users create an 
 $env:FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"..."}'
 ```
 
+- `FIREBASE_DATABASE_URL` (required for Realtime Database): your RTDB URL, for example `https://your-project-id-default-rtdb.firebaseio.com`
+
 ### Required client config (via environment variable)
 
 - `FIREBASE_WEB_CONFIG_JSON` (required): Firebase web app config JSON as a **single line**. Example (PowerShell):

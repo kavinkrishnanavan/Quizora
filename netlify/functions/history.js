@@ -2,6 +2,14 @@ const admin = require("firebase-admin");
 
 const HISTORY_COLLECTION = "history";
 
+function getDatabaseUrl() {
+    const url = process.env.FIREBASE_DATABASE_URL;
+    if (!url) {
+        throw new Error("Missing FIREBASE_DATABASE_URL in Netlify environment variables.");
+    }
+    return url;
+}
+
 function getServiceAccount() {
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     if (!raw) {
@@ -24,6 +32,7 @@ function getAdmin() {
         const serviceAccount = getServiceAccount();
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
+            databaseURL: getDatabaseUrl(),
         });
     }
     return admin;
@@ -59,8 +68,8 @@ exports.handler = async (event) => {
             return { statusCode: 401, body: JSON.stringify({ error: "Invalid auth token." }) };
         }
 
-        const db = adminSdk.firestore();
-        const historyRef = db.collection("users").doc(uid).collection(HISTORY_COLLECTION);
+        const db = adminSdk.database();
+        const historyRef = db.ref(`users/${uid}/${HISTORY_COLLECTION}`);
 
         if (event.httpMethod === "POST") {
             const body = event.body ? JSON.parse(event.body) : {};
@@ -70,34 +79,38 @@ exports.handler = async (event) => {
             }
 
             const payloadJson = JSON.stringify(payload);
-            const doc = await historyRef.add({
+            
+            const newRef = historyRef.push();
+            await newRef.set({
                 uid,
                 email,
                 payload,
                 payloadJson,
-                createdAt: adminSdk.firestore.FieldValue.serverTimestamp(),
+                createdAt: adminSdk.database.ServerValue.TIMESTAMP,
             });
 
             return {
                 statusCode: 200,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: doc.id }),
+                body: JSON.stringify({ id: newRef.key }),
             };
         }
 
         const limitRaw = event.queryStringParameters?.limit;
         const limit = Math.max(1, Math.min(50, Number.parseInt(limitRaw ?? "20", 10) || 20));
 
-        const snap = await historyRef.orderBy("createdAt", "desc").limit(limit).get();
-        const items = snap.docs.map((doc) => {
-            const data = doc.data() || {};
-            const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null;
+        const snap = await historyRef.orderByChild("createdAt").limitToLast(limit).get();
+        const raw = snap.exists() ? snap.val() : {};
+        const items = Object.entries(raw || {}).map(([key, data]) => {
+            const createdAtMs = Number(data?.createdAt);
+            const createdAt = Number.isFinite(createdAtMs) ? new Date(createdAtMs).toISOString() : null;
             return {
-                id: doc.id,
+                id: key,
                 createdAt,
-                payloadJson: data.payloadJson || "",
+                payloadJson: data?.payloadJson || "",
             };
         });
+        items.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
         return {
             statusCode: 200,
