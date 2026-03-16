@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "dotenv": "^17.3.1",
+    "firebase-admin": "^12.5.0",
     "groq-sdk": "^0.37.0",
     "jszip": "^3.10.1",
     "mammoth": "^1.8.0",

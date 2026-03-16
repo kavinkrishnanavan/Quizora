@@ -80,6 +80,30 @@ Rows are sent to the AI as a compact, `.txt`-style key/value representation. If 
 - `GROQ_API_KEY` (required): used only by `netlify/functions/generate.js`
 - Model: the function currently uses `openai/gpt-oss-120B` (edit `netlify/functions/generate.js` if you want a different Groq model)
 
+## Teacher Accounts + History (Firebase)
+
+The Personalized Tests page includes a Teacher Portal that lets users create an account, sign in, and save worksheet history to Firebase.
+
+### Required Netlify environment variables
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON` (required): the Firebase Admin SDK service account JSON as a **single line**. Example (PowerShell):
+
+```powershell
+$env:FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"..."}'
+```
+
+### Required client config (via environment variable)
+
+- `FIREBASE_WEB_CONFIG_JSON` (required): Firebase web app config JSON as a **single line**. Example (PowerShell):
+
+```powershell
+$env:FIREBASE_WEB_CONFIG_JSON='{"apiKey":"...","authDomain":"...","projectId":"...","appId":"...","measurementId":"..."}'
+```
+
+### Firestore structure
+
+History is stored under `users/{uid}/history` with each entry saved as both a JSON object and a single JSON line string (`payloadJson`).
+
 ## License
 
 ISC (see `package.json`).

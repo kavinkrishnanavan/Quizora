@@ -57,6 +57,13 @@
 
         #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
         .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
+        .portal-card { background: var(--card); border: 1px solid var(--border); padding: 22px; margin-top: 22px; border-radius: 12px; box-shadow: var(--shadow); }
+        .portal-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .portal-meta { color: var(--muted); font-size: 0.9rem; }
+        .history-list { display: grid; gap: 14px; margin-top: 14px; }
+        .history-item { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: rgba(127,127,127,0.05); }
+        .history-item h4 { margin: 0 0 6px 0; font-size: 1rem; }
+        .history-item pre { margin: 8px 0 0 0; font-size: 0.95rem; }
         pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); }
         body {
             background: url("background.png");
@@ -152,6 +159,42 @@
     </div>
     <hr>
     <br>
+
+    <div class="portal-card" id="authCard">
+        <div style="display:flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <div>
+                <div style="font-weight: 800; font-size: 1.05rem;">Teacher Portal</div>
+                <div class="portal-meta" id="authStatus">Not signed in.</div>
+            </div>
+            <div class="portal-meta">Your worksheet history is saved to your account.</div>
+        </div>
+        <div class="form-grid" style="margin-top: 14px;">
+            <div class="field">
+                <label>Email</label>
+                <input id="authEmail" type="email" placeholder="teacher@school.edu">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+            </div>
+        </div>
+        <div class="portal-row" style="margin-top: 12px;">
+            <button type="button" id="signUpBtn" style="padding: 12px 14px; margin-top: 0;">Create Account</button>
+            <button type="button" id="signInBtn" style="padding: 12px 14px; margin-top: 0;">Sign In</button>
+            <button type="button" id="signOutBtn" style="padding: 12px 14px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
+        </div>
+    </div>
+
+    <div class="portal-card" id="historyCard" style="display:none;">
+        <div style="display:flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <div style="font-weight: 800; font-size: 1.05rem;">Saved History</div>
+            <div class="portal-row">
+                <button type="button" id="historyLoadBtn" style="padding: 10px 12px; margin-top: 0;">Load History</button>
+                <div class="portal-meta" id="historyStatus"></div>
+            </div>
+        </div>
+        <div id="historyList" class="history-list"></div>
+    </div>
 
     <div class="form-grid">
         <div class="field">
@@ -293,6 +336,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 <script>
 
 function isMobile() {
@@ -313,6 +358,192 @@ if (isMobile()) {
     mobile2.remove();
   console.log("User is on desktop");
 }
+
+    let FIREBASE_CONFIG = null;
+
+    let firebaseReady = false;
+    let currentUser = null;
+
+    function setAuthStatus(text) {
+        const status = document.getElementById("authStatus");
+        if (status) status.innerText = text || "";
+    }
+
+    function setHistoryStatus(text) {
+        const status = document.getElementById("historyStatus");
+        if (status) status.innerText = text || "";
+    }
+
+    function updateAuthUi(user) {
+        const historyCard = document.getElementById("historyCard");
+        const signOutBtn = document.getElementById("signOutBtn");
+        if (user) {
+            setAuthStatus(`Signed in as ${user.email || "teacher"}.`);
+            if (historyCard) historyCard.style.display = "block";
+            if (signOutBtn) signOutBtn.disabled = false;
+        } else {
+            setAuthStatus("Not signed in.");
+            if (historyCard) historyCard.style.display = "none";
+            if (signOutBtn) signOutBtn.disabled = true;
+        }
+    }
+
+    async function initFirebase() {
+        if (!window.firebase || !firebase?.initializeApp) {
+            setAuthStatus("Firebase SDK not loaded.");
+            return;
+        }
+
+        try {
+            const res = await fetch("/.netlify/functions/firebase-config");
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.config) {
+                throw new Error(data?.error || "Missing Firebase config.");
+            }
+            FIREBASE_CONFIG = data.config;
+        } catch (err) {
+            setAuthStatus("Firebase config missing. Set FIREBASE_WEB_CONFIG_JSON.");
+            return;
+        }
+
+        firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseReady = true;
+
+        firebase.auth().onAuthStateChanged((user) => {
+            currentUser = user || null;
+            updateAuthUi(currentUser);
+        });
+    }
+
+    async function signUp() {
+        if (!firebaseReady) return alert("Firebase is not configured yet.");
+        const email = String(document.getElementById("authEmail")?.value || "").trim();
+        const password = String(document.getElementById("authPassword")?.value || "");
+        if (!email || !password) return alert("Enter an email and password.");
+        try {
+            await firebase.auth().createUserWithEmailAndPassword(email, password);
+        } catch (err) {
+            alert(err?.message || "Sign-up failed.");
+        }
+    }
+
+    async function signIn() {
+        if (!firebaseReady) return alert("Firebase is not configured yet.");
+        const email = String(document.getElementById("authEmail")?.value || "").trim();
+        const password = String(document.getElementById("authPassword")?.value || "");
+        if (!email || !password) return alert("Enter an email and password.");
+        try {
+            await firebase.auth().signInWithEmailAndPassword(email, password);
+        } catch (err) {
+            alert(err?.message || "Sign-in failed.");
+        }
+    }
+
+    async function signOut() {
+        if (!firebaseReady) return;
+        await firebase.auth().signOut();
+    }
+
+    async function getAuthToken() {
+        if (!firebaseReady || !firebase.auth().currentUser) return "";
+        return firebase.auth().currentUser.getIdToken();
+    }
+
+    function summarizeQuestions(questions) {
+        if (!Array.isArray(questions)) return "";
+        return questions.map((q) => `${q.number}. ${q.question}`).join("\n\n");
+    }
+
+    function renderHistory(items) {
+        const list = document.getElementById("historyList");
+        if (!list) return;
+        list.innerHTML = "";
+
+        if (!items.length) {
+            list.innerHTML = "<div class=\"portal-meta\">No history found yet.</div>";
+            return;
+        }
+
+        for (const item of items) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "history-item";
+
+            let payload = null;
+            try {
+                payload = item.payloadJson ? JSON.parse(item.payloadJson) : null;
+            } catch (_) {
+                payload = null;
+            }
+
+            const createdAt = payload?.createdAt || item.createdAt || "";
+            const title = document.createElement("h4");
+            title.innerText = payload?.title || "Worksheet Batch";
+            wrapper.appendChild(title);
+
+            const meta = document.createElement("div");
+            meta.className = "portal-meta";
+            meta.innerText = createdAt ? `Saved on ${new Date(createdAt).toLocaleString()}` : "Saved history";
+            wrapper.appendChild(meta);
+
+            if (payload?.summary) {
+                const summary = document.createElement("div");
+                summary.style.marginTop = "8px";
+                summary.innerText = payload.summary;
+                wrapper.appendChild(summary);
+            }
+
+            if (Array.isArray(payload?.students)) {
+                const pre = document.createElement("pre");
+                const lines = payload.students.map((s) => {
+                    const name = s?.studentName || "Student";
+                    const marks = s?.marks ? ` (${s.marks})` : "";
+                    return `${name}${marks}\n${summarizeQuestions(s?.questions)}\n`;
+                });
+                pre.innerText = lines.join("\n");
+                wrapper.appendChild(pre);
+            }
+
+            list.appendChild(wrapper);
+        }
+    }
+
+    async function loadHistory() {
+        if (!firebaseReady || !currentUser) return alert("Sign in to view history.");
+        setHistoryStatus("Loading history...");
+        try {
+            const token = await getAuthToken();
+            const res = await fetch("/.netlify/functions/history?limit=20", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data?.error || "Failed to load history.");
+            renderHistory(Array.isArray(data?.items) ? data.items : []);
+            setHistoryStatus("");
+        } catch (err) {
+            setHistoryStatus("Could not load history.");
+            alert(err?.message || "Failed to load history.");
+        }
+    }
+
+    async function saveHistory(payload) {
+        if (!firebaseReady || !currentUser) return;
+        const token = await getAuthToken();
+        const res = await fetch("/.netlify/functions/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ payload })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to save history.");
+        return data;
+    }
+
+    document.getElementById("signUpBtn")?.addEventListener("click", signUp);
+    document.getElementById("signInBtn")?.addEventListener("click", signIn);
+    document.getElementById("signOutBtn")?.addEventListener("click", signOut);
+    document.getElementById("historyLoadBtn")?.addEventListener("click", loadHistory);
+    updateAuthUi(null);
+    initFirebase();
 
     function sanitizeFilename(name) {
         return String(name || "Student")
@@ -1410,6 +1641,7 @@ if (isMobile()) {
         const btn = document.getElementById('genBtn');
         const status = document.getElementById('status');
         const output = document.getElementById('output');
+        const historyEntries = [];
 
         btn.disabled = true;
         status.style.display = "block";
@@ -1579,8 +1811,38 @@ if (isMobile()) {
                 card.appendChild(btnRow);
                 card.appendChild(preview);
                 output.appendChild(card);
+
+                historyEntries.push({
+                    studentName: quiz.studentName,
+                    marks: marksValue ? `${marksValue}/${meta.maxMarks}` : "",
+                    questions: quiz.questions
+                });
             }
-            status.innerText = "✅ All Worksheets generated successfully!";
+            status.innerText = "All Worksheets generated successfully!";
+
+            if (currentUser && historyEntries.length) {
+                try {
+                    const payload = {
+                        title: `${document.getElementById('subject').value} - ${document.getElementById('topic').value}`,
+                        createdAt: new Date().toISOString(),
+                        summary: `${historyEntries.length} worksheet(s) generated for ${document.getElementById('grade').value} (${document.getElementById('curriculum').value}).`,
+                        subject: document.getElementById('subject').value,
+                        topic: document.getElementById('topic').value,
+                        grade: document.getElementById('grade').value,
+                        curriculum: document.getElementById('curriculum').value,
+                        maxMarks: document.getElementById('mMax').value,
+                        questionCount: parseInt(document.getElementById('qCount').value, 10),
+                        answerFormat: document.getElementById('answerFormat').value,
+                        requests: document.getElementById('requests').value,
+                        learnedContext,
+                        studentCount: historyEntries.length,
+                        students: historyEntries
+                    };
+                    await saveHistory(payload);
+                } catch (err) {
+                    status.innerText += " History save failed.";
+                }
+            }
         } catch (err) {
             alert("Error: " + err.message);
         } finally {
