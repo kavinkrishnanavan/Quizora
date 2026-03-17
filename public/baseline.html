@@ -135,42 +135,6 @@
     <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
     <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
 </div>
-</div>
-
-<div id="accountModal" class="account-modal">
-    <div class="account-backdrop" id="accountBackdrop"></div>
-    <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
-        <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
-            <div>
-                <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
-                <div class="portal-meta" id="authStatus">Enter email and password to sign in.</div>
-            </div>
-            <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">Close</button>
-        </div>
-
-        <div id="accountSignedOut" style="display:none;">
-            <div class="field">
-                <label>Email</label>
-                <input id="authEmail" type="email" placeholder="teacher@school.edu">
-            </div>
-            <div class="field">
-                <label>Password</label>
-                <input id="authPassword" type="password" placeholder="Minimum 6 characters">
-            </div>
-            <div class="portal-row" style="margin-top: 12px;">
-                <button type="button" id="signUpBtn" style="padding: 10px 12px; margin-top: 0;">Create Account</button>
-                <button type="button" id="signInBtn" style="padding: 10px 12px; margin-top: 0;">Sign In</button>
-            </div>
-        </div>
-
-        <div id="accountSignedIn" style="display:none;">
-            <div class="portal-meta">Signed in as</div>
-            <div id="accountEmailDisplay" style="font-weight: 700; margin-bottom: 10px;"></div>
-            <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
-        </div>
-    </div>
-</div>
-
     <div class="tabs">
         <a class="tab" href="index.html">Personalized Tests</a>
         <a class="tab active" href="baseline.html">Baseline Test</a>
@@ -278,6 +242,40 @@
                     <textarea id="materialsPreview" rows="6" readonly placeholder="Material summary used for baseline worksheet will appear here..."></textarea>
                 </div>
             </div>
+        </div>
+</div>
+</div>
+
+<div id="accountModal" class="account-modal">
+    <div class="account-backdrop" id="accountBackdrop"></div>
+    <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+        <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+            <div>
+                <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
+                <div class="portal-meta" id="authStatus">Enter email and password to sign in.</div>
+            </div>
+            <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">Close</button>
+        </div>
+
+        <div id="accountSignedOut" style="display:none;">
+            <div class="field">
+                <label>Email</label>
+                <input id="authEmail" type="email" placeholder="teacher@school.edu">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+            </div>
+            <div class="portal-row" style="margin-top: 12px;">
+                <button type="button" id="signUpBtn" style="padding: 10px 12px; margin-top: 0;">Create Account</button>
+                <button type="button" id="signInBtn" style="padding: 10px 12px; margin-top: 0;">Sign In</button>
+            </div>
+        </div>
+
+        <div id="accountSignedIn" style="display:none;">
+            <div class="portal-meta">Signed in as</div>
+            <div id="accountEmailDisplay" style="font-weight: 700; margin-bottom: 10px;"></div>
+            <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
         </div>
     </div>
 </div>
