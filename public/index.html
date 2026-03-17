@@ -167,6 +167,27 @@
             <button type="button" id="historyLoadBtn" style="padding: 8px 10px; margin-top: 0;">Refresh</button>
         </div>
         <div class="portal-meta" id="historyStatus"></div>
+        <div class="portal-card" id="authCard" style="margin-top: 12px;">
+            <div style="display:flex; flex-direction: column; gap: 8px;">
+                <div>
+                    <div style="font-weight: 800; font-size: 1.02rem;">Teacher Portal</div>
+                    <div class="portal-meta" id="authStatus">Not signed in.</div>
+                </div>
+                <div class="field">
+                    <label>Email</label>
+                    <input id="authEmail" type="email" placeholder="teacher@school.edu">
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+                </div>
+                <div class="portal-row">
+                    <button type="button" id="signUpBtn" style="padding: 10px 12px; margin-top: 0;">Create Account</button>
+                    <button type="button" id="signInBtn" style="padding: 10px 12px; margin-top: 0;">Sign In</button>
+                    <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
+                </div>
+            </div>
+        </div>
         <div id="historyList" class="history-list"></div>
     </aside>
 
@@ -189,31 +210,6 @@
     </div>
     <hr>
     <br>
-
-    <div class="portal-card" id="authCard">
-        <div style="display:flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center;">
-            <div>
-                <div style="font-weight: 800; font-size: 1.05rem;">Teacher Portal</div>
-                <div class="portal-meta" id="authStatus">Not signed in.</div>
-            </div>
-            <div class="portal-meta">Your worksheet history is saved to your account.</div>
-        </div>
-        <div class="form-grid" style="margin-top: 14px;">
-            <div class="field">
-                <label>Email</label>
-                <input id="authEmail" type="email" placeholder="teacher@school.edu">
-            </div>
-            <div class="field">
-                <label>Password</label>
-                <input id="authPassword" type="password" placeholder="Minimum 6 characters">
-            </div>
-        </div>
-        <div class="portal-row" style="margin-top: 12px;">
-            <button type="button" id="signUpBtn" style="padding: 12px 14px; margin-top: 0;">Create Account</button>
-            <button type="button" id="signInBtn" style="padding: 12px 14px; margin-top: 0;">Sign In</button>
-            <button type="button" id="signOutBtn" style="padding: 12px 14px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
-        </div>
-    </div>
 
     <div class="form-grid">
         <div class="field">
@@ -399,14 +395,19 @@ if (isMobile()) {
     function updateAuthUi(user) {
         const historySidebar = document.getElementById("historySidebar");
         const signOutBtn = document.getElementById("signOutBtn");
+        const historyLoadBtn = document.getElementById("historyLoadBtn");
         if (user) {
             setAuthStatus(`Signed in as ${user.email || "teacher"}.`);
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = false;
+            if (historyLoadBtn) historyLoadBtn.disabled = false;
         } else {
             setAuthStatus("Not signed in.");
-            if (historySidebar) historySidebar.style.display = "none";
+            if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = true;
+            if (historyLoadBtn) historyLoadBtn.disabled = true;
+            const list = document.getElementById("historyList");
+            if (list) list.innerHTML = "<div class=\"portal-meta\">Sign in to load history.</div>";
         }
     }
 
@@ -626,26 +627,13 @@ if (isMobile()) {
             const student = students[i] || {};
             const studentName = student.studentName || "Student";
             const scoreRaw = student.score ?? parseScore(student.marks) ?? parseScore(student.marksValue);
-            status.innerText = `Regenerating quiz ${i + 1} of ${students.length} â€¢ ${studentName}`;
+            status.innerText = `Loading quiz ${i + 1} of ${students.length} - ${studentName}`;
 
-            const basePayload = {
-                marksColumn: "Marks",
-                nameColumn: "Student Name",
-                studentNameHint: studentName,
-                score: scoreRaw,
-                learnedContext,
-                subject: meta.subject,
-                topic: meta.topic,
-                grade: meta.grade,
-                curriculum: meta.curriculum,
-                maxMarks: meta.maxMarks,
-                questionCount: parseInt(document.getElementById('qCount').value, 10),
-                answerFormat: meta.answerFormat,
-                requests: document.getElementById('requests').value
-            };
-
-            const rowText = `Student Name: ${studentName}${scoreRaw ? `\nMarks: ${scoreRaw}/${meta.maxMarks}` : ""}`;
-            const quiz = await requestQuiz({ ...basePayload, rowText });
+            const savedQuestions = Array.isArray(student.questions) ? student.questions : [];
+            if (!savedQuestions.length) {
+                continue;
+            }
+            const quiz = { studentName, questions: savedQuestions };
 
             const card = document.createElement('div');
             card.className = 'quiz-card';
