@@ -659,6 +659,9 @@ if (isMobile()) {
         const output = document.getElementById("output");
         if (!status || !output) return;
 
+        const historyAnswerFormat = detectAnswerFormat(payload);
+        setFormValue("answerFormat", historyAnswerFormat);
+
         const students = Array.isArray(payload?.students) ? payload.students : [];
         if (!students.length) {
             alert("No students found in this history entry.");
@@ -674,7 +677,7 @@ if (isMobile()) {
             grade: document.getElementById('grade').value,
             curriculum: document.getElementById('curriculum').value,
             maxMarks: document.getElementById('mMax').value,
-            answerFormat: document.getElementById('answerFormat').value
+            answerFormat: historyAnswerFormat
         };
 
         for (let i = 0; i < students.length; i++) {

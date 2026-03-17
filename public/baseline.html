@@ -564,6 +564,9 @@ function isMobile() {
         const output = document.getElementById("output");
         if (!status || !output) return;
 
+        const historyAnswerFormat = detectAnswerFormat(payload);
+        setFormValue("answerFormat", historyAnswerFormat);
+
         const students = Array.isArray(payload?.students) ? payload.students : [];
         const saved = students[0] || {};
         const savedQuestions = Array.isArray(saved.questions) ? saved.questions : [];
@@ -581,7 +584,7 @@ function isMobile() {
             grade: document.getElementById('grade').value,
             curriculum: document.getElementById('curriculum').value,
             maxMarks: document.getElementById('mMax').value,
-            answerFormat: document.getElementById('answerFormat').value
+            answerFormat: historyAnswerFormat
         };
 
         status.innerText = "Loading saved baseline worksheet...";
