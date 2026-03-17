@@ -48,6 +48,10 @@
         .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
         .download-link { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-decoration: none; }
         .download-link.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
+        .account-button { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: white; border: none; border-radius: 999px; padding: 12px 18px; font-weight: 800; box-shadow: var(--shadow); z-index: 10001; }
+        .account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
+        .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+        .account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
         @media (max-width: 1100px) {
             .app-shell { flex-direction: column; }
             .sidebar { width: 100%; position: static; }
@@ -167,27 +171,6 @@
             <button type="button" id="historyLoadBtn" style="padding: 8px 10px; margin-top: 0;">Refresh</button>
         </div>
         <div class="portal-meta" id="historyStatus"></div>
-        <div class="portal-card" id="authCard" style="margin-top: 12px;">
-            <div style="display:flex; flex-direction: column; gap: 8px;">
-                <div>
-                    <div style="font-weight: 800; font-size: 1.02rem;">Teacher Portal</div>
-                    <div class="portal-meta" id="authStatus">Not signed in.</div>
-                </div>
-                <div class="field">
-                    <label>Email</label>
-                    <input id="authEmail" type="email" placeholder="teacher@school.edu">
-                </div>
-                <div class="field">
-                    <label>Password</label>
-                    <input id="authPassword" type="password" placeholder="Minimum 6 characters">
-                </div>
-                <div class="portal-row">
-                    <button type="button" id="signUpBtn" style="padding: 10px 12px; margin-top: 0;">Create Account</button>
-                    <button type="button" id="signInBtn" style="padding: 10px 12px; margin-top: 0;">Sign In</button>
-                    <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
-                </div>
-            </div>
-        </div>
         <div id="historyList" class="history-list"></div>
     </aside>
 
@@ -350,6 +333,41 @@
 </div>
 </div>
 
+<button type="button" id="accountBtn" class="account-button">Account</button>
+<div id="accountModal" class="account-modal">
+    <div class="account-backdrop" id="accountBackdrop"></div>
+    <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+        <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+            <div>
+                <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
+                <div class="portal-meta" id="authStatus">Not signed in.</div>
+            </div>
+            <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">Close</button>
+        </div>
+
+        <div id="accountSignedOut" style="display:none;">
+            <div class="field">
+                <label>Email</label>
+                <input id="authEmail" type="email" placeholder="teacher@school.edu">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+            </div>
+            <div class="portal-row" style="margin-top: 12px;">
+                <button type="button" id="signUpBtn" style="padding: 10px 12px; margin-top: 0;">Create Account</button>
+                <button type="button" id="signInBtn" style="padding: 10px 12px; margin-top: 0;">Sign In</button>
+            </div>
+        </div>
+
+        <div id="accountSignedIn" style="display:none;">
+            <div class="portal-meta">Signed in as</div>
+            <div id="accountEmailDisplay" style="font-weight: 700; margin-bottom: 10px;"></div>
+            <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
@@ -381,6 +399,7 @@ if (isMobile()) {
     let currentUser = null;
     let historyItems = [];
     let historyPdfUrls = [];
+    let historyAutoLoaded = false;
 
     function setAuthStatus(text) {
         const status = document.getElementById("authStatus");
@@ -396,19 +415,50 @@ if (isMobile()) {
         const historySidebar = document.getElementById("historySidebar");
         const signOutBtn = document.getElementById("signOutBtn");
         const historyLoadBtn = document.getElementById("historyLoadBtn");
+        const signedOut = document.getElementById("accountSignedOut");
+        const signedIn = document.getElementById("accountSignedIn");
+        const emailDisplay = document.getElementById("accountEmailDisplay");
         if (user) {
             setAuthStatus(`Signed in as ${user.email || "teacher"}.`);
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = false;
             if (historyLoadBtn) historyLoadBtn.disabled = false;
+            if (signedOut) signedOut.style.display = "none";
+            if (signedIn) signedIn.style.display = "block";
+            if (emailDisplay) emailDisplay.innerText = user.email || "teacher";
         } else {
-            setAuthStatus("Not signed in.");
+            setAuthStatus("Enter email and password to sign in.");
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = true;
             if (historyLoadBtn) historyLoadBtn.disabled = true;
             const list = document.getElementById("historyList");
             if (list) list.innerHTML = "<div class=\"portal-meta\">Sign in to load history.</div>";
+            if (signedOut) signedOut.style.display = "block";
+            if (signedIn) signedIn.style.display = "none";
+            if (emailDisplay) emailDisplay.innerText = "";
         }
+    }
+
+    function openAccountModal() {
+        const modal = document.getElementById("accountModal");
+        if (!modal) return;
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeAccountModal() {
+        const modal = document.getElementById("accountModal");
+        if (!modal) return;
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+        if (currentUser) autoLoadHistory({ force: true });
+    }
+
+    async function autoLoadHistory({ force = false } = {}) {
+        if (!currentUser) return;
+        if (!force && historyAutoLoaded) return;
+        historyAutoLoaded = true;
+        await loadHistory();
     }
 
     async function initFirebase() {
@@ -434,7 +484,9 @@ if (isMobile()) {
 
         firebase.auth().onAuthStateChanged((user) => {
             currentUser = user || null;
+            historyAutoLoaded = false;
             updateAuthUi(currentUser);
+            if (currentUser) autoLoadHistory({ force: true });
         });
     }
 
@@ -445,6 +497,7 @@ if (isMobile()) {
         if (!email || !password) return alert("Enter an email and password.");
         try {
             await firebase.auth().createUserWithEmailAndPassword(email, password);
+            closeAccountModal();
         } catch (err) {
             alert(err?.message || "Sign-up failed.");
         }
@@ -457,6 +510,7 @@ if (isMobile()) {
         if (!email || !password) return alert("Enter an email and password.");
         try {
             await firebase.auth().signInWithEmailAndPassword(email, password);
+            closeAccountModal();
         } catch (err) {
             alert(err?.message || "Sign-in failed.");
         }
@@ -465,6 +519,7 @@ if (isMobile()) {
     async function signOut() {
         if (!firebaseReady) return;
         await firebase.auth().signOut();
+        closeAccountModal();
     }
 
     async function getAuthToken() {
@@ -659,7 +714,7 @@ if (isMobile()) {
             const aLink = document.createElement('a');
             aLink.href = links.aUrl;
             aLink.download = `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`;
-            aLink.className = "download-link secondary";
+            aLink.className = "download-link";
             aLink.innerText = "Download Answer PDF";
 
             btnRow.appendChild(qLink);
@@ -712,6 +767,9 @@ if (isMobile()) {
     document.getElementById("signInBtn")?.addEventListener("click", signIn);
     document.getElementById("signOutBtn")?.addEventListener("click", signOut);
     document.getElementById("historyLoadBtn")?.addEventListener("click", loadHistory);
+    document.getElementById("accountBtn")?.addEventListener("click", openAccountModal);
+    document.getElementById("accountBackdrop")?.addEventListener("click", closeAccountModal);
+    document.getElementById("accountClose")?.addEventListener("click", closeAccountModal);
     updateAuthUi(null);
     initFirebase();
 
@@ -2011,6 +2069,7 @@ if (isMobile()) {
                         students: historyEntries
                     };
                     await saveHistory(payload);
+                    await loadHistory();
                 } catch (err) {
                     status.innerText += " History save failed.";
                 }
