@@ -323,10 +323,7 @@
                 <div id="responsesTitle" style="font-weight: 800; font-size: 1.1rem;">Quiz Responses</div>
                 <div class="portal-meta" id="responsesSubtitle"></div>
             </div>
-            <div style="display:flex; gap: 8px; align-items: center;">
-                <button type="button" id="responsesDelete" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">Delete Quiz</button>
-                <button type="button" id="responsesClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">X</button>
-            </div>
+            <button type="button" id="responsesClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">X</button>
         </div>
         <div id="responsesBody" class="response-list"></div>
     </div>
@@ -496,7 +493,7 @@ function isMobile() {
             url.searchParams.set("mode", "baseline");
             return url.toString();
         } catch (_) {
-            return `quiz.html-quizId=${encodeURIComponent(quizId)}&code=${encodeURIComponent(code)}&mode=baseline`;
+            return `quiz.html?quizId=${encodeURIComponent(quizId)}&code=${encodeURIComponent(code)}&mode=baseline`;
         }
     }
 
@@ -532,7 +529,7 @@ function isMobile() {
         const res = await fetch("/.netlify/functions/quiz-host", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ quiz, meta, mode: "baseline" })
+            body: JSON.stringify({ quiz, meta })
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error(data?.error || "Failed to host quiz.");
@@ -543,7 +540,7 @@ function isMobile() {
     async function fetchQuizResponses(quizId) {
         const token = await getAuthToken();
         if (!token) throw new Error("Please sign in to view responses.");
-        const res = await fetch(`/.netlify/functions/quiz-responses-quizId=${encodeURIComponent(quizId)}`, {
+        const res = await fetch(`/.netlify/functions/quiz-responses?quizId=${encodeURIComponent(quizId)}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json().catch(() => null);
@@ -556,12 +553,10 @@ function isMobile() {
         const titleEl = document.getElementById("responsesTitle");
         const subtitleEl = document.getElementById("responsesSubtitle");
         const body = document.getElementById("responsesBody");
-        const deleteBtn = document.getElementById("responsesDelete");
         if (!modal || !body) return;
 
         if (titleEl) titleEl.innerText = title || "Quiz Responses";
         if (subtitleEl) subtitleEl.innerText = subtitle || "";
-        if (deleteBtn) deleteBtn.style.display = "none";
 
         body.innerHTML = "";
         const list = Array.isArray(responses) ? responses : [];
@@ -614,19 +609,6 @@ function isMobile() {
         const modal = document.getElementById("responsesModal");
         if (modal) modal.style.display = "none";
         document.body.style.overflow = "";
-    }
-
-    async function deleteHostedQuiz(quizId) {
-        const token = await getAuthToken();
-        if (!token) throw new Error("Please sign in to delete quizzes.");
-        const res = await fetch("/.netlify/functions/quiz-delete", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ quizId })
-        });
-        const data = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(data?.error || "Failed to delete quiz.");
-        return data;
     }
 
     async function autoLoadHistory({ force = false } = {}) {
@@ -924,21 +906,7 @@ function isMobile() {
                 responsesBtn.disabled = true;
                 try {
                     const data = await fetchQuizResponses(session.quizId);
-                    const subtitle = `${quiz.studentName} - ${data?.count || 0} responses`;
-                    const deleteBtn = document.getElementById("responsesDelete");
-                    if (deleteBtn) {
-                        deleteBtn.style.display = "inline-flex";
-                        deleteBtn.onclick = async () => {
-                            if (!confirm("Delete this hosted quiz? New submissions will be blocked.")) return;
-                            try {
-                                await deleteHostedQuiz(session.quizId);
-                                closeResponsesModal();
-                                alert("Quiz deleted.");
-                            } catch (err) {
-                                alert(err?.message || "Failed to delete quiz.");
-                            }
-                        };
-                    }
+                    const subtitle = `${quiz.studentName} • ${data?.count || 0} responses`;
                     openResponsesModal({
                         title: "Quiz Responses",
                         subtitle,
@@ -981,7 +949,7 @@ function isMobile() {
         setHistoryStatus("Loading history...");
         try {
             const token = await getAuthToken();
-            const res = await fetch("/.netlify/functions/history-limit=20", {
+            const res = await fetch("/.netlify/functions/history?limit=20", {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json().catch(() => null);
@@ -1010,7 +978,7 @@ function isMobile() {
     function sanitizeFilename(name) {
         return String(name || "Worksheet")
             .trim()
-            .replace(/[<>:"/\|?* -]/g, "_")
+            .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
             .replace(/\s+/g, " ")
             .slice(0, 80);
     }
@@ -1557,21 +1525,7 @@ function isMobile() {
                     responsesBtn.disabled = true;
                     try {
                         const data = await fetchQuizResponses(session.quizId);
-                        const subtitle = `${quiz.studentName} - ${data?.count || 0} responses`;
-                    const deleteBtn = document.getElementById("responsesDelete");
-                    if (deleteBtn) {
-                        deleteBtn.style.display = "inline-flex";
-                        deleteBtn.onclick = async () => {
-                            if (!confirm("Delete this hosted quiz? New submissions will be blocked.")) return;
-                            try {
-                                await deleteHostedQuiz(session.quizId);
-                                closeResponsesModal();
-                                alert("Quiz deleted.");
-                            } catch (err) {
-                                alert(err?.message || "Failed to delete quiz.");
-                            }
-                        };
-                    }
+                        const subtitle = `${quiz.studentName} • ${data?.count || 0} responses`;
                         openResponsesModal({
                             title: "Quiz Responses",
                             subtitle,
@@ -1611,7 +1565,7 @@ function isMobile() {
             if (currentUser) {
                 try {
                     const payload = {
-                        title: `${meta.subject} ? ${meta.topic}`,
+                        title: `${meta.subject} - ${meta.topic}`,
                         createdAt: new Date().toISOString(),
                         summary: `Baseline worksheet generated for ${meta.grade} (${meta.curriculum}).`,
                         type: HISTORY_TYPE,
