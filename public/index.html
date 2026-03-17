@@ -421,7 +421,7 @@ if (isMobile()) {
         const signedIn = document.getElementById("accountSignedIn");
         const emailDisplay = document.getElementById("accountEmailDisplay");
         if (user) {
-            setAuthStatus(`Signed in as ${user.email || "teacher"}.`);
+            setAuthStatus(`Signed in.`);
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = false;
             if (signedOut) signedOut.style.display = "none";
