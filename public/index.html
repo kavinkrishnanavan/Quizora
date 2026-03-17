@@ -48,7 +48,6 @@
         .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
         .download-link { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-decoration: none; }
         .download-link.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
-        .account-button { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: white; border: none; border-radius: 999px; padding: 12px 18px; font-weight: 800; box-shadow: var(--shadow); z-index: 10001; }
         .account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
         .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
         .account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
@@ -168,7 +167,10 @@
                 <div class="sidebar-title">Saved Topics</div>
                 <div class="sidebar-subtitle">Pick a topic to reload a full test.</div>
             </div>
-            <button type="button" id="historyLoadBtn" style="padding: 8px 10px; margin-top: 0;">Refresh</button>
+            <div class="portal-row">
+                <button type="button" id="historyLoadBtn" style="padding: 8px 10px; margin-top: 0;">Refresh</button>
+                <button type="button" id="accountBtn" style="padding: 8px 10px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Account</button>
+            </div>
         </div>
         <div class="portal-meta" id="historyStatus"></div>
         <div id="historyList" class="history-list"></div>
@@ -333,7 +335,6 @@
 </div>
 </div>
 
-<button type="button" id="accountBtn" class="account-button">Account</button>
 <div id="accountModal" class="account-modal">
     <div class="account-backdrop" id="accountBackdrop"></div>
     <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
@@ -400,6 +401,7 @@ if (isMobile()) {
     let historyItems = [];
     let historyPdfUrls = [];
     let historyAutoLoaded = false;
+    const HISTORY_TYPE = "personalized";
 
     function setAuthStatus(text) {
         const status = document.getElementById("authStatus");
@@ -604,7 +606,7 @@ if (isMobile()) {
                 payload = null;
             }
             return { ...item, payload };
-        });
+        }).filter((item) => item.payload?.type === HISTORY_TYPE);
 
         if (!historyItems.length) {
             list.innerHTML = "<div class=\"portal-meta\">No history found yet.</div>";
@@ -2056,6 +2058,7 @@ if (isMobile()) {
                         title: `${document.getElementById('subject').value} - ${document.getElementById('topic').value}`,
                         createdAt: new Date().toISOString(),
                         summary: `${historyEntries.length} worksheet(s) generated for ${document.getElementById('grade').value} (${document.getElementById('curriculum').value}).`,
+                        type: HISTORY_TYPE,
                         subject: document.getElementById('subject').value,
                         topic: document.getElementById('topic').value,
                         grade: document.getElementById('grade').value,
