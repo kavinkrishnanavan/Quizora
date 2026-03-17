@@ -254,7 +254,7 @@
                 <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
                 <div class="portal-meta" id="authStatus">Enter email and password to sign in.</div>
             </div>
-            <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">Close</button>
+            <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">❌</button>
         </div>
 
         <div id="accountSignedOut" style="display:none;">
@@ -329,7 +329,7 @@ function isMobile() {
         const signedIn = document.getElementById("accountSignedIn");
         const emailDisplay = document.getElementById("accountEmailDisplay");
         if (user) {
-            setAuthStatus(`Signed in as ${user.email || "teacher"}.`);
+            setAuthStatus(``);
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = false;
             if (signedOut) signedOut.style.display = "none";
