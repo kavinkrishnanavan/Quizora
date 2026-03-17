@@ -639,17 +639,19 @@ if (isMobile()) {
         return firebase.auth().currentUser.getIdToken();
     }
 
-    function buildHostedQuizLink(session) {
+    function buildHostedQuizLink(session, mode) {
         const quizId = session?.quizId || "";
         const code = session?.accessCode || "";
         if (!quizId || !code) return "";
+        const resolvedMode = mode || "personalized";
         try {
             const url = new URL("quiz.html", window.location.href);
             url.searchParams.set("quizId", quizId);
             url.searchParams.set("code", code);
+            url.searchParams.set("mode", resolvedMode);
             return url.toString();
         } catch (_) {
-            return `quiz.html?quizId=${encodeURIComponent(quizId)}&code=${encodeURIComponent(code)}`;
+            return `quiz.html?quizId=${encodeURIComponent(quizId)}&code=${encodeURIComponent(code)}&mode=${encodeURIComponent(resolvedMode)}`;
         }
     }
 
@@ -741,7 +743,7 @@ if (isMobile()) {
                 if (Number.isFinite(item.autoScore)) {
                     const score = document.createElement("div");
                     score.className = "portal-meta";
-                    score.innerText = `Auto score: ${item.autoScore}/${item.maxScore || 0}`;
+                    score.innerText = `Score: ${item.autoScore}/${item.maxScore || 0}`;
                     card.appendChild(score);
                 }
 
@@ -973,7 +975,7 @@ if (isMobile()) {
             row.style.flexWrap = "wrap";
             row.style.marginBottom = "10px";
 
-            const link = buildHostedQuizLink(session);
+            const link = buildHostedQuizLink(session, "personalized");
             const openBtn = document.createElement("a");
             openBtn.href = link;
             openBtn.target = "_blank";

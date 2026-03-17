@@ -133,6 +133,8 @@
         const params = new URLSearchParams(window.location.search);
         const quizId = params.get("quizId");
         const code = params.get("code");
+        const mode = params.get("mode") || "personalized";
+        const isBaseline = mode === "baseline";
 
         const statusEl = document.getElementById("status");
         const quizArea = document.getElementById("quizArea");
@@ -157,7 +159,13 @@
 
             const nameInput = document.createElement("input");
             nameInput.id = "studentName";
-            nameInput.value = data.studentName || "";
+            nameInput.value = isBaseline ? "" : (data.studentName || "");
+            nameInput.readOnly = !isBaseline;
+            if (!isBaseline) {
+                nameInput.style.opacity = "0.8";
+            } else {
+                nameInput.placeholder = "Enter your name";
+            }
             nameField.appendChild(nameInput);
 
             quizArea.appendChild(nameField);
@@ -205,6 +213,10 @@
             submitBtn.onclick = async () => {
                 submitBtn.disabled = true;
                 try {
+                    const nameValue = String(document.getElementById("studentName")?.value || "").trim();
+                    if (isBaseline && !nameValue) {
+                        throw new Error("Please enter your name.");
+                    }
                     const answers = [];
                     questions.forEach((q) => {
                         if (String(data.answerFormat || "") === "mcq") {
@@ -219,7 +231,7 @@
                     const payload = {
                         quizId,
                         code,
-                        studentName: String(document.getElementById("studentName")?.value || "").trim(),
+                        studentName: nameValue,
                         answers
                     };
 
@@ -230,7 +242,10 @@
                     });
                     const out = await res.json().catch(() => null);
                     if (!res.ok) throw new Error(out?.error || "Failed to submit.");
-                    setStatus("Submitted! Your teacher can see your responses.");
+                    const scoreText = Number.isFinite(out?.autoScore)
+                        ? ` Score: ${out.autoScore}/${out.maxScore || 0}.`
+                        : "";
+                    setStatus(`Submitted! Your teacher can see your responses.${scoreText}`);
                     submitBtn.remove();
                 } catch (err) {
                     setStatus(err?.message || "Submission failed.");

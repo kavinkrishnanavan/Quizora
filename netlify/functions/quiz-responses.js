@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const Groq = require("groq-sdk");
 
 const SESSION_COLLECTION = "quizSessions";
 const RESPONSE_COLLECTION = "quizResponses";
@@ -97,6 +98,87 @@ function computeAutoScore(sessionQuestions, answers) {
     return { score, total };
 }
 
+function safeJsonParse(text) {
+    if (!text) return null;
+    try {
+        return JSON.parse(text);
+    } catch (_) {
+        const cleaned = String(text)
+            .trim()
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/```$/i, "")
+            .trim();
+        try {
+            return JSON.parse(cleaned);
+        } catch (_) {
+            const first = cleaned.indexOf("{");
+            const last = cleaned.lastIndexOf("}");
+            if (first >= 0 && last > first) {
+                try {
+                    return JSON.parse(cleaned.slice(first, last + 1));
+                } catch (_) {
+                    return null;
+                }
+            }
+            return null;
+        }
+    }
+}
+
+async function gradeWithGroq(sessionQuestions, answers) {
+    if (!process.env.GROQ_API_KEY) return null;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const questions = Array.isArray(sessionQuestions) ? sessionQuestions : [];
+    const answerList = Array.isArray(answers) ? answers : [];
+
+    const prompt = {
+        instructions:
+            "You are grading a student quiz. Use the answer key to award 1 point per correct question. " +
+            "Respond with ONLY valid JSON. Do not include extra text.",
+        schema: {
+            score: "integer",
+            maxScore: "integer",
+            results: [
+                {
+                    number: 1,
+                    correct: true
+                }
+            ]
+        },
+        questions: questions.map((q) => ({
+            number: q.number,
+            question: q.question,
+            answer: q.answer || "",
+            options: Array.isArray(q.options) ? q.options : [],
+            correctOption: q.correctOption || ""
+        })),
+        studentAnswers: answerList.map((a) => ({
+            number: a.number,
+            answer: a.answer || a.selectedOption || ""
+        }))
+    };
+
+    const completion = await groq.chat.completions.create({
+        messages: [
+            { role: "system", content: prompt.instructions },
+            { role: "user", content: JSON.stringify(prompt) }
+        ],
+        model: "openai/gpt-oss-120B"
+    });
+
+    const text = completion?.choices?.[0]?.message?.content || "";
+    const parsed = safeJsonParse(text);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const maxScore = Number(parsed.maxScore);
+    const score = Number(parsed.score);
+    if (!Number.isFinite(score) || !Number.isFinite(maxScore)) return null;
+
+    return { score, total: maxScore, results: Array.isArray(parsed.results) ? parsed.results : [] };
+}
+
 exports.handler = async (event) => {
     if (event.httpMethod === "OPTIONS") {
         return { statusCode: 204 };
@@ -116,12 +198,6 @@ exports.handler = async (event) => {
             return { statusCode: 400, body: JSON.stringify({ error: "Missing quizId." }) };
         }
 
-        const sessionSnap = await db.ref(`${SESSION_COLLECTION}/${quizId}`).get();
-        if (!sessionSnap.exists()) {
-            return { statusCode: 404, body: JSON.stringify({ error: "Quiz not found." }) };
-        }
-        const session = sessionSnap.val();
-
         if (event.httpMethod === "GET") {
             const token = getBearerToken(event.headers);
             if (!token) {
@@ -130,8 +206,16 @@ exports.handler = async (event) => {
 
             const decoded = await adminSdk.auth().verifyIdToken(token);
             const uid = decoded?.uid;
-            if (!uid || uid !== session.uid) {
+            if (!uid) {
                 return { statusCode: 403, body: JSON.stringify({ error: "Not authorized for this quiz." }) };
+            }
+
+            const sessionSnap = await db.ref(`${SESSION_COLLECTION}/${quizId}`).get();
+            if (sessionSnap.exists()) {
+                const session = sessionSnap.val();
+                if (!session || session.uid !== uid) {
+                    return { statusCode: 403, body: JSON.stringify({ error: "Not authorized for this quiz." }) };
+                }
             }
 
             const snap = await db.ref(`users/${uid}/${RESPONSE_COLLECTION}/${quizId}`).get();
@@ -157,6 +241,12 @@ exports.handler = async (event) => {
             };
         }
 
+        const sessionSnap = await db.ref(`${SESSION_COLLECTION}/${quizId}`).get();
+        if (!sessionSnap.exists()) {
+            return { statusCode: 404, body: JSON.stringify({ error: "Quiz not found." }) };
+        }
+        const session = sessionSnap.val();
+
         const body = event.body ? JSON.parse(event.body) : {};
         const code = String(body?.code || "").trim();
         if (!code || code !== session.accessCode) {
@@ -173,7 +263,12 @@ exports.handler = async (event) => {
 
         let autoScore = null;
         let maxScore = null;
-        if (String(session.answerFormat || "") === "mcq") {
+
+        const groqScore = await gradeWithGroq(session.questions, answers);
+        if (groqScore) {
+            autoScore = groqScore.score;
+            maxScore = groqScore.total;
+        } else if (String(session.answerFormat || "") === "mcq") {
             const scoreInfo = computeAutoScore(session.questions, answers);
             if (scoreInfo) {
                 autoScore = scoreInfo.score;
@@ -189,6 +284,15 @@ exports.handler = async (event) => {
             maxScore,
             submittedAt: adminSdk.database.ServerValue.TIMESTAMP,
         });
+
+        try {
+            await db.ref(`${SESSION_COLLECTION}/${quizId}`).remove();
+            if (session?.uid) {
+                await db.ref(`users/${session.uid}/quizSessions/${quizId}`).remove();
+            }
+        } catch (_) {
+            // ignore cleanup errors
+        }
 
         return {
             statusCode: 200,
