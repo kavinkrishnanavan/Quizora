@@ -153,6 +153,64 @@
             border-color: rgba(245, 158, 11, 0.95) !important;
             box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.55);
         }
+
+        .view-toggle {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: transparent;
+            color: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .view-toggle.active {
+            background: rgba(37, 99, 235, 0.12);
+            border-color: rgba(37, 99, 235, 0.45);
+        }
+
+        .view-panel {
+            display: block;
+        }
+
+        .view-panel.hidden {
+            display: none;
+        }
+
+        .quiz-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+        }
+
+        .quiz-link.secondary {
+            background: transparent;
+            color: inherit;
+            border: 1px solid var(--border);
+        }
+
+        .response-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 12px;
+            max-height: 55vh;
+            overflow: auto;
+        }
+
+        .response-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(127,127,127,0.05);
+            display: grid;
+            gap: 6px;
+        }
     </style>
 </head>
 <body>
@@ -264,6 +322,18 @@
     </div>
 
     <button id="genBtn" onclick="run()">Generate Worksheets</button>
+    <div class="portal-card" id="teacherViewCard" style="margin-top: 16px; display:none;">
+        <div class="portal-row" style="justify-content: space-between;">
+            <div style="font-weight: 800;">Teacher View</div>
+            <div class="portal-row" id="teacherViewToggle">
+                <button type="button" class="view-toggle active" data-view="worksheets">Name + Worksheets</button>
+                <button type="button" class="view-toggle" data-view="quizzes">Name + Quizzes</button>
+            </div>
+        </div>
+        <div class="portal-meta" id="teacherViewHint" style="margin-top: 6px;">
+            Switch between printable worksheets and hosted quizzes.
+        </div>
+    </div>
     <div id="status"></div>
     <div id="output"></div>
 
@@ -369,6 +439,20 @@
     </div>
 </div>
 
+<div id="responsesModal" class="account-modal">
+    <div class="account-backdrop" id="responsesBackdrop"></div>
+    <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="responsesTitle" style="max-width: 720px;">
+        <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+            <div>
+                <div id="responsesTitle" style="font-weight: 800; font-size: 1.1rem;">Quiz Responses</div>
+                <div class="portal-meta" id="responsesSubtitle"></div>
+            </div>
+            <button type="button" id="responsesClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">X</button>
+        </div>
+        <div id="responsesBody" class="response-list"></div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
@@ -403,6 +487,29 @@ if (isMobile()) {
     let historyAutoLoaded = false;
     let authChecked = false;
     const HISTORY_TYPE = "personalized";
+    let teacherViewMode = "worksheets";
+
+    function showTeacherViewCard() {
+        const card = document.getElementById("teacherViewCard");
+        if (card) card.style.display = "block";
+    }
+
+    function setTeacherView(mode) {
+        teacherViewMode = mode === "quizzes" ? "quizzes" : "worksheets";
+        const buttons = document.querySelectorAll("#teacherViewToggle .view-toggle");
+        buttons.forEach((btn) => {
+            const view = btn.dataset?.view || "";
+            if (view === teacherViewMode) btn.classList.add("active");
+            else btn.classList.remove("active");
+        });
+
+        const panels = document.querySelectorAll(".view-panel");
+        panels.forEach((panel) => {
+            const view = panel.dataset?.view || "";
+            if (view === teacherViewMode) panel.classList.remove("hidden");
+            else panel.classList.add("hidden");
+        });
+    }
 
     function setAuthStatus(text) {
         const status = document.getElementById("authStatus");
@@ -532,6 +639,134 @@ if (isMobile()) {
         return firebase.auth().currentUser.getIdToken();
     }
 
+    function buildHostedQuizLink(session) {
+        const quizId = session?.quizId || "";
+        const code = session?.accessCode || "";
+        if (!quizId || !code) return "";
+        try {
+            const url = new URL("quiz.html", window.location.href);
+            url.searchParams.set("quizId", quizId);
+            url.searchParams.set("code", code);
+            return url.toString();
+        } catch (_) {
+            return `quiz.html?quizId=${encodeURIComponent(quizId)}&code=${encodeURIComponent(code)}`;
+        }
+    }
+
+    async function copyText(text) {
+        if (!text) return false;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (_) {}
+
+        try {
+            const area = document.createElement("textarea");
+            area.value = text;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.focus();
+            area.select();
+            const ok = document.execCommand("copy");
+            area.remove();
+            return ok;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    async function createHostedQuizSession(quiz, meta) {
+        if (!currentUser) return null;
+        const token = await getAuthToken();
+        if (!token) return null;
+        const res = await fetch("/.netlify/functions/quiz-host", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ quiz, meta })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to host quiz.");
+        if (!data?.quizId || !data?.accessCode) return null;
+        return { quizId: data.quizId, accessCode: data.accessCode };
+    }
+
+    async function fetchQuizResponses(quizId) {
+        const token = await getAuthToken();
+        if (!token) throw new Error("Please sign in to view responses.");
+        const res = await fetch(`/.netlify/functions/quiz-responses?quizId=${encodeURIComponent(quizId)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to load responses.");
+        return data;
+    }
+
+    function openResponsesModal({ title, subtitle, responses }) {
+        const modal = document.getElementById("responsesModal");
+        const titleEl = document.getElementById("responsesTitle");
+        const subtitleEl = document.getElementById("responsesSubtitle");
+        const body = document.getElementById("responsesBody");
+        if (!modal || !body) return;
+
+        if (titleEl) titleEl.innerText = title || "Quiz Responses";
+        if (subtitleEl) subtitleEl.innerText = subtitle || "";
+
+        body.innerHTML = "";
+        const list = Array.isArray(responses) ? responses : [];
+        if (!list.length) {
+            const empty = document.createElement("div");
+            empty.className = "portal-meta";
+            empty.innerText = "No responses yet.";
+            body.appendChild(empty);
+        } else {
+            list.forEach((item) => {
+                const card = document.createElement("div");
+                card.className = "response-card";
+
+                const name = document.createElement("div");
+                name.style.fontWeight = "700";
+                name.innerText = item.studentName || "Student";
+                card.appendChild(name);
+
+                if (item.submittedAt) {
+                    const time = document.createElement("div");
+                    time.className = "portal-meta";
+                    time.innerText = new Date(item.submittedAt).toLocaleString();
+                    card.appendChild(time);
+                }
+
+                if (Number.isFinite(item.autoScore)) {
+                    const score = document.createElement("div");
+                    score.className = "portal-meta";
+                    score.innerText = `Auto score: ${item.autoScore}/${item.maxScore || 0}`;
+                    card.appendChild(score);
+                }
+
+                if (Array.isArray(item.answers) && item.answers.length) {
+                    const pre = document.createElement("pre");
+                    pre.innerText = item.answers
+                        .map((a) => `${a.number}. ${a.answer || a.selectedOption || ""}`.trim())
+                        .join("\n\n");
+                    card.appendChild(pre);
+                }
+
+                body.appendChild(card);
+            });
+        }
+
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeResponsesModal() {
+        const modal = document.getElementById("responsesModal");
+        if (modal) modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+
     function summarizeQuestions(questions) {
         if (!Array.isArray(questions)) return "";
         return questions.map((q) => `${q.number}. ${q.question}`).join("\n\n");
@@ -617,6 +852,190 @@ if (isMobile()) {
         const aUrl = URL.createObjectURL(new Blob([aBytes], { type: "application/pdf" }));
         historyPdfUrls.push(qUrl, aUrl);
         return { qUrl, aUrl };
+    }
+
+    async function buildQuizCard({ quiz, meta, marksValue = "", links = null, quizSession = null }) {
+        const card = document.createElement('div');
+        card.className = 'quiz-card';
+
+        const title = document.createElement('div');
+        title.style.fontWeight = "800";
+        title.style.marginBottom = "10px";
+        title.innerText = `${quiz.studentName}${marksValue ? ` \u2022 Marks: ${marksValue}/${meta.maxMarks}` : ""}`;
+
+        const viewWorksheets = document.createElement('div');
+        viewWorksheets.className = "view-panel";
+        viewWorksheets.dataset.view = "worksheets";
+
+        const btnRow = document.createElement('div');
+        btnRow.style.display = "flex";
+        btnRow.style.gap = "10px";
+        btnRow.style.flexWrap = "wrap";
+        btnRow.style.marginBottom = "12px";
+
+        if (links?.qUrl && links?.aUrl) {
+            const qLink = document.createElement('a');
+            qLink.href = links.qUrl;
+            qLink.download = `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`;
+            qLink.className = "download-link";
+            qLink.innerText = "Download Question PDF";
+
+            const aLink = document.createElement('a');
+            aLink.href = links.aUrl;
+            aLink.download = `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`;
+            aLink.className = "download-link";
+            aLink.innerText = "Download Answer PDF";
+
+            btnRow.appendChild(qLink);
+            btnRow.appendChild(aLink);
+        } else {
+            const qBtn = document.createElement('button');
+            qBtn.type = "button";
+            qBtn.innerText = "Download Question PDF";
+            qBtn.style.padding = "10px 12px";
+            qBtn.style.marginTop = "0";
+
+            const aBtn = document.createElement('button');
+            aBtn.type = "button";
+            aBtn.innerText = "Download Answer PDF";
+            aBtn.style.padding = "10px 12px";
+            aBtn.style.marginTop = "0";
+
+            qBtn.onclick = async () => {
+                qBtn.disabled = true;
+                try {
+                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false });
+                    await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`);
+                } finally {
+                    qBtn.disabled = false;
+                }
+            };
+
+            aBtn.onclick = async () => {
+                aBtn.disabled = true;
+                try {
+                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true });
+                    await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`);
+                } finally {
+                    aBtn.disabled = false;
+                }
+            };
+
+            btnRow.appendChild(qBtn);
+            btnRow.appendChild(aBtn);
+        }
+
+        viewWorksheets.appendChild(btnRow);
+
+        const viewQuizzes = document.createElement('div');
+        viewQuizzes.className = "view-panel hidden";
+        viewQuizzes.dataset.view = "quizzes";
+
+        const renderQuizPanel = (session) => {
+            viewQuizzes.innerHTML = "";
+
+            if (!session) {
+                if (!currentUser) {
+                    const note = document.createElement("div");
+                    note.className = "portal-meta";
+                    note.innerText = "Sign in to host quizzes and collect responses.";
+                    viewQuizzes.appendChild(note);
+                } else {
+                    const hostBtn = document.createElement("button");
+                    hostBtn.type = "button";
+                    hostBtn.innerText = "Host Quiz";
+                    hostBtn.style.padding = "10px 12px";
+                    hostBtn.style.marginTop = "0";
+                    hostBtn.onclick = async () => {
+                        hostBtn.disabled = true;
+                        hostBtn.innerText = "Hosting...";
+                        try {
+                            const hosted = await createHostedQuizSession(quiz, meta);
+                            if (hosted) {
+                                quizSession = hosted;
+                                renderQuizPanel(hosted);
+                            }
+                        } catch (err) {
+                            alert(err?.message || "Failed to host quiz.");
+                        } finally {
+                            hostBtn.disabled = false;
+                            hostBtn.innerText = "Host Quiz";
+                        }
+                    };
+                    viewQuizzes.appendChild(hostBtn);
+                }
+                return;
+            }
+
+            const row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.gap = "10px";
+            row.style.flexWrap = "wrap";
+            row.style.marginBottom = "10px";
+
+            const link = buildHostedQuizLink(session);
+            const openBtn = document.createElement("a");
+            openBtn.href = link;
+            openBtn.target = "_blank";
+            openBtn.rel = "noopener noreferrer";
+            openBtn.className = "quiz-link";
+            openBtn.innerText = "Open Hosted Quiz";
+
+            const copyBtn = document.createElement("button");
+            copyBtn.type = "button";
+            copyBtn.innerText = "Copy Link";
+            copyBtn.style.padding = "10px 12px";
+            copyBtn.style.marginTop = "0";
+            copyBtn.onclick = async () => {
+                const ok = await copyText(link);
+                copyBtn.innerText = ok ? "Copied!" : "Copy Link";
+                setTimeout(() => { copyBtn.innerText = "Copy Link"; }, 1500);
+            };
+
+            const responsesBtn = document.createElement("button");
+            responsesBtn.type = "button";
+            responsesBtn.innerText = "View Responses";
+            responsesBtn.style.padding = "10px 12px";
+            responsesBtn.style.marginTop = "0";
+            responsesBtn.onclick = async () => {
+                responsesBtn.disabled = true;
+                try {
+                    const data = await fetchQuizResponses(session.quizId);
+                    const subtitle = `${quiz.studentName} \u2022 ${data?.count || 0} responses`;
+                    openResponsesModal({
+                        title: "Quiz Responses",
+                        subtitle,
+                        responses: data?.items || []
+                    });
+                } catch (err) {
+                    alert(err?.message || "Failed to load responses.");
+                } finally {
+                    responsesBtn.disabled = false;
+                }
+            };
+
+            row.appendChild(openBtn);
+            row.appendChild(copyBtn);
+            row.appendChild(responsesBtn);
+            viewQuizzes.appendChild(row);
+
+            const hint = document.createElement("div");
+            hint.className = "portal-meta";
+            hint.innerText = "Share the hosted quiz link with this student.";
+            viewQuizzes.appendChild(hint);
+        };
+
+        renderQuizPanel(quizSession);
+
+        const preview = document.createElement('pre');
+        preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
+
+        card.appendChild(title);
+        card.appendChild(viewWorksheets);
+        card.appendChild(viewQuizzes);
+        card.appendChild(preview);
+
+        return card;
     }
 
     function matchesHistoryType(payload) {
@@ -734,42 +1153,14 @@ if (isMobile()) {
             }
             const quiz = { studentName, questions: savedQuestions };
 
-            const card = document.createElement('div');
-            card.className = 'quiz-card';
-
-            const title = document.createElement('div');
-            title.style.fontWeight = "800";
-            title.style.marginBottom = "10px";
-            title.innerText = `${quiz.studentName}${scoreRaw ? ` • Marks: ${scoreRaw}/${meta.maxMarks}` : ""}`;
-
-            const btnRow = document.createElement('div');
-            btnRow.style.display = "flex";
-            btnRow.style.gap = "10px";
-            btnRow.style.flexWrap = "wrap";
-            btnRow.style.marginBottom = "12px";
-
             const links = await buildPdfLinks(quiz, meta);
-            const qLink = document.createElement('a');
-            qLink.href = links.qUrl;
-            qLink.download = `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`;
-            qLink.className = "download-link";
-            qLink.innerText = "Download Question PDF";
-
-            const aLink = document.createElement('a');
-            aLink.href = links.aUrl;
-            aLink.download = `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`;
-            aLink.className = "download-link";
-            aLink.innerText = "Download Answer PDF";
-
-            btnRow.appendChild(qLink);
-            btnRow.appendChild(aLink);
-
-            const preview = document.createElement('pre');
-            preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
-
-            card.appendChild(title);
-            card.appendChild(btnRow);
-            card.appendChild(preview);
+            const card = await buildQuizCard({
+                quiz,
+                meta,
+                marksValue: scoreRaw ? String(scoreRaw) : "",
+                links,
+                quizSession: student.quizSession || null
+            });
             output.appendChild(card);
             rendered += 1;
         }
@@ -781,6 +1172,8 @@ if (isMobile()) {
         }
 
         status.innerText = "History loaded.";
+        showTeacherViewCard();
+        setTeacherView(teacherViewMode);
     }
 
     async function loadHistory() {
@@ -821,8 +1214,14 @@ if (isMobile()) {
     document.getElementById("accountBtn")?.addEventListener("click", openAccountModal);
     document.getElementById("accountBackdrop")?.addEventListener("click", closeAccountModal);
     document.getElementById("accountClose")?.addEventListener("click", closeAccountModal);
+    document.getElementById("responsesClose")?.addEventListener("click", closeResponsesModal);
+    document.getElementById("responsesBackdrop")?.addEventListener("click", closeResponsesModal);
+    document.querySelectorAll("#teacherViewToggle .view-toggle").forEach((btn) => {
+        btn.addEventListener("click", () => setTeacherView(btn.dataset?.view || "worksheets"));
+    });
     updateAuthUi(null);
     initFirebase();
+    setTeacherView(teacherViewMode);
 
     function sanitizeFilename(name) {
         return String(name || "Student")
@@ -2034,61 +2433,21 @@ if (isMobile()) {
                     answerFormat: document.getElementById('answerFormat').value
                 };
 
-                const card = document.createElement('div');
-                card.className = 'quiz-card';
-
-                const title = document.createElement('div');
-                title.style.fontWeight = "800";
-                title.style.marginBottom = "10px";
-                title.innerText = `${quiz.studentName}${marksValue ? ` • Marks: ${marksValue}/${meta.maxMarks}` : ""}`;
-
-                const btnRow = document.createElement('div');
-                btnRow.style.display = "flex";
-                btnRow.style.gap = "10px";
-                btnRow.style.flexWrap = "wrap";
-                btnRow.style.marginBottom = "12px";
-
-                const qBtn = document.createElement('button');
-                qBtn.type = "button";
-                qBtn.innerText = "Download Question PDF";
-                qBtn.style.padding = "10px 12px";
-                qBtn.style.marginTop = "0";
-
-                const aBtn = document.createElement('button');
-                aBtn.type = "button";
-                aBtn.innerText = "Download Answer PDF";
-                aBtn.style.padding = "10px 12px";
-                aBtn.style.marginTop = "0";
-
-                qBtn.onclick = async () => {
-                    qBtn.disabled = true;
+                let quizSession = null;
+                if (currentUser) {
                     try {
-                        const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false });
-                        await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`);
-                    } finally {
-                        qBtn.disabled = false;
+                        quizSession = await createHostedQuizSession(quiz, meta);
+                    } catch (err) {
+                        console.warn("Failed to host quiz", err);
                     }
-                };
+                }
 
-                aBtn.onclick = async () => {
-                    aBtn.disabled = true;
-                    try {
-                        const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true });
-                        await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`);
-                    } finally {
-                        aBtn.disabled = false;
-                    }
-                };
-
-                btnRow.appendChild(qBtn);
-                btnRow.appendChild(aBtn);
-
-                const preview = document.createElement('pre');
-                preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
-
-                card.appendChild(title);
-                card.appendChild(btnRow);
-                card.appendChild(preview);
+                const card = await buildQuizCard({
+                    quiz,
+                    meta,
+                    marksValue: marksValue ? String(marksValue) : "",
+                    quizSession
+                });
                 output.appendChild(card);
 
                 historyEntries.push({
@@ -2096,10 +2455,13 @@ if (isMobile()) {
                     score: marksValue ? String(marksValue).trim() : "",
                     marksValue: marksValue ? String(marksValue).trim() : "",
                     marks: marksValue ? `${marksValue}/${meta.maxMarks}` : "",
-                    questions: quiz.questions
+                    questions: quiz.questions,
+                    quizSession
                 });
             }
             status.innerText = "All Worksheets generated successfully!";
+            showTeacherViewCard();
+            setTeacherView(teacherViewMode);
 
             if (currentUser && historyEntries.length) {
                 try {

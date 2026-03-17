@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz-Wiz Student Quiz</title>
+    <link rel="icon" type="image/png" href="favicon_2.png">
+    <style>
+        :root {
+            color-scheme: light dark;
+
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b1220;
+                --card: #0f172a;
+                --text: #e2e8f0;
+                --muted: #94a3b8;
+                --border: #263145;
+                --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+            }
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 28px;
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        input, textarea {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: transparent;
+            color: inherit;
+            font-size: 1rem;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            padding: 12px 14px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .question-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            background: rgba(127,127,127,0.05);
+        }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .status {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--text);
+            margin-bottom: 16px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin:0;">Quiz-Wiz Student Quiz</h2>
+            <div class="meta" id="quizMeta"></div>
+        </div>
+
+        <div id="status" class="status"></div>
+        <div id="quizArea"></div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const quizId = params.get("quizId");
+        const code = params.get("code");
+
+        const statusEl = document.getElementById("status");
+        const quizArea = document.getElementById("quizArea");
+        const metaEl = document.getElementById("quizMeta");
+
+        function setStatus(text, show = true) {
+            if (!statusEl) return;
+            statusEl.innerText = text || "";
+            statusEl.style.display = show ? "block" : "none";
+        }
+
+        function renderQuiz(data) {
+            if (!quizArea) return;
+            quizArea.innerHTML = "";
+
+            const nameField = document.createElement("div");
+            nameField.className = "field";
+
+            const nameLabel = document.createElement("label");
+            nameLabel.innerText = "Your Name";
+            nameField.appendChild(nameLabel);
+
+            const nameInput = document.createElement("input");
+            nameInput.id = "studentName";
+            nameInput.value = data.studentName || "";
+            nameField.appendChild(nameInput);
+
+            quizArea.appendChild(nameField);
+
+            const questions = Array.isArray(data.questions) ? data.questions : [];
+            questions.forEach((q) => {
+                const card = document.createElement("div");
+                card.className = "question-card";
+
+                const title = document.createElement("div");
+                title.style.fontWeight = "700";
+                title.style.marginBottom = "6px";
+                title.innerText = `${q.number}. ${q.question}`;
+                card.appendChild(title);
+
+                if (String(data.answerFormat || "") === "mcq" && Array.isArray(q.options) && q.options.length) {
+                    q.options.forEach((opt, idx) => {
+                        const row = document.createElement("label");
+                        row.className = "option-row";
+                        const radio = document.createElement("input");
+                        radio.type = "radio";
+                        radio.name = `q_${q.number}`;
+                        radio.value = ["A", "B", "C", "D", "E", "F"][idx] || String(idx + 1);
+                        row.appendChild(radio);
+
+                        const span = document.createElement("span");
+                        span.innerText = `${radio.value}) ${opt}`;
+                        row.appendChild(span);
+                        card.appendChild(row);
+                    });
+                } else {
+                    const answer = document.createElement("textarea");
+                    answer.rows = 3;
+                    answer.placeholder = "Your answer...";
+                    answer.dataset.q = String(q.number);
+                    card.appendChild(answer);
+                }
+
+                quizArea.appendChild(card);
+            });
+
+            const submitBtn = document.createElement("button");
+            submitBtn.type = "button";
+            submitBtn.innerText = "Submit Answers";
+            submitBtn.onclick = async () => {
+                submitBtn.disabled = true;
+                try {
+                    const answers = [];
+                    questions.forEach((q) => {
+                        if (String(data.answerFormat || "") === "mcq") {
+                            const selected = document.querySelector(`input[name=\"q_${q.number}\"]:checked`);
+                            answers.push({ number: q.number, selectedOption: selected ? selected.value : "" });
+                        } else {
+                            const area = document.querySelector(`textarea[data-q=\"${q.number}\"]`);
+                            answers.push({ number: q.number, answer: area ? area.value : "" });
+                        }
+                    });
+
+                    const payload = {
+                        quizId,
+                        code,
+                        studentName: String(document.getElementById("studentName")?.value || "").trim(),
+                        answers
+                    };
+
+                    const res = await fetch("/.netlify/functions/quiz-responses", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    const out = await res.json().catch(() => null);
+                    if (!res.ok) throw new Error(out?.error || "Failed to submit.");
+                    setStatus("Submitted! Your teacher can see your responses.");
+                    submitBtn.remove();
+                } catch (err) {
+                    setStatus(err?.message || "Submission failed.");
+                } finally {
+                    submitBtn.disabled = false;
+                }
+            };
+
+            quizArea.appendChild(submitBtn);
+        }
+
+        async function init() {
+            if (!quizId || !code) {
+                setStatus("Missing quiz link. Please ask your teacher for the correct link.");
+                return;
+            }
+
+            setStatus("Loading quiz...");
+            try {
+                const res = await fetch(`/.netlify/functions/quiz-host?quizId=${encodeURIComponent(quizId)}&code=${encodeURIComponent(code)}`);
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Failed to load quiz.");
+
+                const meta = data?.meta || {};
+                metaEl.innerText = `${meta.subject || ""} ${meta.topic ? "- " + meta.topic : ""}`.trim();
+                setStatus("", false);
+                renderQuiz(data);
+            } catch (err) {
+                setStatus(err?.message || "Failed to load quiz.");
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
