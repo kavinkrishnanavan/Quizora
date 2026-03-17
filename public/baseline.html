@@ -309,6 +309,7 @@ function isMobile() {
     let historyItems = [];
     let historyPdfUrls = [];
     let historyAutoLoaded = false;
+    let authChecked = false;
     const HISTORY_TYPE = "baseline";
 
     function setAuthStatus(text) {
@@ -339,7 +340,11 @@ function isMobile() {
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = true;
             const list = document.getElementById("historyList");
-            if (list) list.innerHTML = "<div class=\"portal-meta\"></div>";
+            if (list) {
+                list.innerHTML = authChecked
+                    ? "<div class=\"portal-meta\">Please sign in to see history.</div>"
+                    : "<div class=\"portal-meta\"></div>";
+            }
             if (signedOut) signedOut.style.display = "block";
             if (signedIn) signedIn.style.display = "none";
             if (emailDisplay) emailDisplay.innerText = "";
@@ -385,6 +390,7 @@ function isMobile() {
         firebase.auth().onAuthStateChanged((user) => {
             currentUser = user || null;
             historyAutoLoaded = false;
+            authChecked = true;
             updateAuthUi(currentUser);
             if (currentUser) autoLoadHistory({ force: true });
         });
