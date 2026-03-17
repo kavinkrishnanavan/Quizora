@@ -1,6 +1,7 @@
 exports.handler = async () => {
     try {
         const raw = process.env.FIREBASE_WEB_CONFIG_JSON;
+        console.log(raw)
         if (!raw) {
             return {
                 statusCode: 500,
@@ -19,7 +20,7 @@ exports.handler = async () => {
             };
         }
         return {
-            
+
             statusCode: 200,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ config }),
