@@ -104,7 +104,7 @@ exports.handler = async (event) => {
         6. Special Requirements : ${requests}
         7. Reminder : Questions must only be about ${topic}
         ${learnedContext ? "8. Prefer questions that match the provided learning materials summary; avoid content outside what was taught." : ""}
-        9.Warning : Don't use any special characters. Only the numbers and the alphabet and a few exceptions which are the symbols : . , ? + - / * If necessary, please use this symbols intead of text.`;
+        9.Warning (Important): Use only the numbers and the alphabet and a few exceptions which are the symbols : . , ? + - / * () If necessary, please use this symbols intead of words.`;
         
 
         const completion = await groq.chat.completions.create({

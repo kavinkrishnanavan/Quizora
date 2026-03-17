@@ -46,7 +46,8 @@
         .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
         .history-entry-title { font-weight: 700; font-size: 0.98rem; }
         .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
-        .download-link { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-decoration: none; }
+        .download-link { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; transition: 0.2s; }
+        .download-link:hover { opacity: 0.9; transform: translateY(-1px); }
         .download-link.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
         .account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
         .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
