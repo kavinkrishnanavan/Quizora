@@ -748,7 +748,7 @@ function isMobile() {
                 page.drawText("Name:", { x: margin, y, size: 11, font: fontBold });
                 const nameField = form.createTextField(`name_${Math.random().toString(16).slice(2)}`);
                 nameField.setText("");
-                nameField.addToPage(page, { x: margin + 54, y: y ? 2, width: 260, height: 16 });
+                nameField.addToPage(page, { x: margin + 54, y: y - 2, width: 260, height: 16 });
                 y -= 24;
             }
 
@@ -756,7 +756,7 @@ function isMobile() {
                 page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
                 const marksField = form.createTextField(`marks_${Math.random().toString(16).slice(2)}`);
                 marksField.setText("");
-                marksField.addToPage(page, { x: margin + 52, y: y ? 2, width: 120, height: 16 });
+                marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
                 page.drawText(`/ ${meta.maxMarks}`, { x: margin + 180, y, size: 11, font });
                 y -= 24;
             } else {
@@ -836,8 +836,8 @@ function isMobile() {
                     ensureSpace(46);
                     for (let i = 0; i < 3; i++) {
                         page.drawLine({
-                            start: { x: margin, y: y ? 2 },
-                            end: { x: margin + maxWidth, y: y ? 2 },
+                            start: { x: margin, y: y - 2 },
+                            end: { x: margin + maxWidth, y: y - 2 },
                             thickness: 1,
                             color: rgb(0.86, 0.89, 0.92),
                         });
