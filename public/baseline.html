@@ -529,7 +529,7 @@ function isMobile() {
         const res = await fetch("/.netlify/functions/quiz-host", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ quiz, meta })
+            body: JSON.stringify({ quiz, meta, mode: "baseline" })
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error(data?.error || "Failed to host quiz.");
