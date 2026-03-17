@@ -496,6 +496,17 @@ function isMobile() {
         return { qUrl, aUrl };
     }
 
+    function matchesHistoryType(payload) {
+        if (!payload || typeof payload !== "object") return false;
+        if (payload.type) return payload.type === HISTORY_TYPE;
+        const title = String(payload.title || "").toLowerCase();
+        const students = Array.isArray(payload.students) ? payload.students : [];
+        if (HISTORY_TYPE === "baseline") {
+            return title.includes("baseline") || students[0]?.studentName === "Baseline Worksheet";
+        }
+        return !title.includes("baseline");
+    }
+
     function renderHistory(items) {
         const list = document.getElementById("historyList");
         if (!list) return;
@@ -508,7 +519,7 @@ function isMobile() {
                 payload = null;
             }
             return { ...item, payload };
-        }).filter((item) => item.payload?.type === HISTORY_TYPE);
+        }).filter((item) => matchesHistoryType(item.payload));
 
         if (!historyItems.length) {
             list.innerHTML = "<div class=\"portal-meta\">No history found yet.</div>";
@@ -569,7 +580,7 @@ function isMobile() {
 
         const students = Array.isArray(payload?.students) ? payload.students : [];
         const saved = students[0] || {};
-        const savedQuestions = Array.isArray(saved.questions) ? saved.questions : [];
+        const savedQuestions = Array.isArray(saved.questions) ? saved.questions : (Array.isArray(payload?.questions) ? payload.questions : []);
         if (!savedQuestions.length) {
             alert("No questions found in this history entry.");
             return;

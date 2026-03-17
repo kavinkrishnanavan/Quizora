@@ -591,6 +591,17 @@ if (isMobile()) {
         return { qUrl, aUrl };
     }
 
+    function matchesHistoryType(payload) {
+        if (!payload || typeof payload !== "object") return false;
+        if (payload.type) return payload.type === HISTORY_TYPE;
+        const title = String(payload.title || "").toLowerCase();
+        const students = Array.isArray(payload.students) ? payload.students : [];
+        if (HISTORY_TYPE === "baseline") {
+            return title.includes("baseline") || students[0]?.studentName === "Baseline Worksheet";
+        }
+        return !title.includes("baseline");
+    }
+
     function renderHistory(items) {
         const list = document.getElementById("historyList");
         if (!list) return;
@@ -603,7 +614,7 @@ if (isMobile()) {
                 payload = null;
             }
             return { ...item, payload };
-        }).filter((item) => item.payload?.type === HISTORY_TYPE);
+        }).filter((item) => matchesHistoryType(item.payload));
 
         if (!historyItems.length) {
             list.innerHTML = "<div class=\"portal-meta\">No history found yet.</div>";
@@ -686,7 +697,7 @@ if (isMobile()) {
             const scoreRaw = student.score ?? parseScore(student.marks) ?? parseScore(student.marksValue);
             status.innerText = `Loading quiz ${i + 1} of ${students.length} - ${studentName}`;
 
-            const savedQuestions = Array.isArray(student.questions) ? student.questions : [];
+            const savedQuestions = Array.isArray(student.questions) ? student.questions : (Array.isArray(payload?.questions) ? payload.questions : []);
             if (!savedQuestions.length) {
                 continue;
             }
