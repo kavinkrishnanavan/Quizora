@@ -33,8 +33,26 @@
             }
         }
 
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
-        .container { max-width: 900px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 0; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
+        .app-shell { max-width: 1400px; margin: 0 auto; display: flex; gap: 24px; padding: 20px; align-items: flex-start; }
+        .container { flex: 1; max-width: 980px; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        .sidebar { width: 300px; min-width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; position: sticky; top: 20px; }
+        .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .sidebar-title { font-weight: 800; font-size: 1.05rem; }
+        .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
+        .history-list { display: grid; gap: 10px; margin-top: 12px; }
+        .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+        .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
+        .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
+        .history-entry-title { font-weight: 700; font-size: 0.98rem; }
+        .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
+        .download-link { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-decoration: none; }
+        .download-link.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
+        @media (max-width: 1100px) {
+            .app-shell { flex-direction: column; }
+            .sidebar { width: 100%; position: static; }
+            .container { max-width: 100%; }
+        }
         h2 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
         a { color: var(--primary); }
         hr { border-color: var(--border); }
@@ -60,7 +78,6 @@
         .portal-card { background: var(--card); border: 1px solid var(--border); padding: 22px; margin-top: 22px; border-radius: 12px; box-shadow: var(--shadow); }
         .portal-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
         .portal-meta { color: var(--muted); font-size: 0.9rem; }
-        .history-list { display: grid; gap: 14px; margin-top: 14px; }
         .history-item { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: rgba(127,127,127,0.05); }
         .history-item h4 { margin: 0 0 6px 0; font-size: 1rem; }
         .history-item pre { margin: 8px 0 0 0; font-size: 0.95rem; }
@@ -138,9 +155,22 @@
 
     <div id="bottom-bar">
         <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
-    </div>
+</div>
 
-<div class="container">
+<div class="app-shell">
+    <aside class="sidebar" id="historySidebar" style="display:none;">
+        <div class="sidebar-header">
+            <div>
+                <div class="sidebar-title">Saved Topics</div>
+                <div class="sidebar-subtitle">Pick a topic to reload a full test.</div>
+            </div>
+            <button type="button" id="historyLoadBtn" style="padding: 8px 10px; margin-top: 0;">Refresh</button>
+        </div>
+        <div class="portal-meta" id="historyStatus"></div>
+        <div id="historyList" class="history-list"></div>
+    </aside>
+
+    <div class="container">
     <div style="display: flex; align-items: center; gap: 10px;">
         <img src="favicon.png" class="zoom" style="width: 200px;" id="logo-bar">
         <h1 id="title">Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
@@ -183,17 +213,6 @@
             <button type="button" id="signInBtn" style="padding: 12px 14px; margin-top: 0;">Sign In</button>
             <button type="button" id="signOutBtn" style="padding: 12px 14px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
         </div>
-    </div>
-
-    <div class="portal-card" id="historyCard" style="display:none;">
-        <div style="display:flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center;">
-            <div style="font-weight: 800; font-size: 1.05rem;">Saved History</div>
-            <div class="portal-row">
-                <button type="button" id="historyLoadBtn" style="padding: 10px 12px; margin-top: 0;">Load History</button>
-                <div class="portal-meta" id="historyStatus"></div>
-            </div>
-        </div>
-        <div id="historyList" class="history-list"></div>
     </div>
 
     <div class="form-grid">
@@ -333,6 +352,7 @@
     </div>
 
 </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
@@ -363,6 +383,8 @@ if (isMobile()) {
 
     let firebaseReady = false;
     let currentUser = null;
+    let historyItems = [];
+    let historyPdfUrls = [];
 
     function setAuthStatus(text) {
         const status = document.getElementById("authStatus");
@@ -375,15 +397,15 @@ if (isMobile()) {
     }
 
     function updateAuthUi(user) {
-        const historyCard = document.getElementById("historyCard");
+        const historySidebar = document.getElementById("historySidebar");
         const signOutBtn = document.getElementById("signOutBtn");
         if (user) {
             setAuthStatus(`Signed in as ${user.email || "teacher"}.`);
-            if (historyCard) historyCard.style.display = "block";
+            if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = false;
         } else {
             setAuthStatus("Not signed in.");
-            if (historyCard) historyCard.style.display = "none";
+            if (historySidebar) historySidebar.style.display = "none";
             if (signOutBtn) signOutBtn.disabled = true;
         }
     }
@@ -454,57 +476,217 @@ if (isMobile()) {
         return questions.map((q) => `${q.number}. ${q.question}`).join("\n\n");
     }
 
+    function revokeHistoryPdfUrls() {
+        for (const url of historyPdfUrls) URL.revokeObjectURL(url);
+        historyPdfUrls = [];
+    }
+
+    function clearOutputArea() {
+        revokeHistoryPdfUrls();
+        const output = document.getElementById("output");
+        if (output) output.innerHTML = "";
+    }
+
+    function setFormValue(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = value ?? "";
+    }
+
+    function applyHistoryPayload(payload) {
+        if (!payload || typeof payload !== "object") return;
+        setFormValue("subject", payload.subject || "");
+        setFormValue("topic", payload.topic || "");
+        setFormValue("grade", payload.grade || "");
+        setFormValue("curriculum", payload.curriculum || "");
+        setFormValue("mMax", payload.maxMarks || "");
+        setFormValue("qCount", payload.questionCount || "");
+        setFormValue("answerFormat", payload.answerFormat || "blank");
+        setFormValue("requests", payload.requests || "");
+
+        if (typeof payload.learnedContext === "string") {
+            learnedContext = payload.learnedContext.trim();
+            if (learnedContext) {
+                setMaterialsUi({
+                    statusText: "Loaded learning materials summary from history.",
+                    previewText: learnedContext
+                });
+                updateMaterialsBadge();
+                saveMaterialsToStorage();
+            } else {
+                setMaterialsUi({ statusText: "", previewText: "" });
+                updateMaterialsBadge();
+            }
+        }
+    }
+
+    function parseScore(raw) {
+        const str = String(raw || "").trim();
+        if (!str) return "";
+        const match = str.match(/^(\d+(?:\.\d+)?)/);
+        return match ? match[1] : str;
+    }
+
+    async function buildPdfLinks(quiz, meta) {
+        const qBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false });
+        const aBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true });
+        const qUrl = URL.createObjectURL(new Blob([qBytes], { type: "application/pdf" }));
+        const aUrl = URL.createObjectURL(new Blob([aBytes], { type: "application/pdf" }));
+        historyPdfUrls.push(qUrl, aUrl);
+        return { qUrl, aUrl };
+    }
+
     function renderHistory(items) {
         const list = document.getElementById("historyList");
         if (!list) return;
         list.innerHTML = "";
-
-        if (!items.length) {
-            list.innerHTML = "<div class=\"portal-meta\">No history found yet.</div>";
-            return;
-        }
-
-        for (const item of items) {
-            const wrapper = document.createElement("div");
-            wrapper.className = "history-item";
-
+        historyItems = items.map((item) => {
             let payload = null;
             try {
                 payload = item.payloadJson ? JSON.parse(item.payloadJson) : null;
             } catch (_) {
                 payload = null;
             }
+            return { ...item, payload };
+        });
 
-            const createdAt = payload?.createdAt || item.createdAt || "";
-            const title = document.createElement("h4");
-            title.innerText = payload?.title || "Worksheet Batch";
-            wrapper.appendChild(title);
-
-            const meta = document.createElement("div");
-            meta.className = "portal-meta";
-            meta.innerText = createdAt ? `Saved on ${new Date(createdAt).toLocaleString()}` : "Saved history";
-            wrapper.appendChild(meta);
-
-            if (payload?.summary) {
-                const summary = document.createElement("div");
-                summary.style.marginTop = "8px";
-                summary.innerText = payload.summary;
-                wrapper.appendChild(summary);
-            }
-
-            if (Array.isArray(payload?.students)) {
-                const pre = document.createElement("pre");
-                const lines = payload.students.map((s) => {
-                    const name = s?.studentName || "Student";
-                    const marks = s?.marks ? ` (${s.marks})` : "";
-                    return `${name}${marks}\n${summarizeQuestions(s?.questions)}\n`;
-                });
-                pre.innerText = lines.join("\n");
-                wrapper.appendChild(pre);
-            }
-
-            list.appendChild(wrapper);
+        if (!historyItems.length) {
+            list.innerHTML = "<div class=\"portal-meta\">No history found yet.</div>";
+            return;
         }
+
+        historyItems.forEach((item, index) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "history-entry";
+
+            const title = document.createElement("div");
+            title.className = "history-entry-title";
+            title.innerText = item.payload?.title || "Worksheet Batch";
+            btn.appendChild(title);
+
+            const createdAt = item.payload?.createdAt || item.createdAt || "";
+            const meta = document.createElement("div");
+            meta.className = "history-entry-meta";
+            meta.innerText = createdAt ? new Date(createdAt).toLocaleString() : "Saved history";
+            btn.appendChild(meta);
+
+            if (item.payload?.summary) {
+                const summary = document.createElement("div");
+                summary.className = "history-entry-meta";
+                summary.innerText = item.payload.summary;
+                btn.appendChild(summary);
+            }
+
+            btn.addEventListener("click", () => loadHistoryEntry(index));
+            list.appendChild(btn);
+        });
+    }
+
+    function setActiveHistory(index) {
+        const entries = document.querySelectorAll(".history-entry");
+        entries.forEach((entry, i) => {
+            if (i === index) entry.classList.add("active");
+            else entry.classList.remove("active");
+        });
+    }
+
+    async function loadHistoryEntry(index) {
+        const item = historyItems[index];
+        if (!item?.payload) return alert("History entry missing data.");
+        setActiveHistory(index);
+        applyHistoryPayload(item.payload);
+        await generateFromHistory(item.payload);
+    }
+
+    async function generateFromHistory(payload) {
+        const status = document.getElementById("status");
+        const output = document.getElementById("output");
+        if (!status || !output) return;
+
+        const students = Array.isArray(payload?.students) ? payload.students : [];
+        if (!students.length) {
+            alert("No students found in this history entry.");
+            return;
+        }
+
+        clearOutputArea();
+        status.style.display = "block";
+
+        const meta = {
+            subject: document.getElementById('subject').value,
+            topic: document.getElementById('topic').value,
+            grade: document.getElementById('grade').value,
+            curriculum: document.getElementById('curriculum').value,
+            maxMarks: document.getElementById('mMax').value,
+            answerFormat: document.getElementById('answerFormat').value
+        };
+
+        for (let i = 0; i < students.length; i++) {
+            const student = students[i] || {};
+            const studentName = student.studentName || "Student";
+            const scoreRaw = student.score ?? parseScore(student.marks) ?? parseScore(student.marksValue);
+            status.innerText = `Regenerating quiz ${i + 1} of ${students.length} â€¢ ${studentName}`;
+
+            const basePayload = {
+                marksColumn: "Marks",
+                nameColumn: "Student Name",
+                studentNameHint: studentName,
+                score: scoreRaw,
+                learnedContext,
+                subject: meta.subject,
+                topic: meta.topic,
+                grade: meta.grade,
+                curriculum: meta.curriculum,
+                maxMarks: meta.maxMarks,
+                questionCount: parseInt(document.getElementById('qCount').value, 10),
+                answerFormat: meta.answerFormat,
+                requests: document.getElementById('requests').value
+            };
+
+            const rowText = `Student Name: ${studentName}${scoreRaw ? `\nMarks: ${scoreRaw}/${meta.maxMarks}` : ""}`;
+            const quiz = await requestQuiz({ ...basePayload, rowText });
+
+            const card = document.createElement('div');
+            card.className = 'quiz-card';
+
+            const title = document.createElement('div');
+            title.style.fontWeight = "800";
+            title.style.marginBottom = "10px";
+            title.innerText = `${quiz.studentName}${scoreRaw ? ` â€¢ Marks: ${scoreRaw}/${meta.maxMarks}` : ""}`;
+
+            const btnRow = document.createElement('div');
+            btnRow.style.display = "flex";
+            btnRow.style.gap = "10px";
+            btnRow.style.flexWrap = "wrap";
+            btnRow.style.marginBottom = "12px";
+
+            const links = await buildPdfLinks(quiz, meta);
+            const qLink = document.createElement('a');
+            qLink.href = links.qUrl;
+            qLink.download = `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`;
+            qLink.className = "download-link";
+            qLink.innerText = "Download Question PDF";
+
+            const aLink = document.createElement('a');
+            aLink.href = links.aUrl;
+            aLink.download = `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`;
+            aLink.className = "download-link secondary";
+            aLink.innerText = "Download Answer PDF";
+
+            btnRow.appendChild(qLink);
+            btnRow.appendChild(aLink);
+
+            const preview = document.createElement('pre');
+            preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
+
+            card.appendChild(title);
+            card.appendChild(btnRow);
+            card.appendChild(preview);
+            output.appendChild(card);
+        }
+
+        status.innerText = "History loaded. PDFs are ready to download.";
     }
 
     async function loadHistory() {
@@ -1814,6 +1996,8 @@ if (isMobile()) {
 
                 historyEntries.push({
                     studentName: quiz.studentName,
+                    score: marksValue ? String(marksValue).trim() : "",
+                    marksValue: marksValue ? String(marksValue).trim() : "",
                     marks: marksValue ? `${marksValue}/${meta.maxMarks}` : "",
                     questions: quiz.questions
                 });
