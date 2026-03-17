@@ -548,6 +548,28 @@ if (isMobile()) {
         el.value = value ?? "";
     }
 
+    function detectAnswerFormat(payload) {
+        if (payload?.answerFormat) return payload.answerFormat;
+        const students = Array.isArray(payload?.students) ? payload.students : [];
+        const first = students[0];
+        const questions = Array.isArray(first?.questions) ? first.questions : (Array.isArray(payload?.questions) ? payload.questions : []);
+        const hasOptions = questions.some((q) => Array.isArray(q?.options) && q.options.length);
+        return hasOptions ? "mcq" : "blank";
+    }
+
+    function normalizeQuestions(raw) {
+        const list = Array.isArray(raw) ? raw : [];
+        return list
+            .map((q, idx) => {
+                if (!q || typeof q !== "object") return null;
+                const question = String(q.question || "").trim();
+                if (!question) return null;
+                const number = Number.isFinite(q.number) ? q.number : idx + 1;
+                return { ...q, number, question };
+            })
+            .filter(Boolean);
+    }
+
     function applyHistoryPayload(payload) {
         if (!payload || typeof payload !== "object") return;
         setFormValue("subject", payload.subject || "");
@@ -556,7 +578,7 @@ if (isMobile()) {
         setFormValue("curriculum", payload.curriculum || "");
         setFormValue("mMax", payload.maxMarks || "");
         setFormValue("qCount", payload.questionCount || "");
-        setFormValue("answerFormat", payload.answerFormat || "blank");
+        setFormValue("answerFormat", detectAnswerFormat(payload));
         setFormValue("requests", payload.requests || "");
 
         if (typeof payload.learnedContext === "string") {
@@ -691,13 +713,16 @@ if (isMobile()) {
             answerFormat: historyAnswerFormat
         };
 
+        let rendered = 0;
         for (let i = 0; i < students.length; i++) {
             const student = students[i] || {};
             const studentName = student.studentName || "Student";
             const scoreRaw = student.score ?? parseScore(student.marks) ?? parseScore(student.marksValue);
             status.innerText = `Loading quiz ${i + 1} of ${students.length} - ${studentName}`;
 
-            const savedQuestions = Array.isArray(student.questions) ? student.questions : (Array.isArray(payload?.questions) ? payload.questions : []);
+            const savedQuestions = normalizeQuestions(
+                Array.isArray(student.questions) ? student.questions : (Array.isArray(payload?.questions) ? payload.questions : [])
+            );
             if (!savedQuestions.length) {
                 continue;
             }
@@ -740,6 +765,13 @@ if (isMobile()) {
             card.appendChild(btnRow);
             card.appendChild(preview);
             output.appendChild(card);
+            rendered += 1;
+        }
+
+        if (!rendered) {
+            status.innerText = "No questions found in this history entry.";
+            alert("No questions found in this history entry.");
+            return;
         }
 
         status.innerText = "History loaded. PDFs are ready to download.";

@@ -455,9 +455,22 @@ function isMobile() {
         if (payload?.answerFormat) return payload.answerFormat;
         const students = Array.isArray(payload?.students) ? payload.students : [];
         const first = students[0];
-        const questions = Array.isArray(first?.questions) ? first.questions : [];
+        const questions = Array.isArray(first?.questions) ? first.questions : (Array.isArray(payload?.questions) ? payload.questions : []);
         const hasOptions = questions.some((q) => Array.isArray(q?.options) && q.options.length);
         return hasOptions ? "mcq" : "blank";
+    }
+
+    function normalizeQuestions(raw) {
+        const list = Array.isArray(raw) ? raw : [];
+        return list
+            .map((q, idx) => {
+                if (!q || typeof q !== "object") return null;
+                const question = String(q.question || "").trim();
+                if (!question) return null;
+                const number = Number.isFinite(q.number) ? q.number : idx + 1;
+                return { ...q, number, question };
+            })
+            .filter(Boolean);
     }
 
     function applyHistoryPayload(payload) {
@@ -580,7 +593,9 @@ function isMobile() {
 
         const students = Array.isArray(payload?.students) ? payload.students : [];
         const saved = students[0] || {};
-        const savedQuestions = Array.isArray(saved.questions) ? saved.questions : (Array.isArray(payload?.questions) ? payload.questions : []);
+        const savedQuestions = normalizeQuestions(
+            Array.isArray(saved.questions) ? saved.questions : (Array.isArray(payload?.questions) ? payload.questions : [])
+        );
         if (!savedQuestions.length) {
             alert("No questions found in this history entry.");
             return;
