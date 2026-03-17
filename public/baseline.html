@@ -117,7 +117,6 @@
                 <div class="sidebar-subtitle">Reload previous baseline tests.</div>
             </div>
             <div class="portal-row">
-                <button type="button" id="historyLoadBtn" style="padding: 8px 10px; margin-top: 0;">Refresh</button>
                 <button type="button" id="accountBtn" style="padding: 8px 10px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Account</button>
             </div>
         </div>
@@ -325,7 +324,6 @@ function isMobile() {
     function updateAuthUi(user) {
         const historySidebar = document.getElementById("historySidebar");
         const signOutBtn = document.getElementById("signOutBtn");
-        const historyLoadBtn = document.getElementById("historyLoadBtn");
         const signedOut = document.getElementById("accountSignedOut");
         const signedIn = document.getElementById("accountSignedIn");
         const emailDisplay = document.getElementById("accountEmailDisplay");
@@ -333,7 +331,6 @@ function isMobile() {
             setAuthStatus(`Signed in as ${user.email || "teacher"}.`);
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = false;
-            if (historyLoadBtn) historyLoadBtn.disabled = false;
             if (signedOut) signedOut.style.display = "none";
             if (signedIn) signedIn.style.display = "block";
             if (emailDisplay) emailDisplay.innerText = user.email || "teacher";
@@ -341,7 +338,6 @@ function isMobile() {
             setAuthStatus("Enter email and password to sign in.");
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = true;
-            if (historyLoadBtn) historyLoadBtn.disabled = true;
             const list = document.getElementById("historyList");
             if (list) list.innerHTML = "<div class=\"portal-meta\">Sign in to load history.</div>";
             if (signedOut) signedOut.style.display = "block";
@@ -455,6 +451,15 @@ function isMobile() {
         el.value = value ?? "";
     }
 
+    function detectAnswerFormat(payload) {
+        if (payload?.answerFormat) return payload.answerFormat;
+        const students = Array.isArray(payload?.students) ? payload.students : [];
+        const first = students[0];
+        const questions = Array.isArray(first?.questions) ? first.questions : [];
+        const hasOptions = questions.some((q) => Array.isArray(q?.options) && q.options.length);
+        return hasOptions ? "mcq" : "blank";
+    }
+
     function applyHistoryPayload(payload) {
         if (!payload || typeof payload !== "object") return;
         setFormValue("subject", payload.subject || "");
@@ -463,7 +468,7 @@ function isMobile() {
         setFormValue("curriculum", payload.curriculum || "");
         setFormValue("mMax", payload.maxMarks || "");
         setFormValue("qCount", payload.questionCount || "");
-        setFormValue("answerFormat", payload.answerFormat || "blank");
+        setFormValue("answerFormat", detectAnswerFormat(payload));
         setFormValue("requests", payload.requests || "");
 
         if (typeof payload.learnedContext === "string") {
@@ -1030,7 +1035,6 @@ function isMobile() {
     document.getElementById("signUpBtn")?.addEventListener("click", signUp);
     document.getElementById("signInBtn")?.addEventListener("click", signIn);
     document.getElementById("signOutBtn")?.addEventListener("click", signOut);
-    document.getElementById("historyLoadBtn")?.addEventListener("click", loadHistory);
     document.getElementById("accountBtn")?.addEventListener("click", openAccountModal);
     document.getElementById("accountBackdrop")?.addEventListener("click", closeAccountModal);
     document.getElementById("accountClose")?.addEventListener("click", closeAccountModal);
