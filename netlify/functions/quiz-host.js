@@ -88,6 +88,7 @@ exports.handler = async (event) => {
             const body = event.body ? JSON.parse(event.body) : {};
             const quiz = body?.quiz && typeof body.quiz === "object" ? body.quiz : null;
             const meta = body?.meta && typeof body.meta === "object" ? body.meta : null;
+            const mode = String(body?.mode || "personalized");
             if (!quiz || !Array.isArray(quiz.questions)) {
                 return { statusCode: 400, body: JSON.stringify({ error: "Missing quiz data." }) };
             }
@@ -109,6 +110,7 @@ exports.handler = async (event) => {
                 questions,
                 meta: meta || {},
                 answerFormat: String(meta?.answerFormat || ""),
+                mode,
                 accessCode,
                 createdAt: adminSdk.database.ServerValue.TIMESTAMP,
             });

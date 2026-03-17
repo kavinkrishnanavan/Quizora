@@ -285,13 +285,15 @@ exports.handler = async (event) => {
             submittedAt: adminSdk.database.ServerValue.TIMESTAMP,
         });
 
-        try {
-            await db.ref(`${SESSION_COLLECTION}/${quizId}`).remove();
-            if (session?.uid) {
-                await db.ref(`users/${session.uid}/quizSessions/${quizId}`).remove();
+        if (String(session?.mode || "personalized") !== "baseline") {
+            try {
+                await db.ref(`${SESSION_COLLECTION}/${quizId}`).remove();
+                if (session?.uid) {
+                    await db.ref(`users/${session.uid}/quizSessions/${quizId}`).remove();
+                }
+            } catch (_) {
+                // ignore cleanup errors
             }
-        } catch (_) {
-            // ignore cleanup errors
         }
 
         return {
