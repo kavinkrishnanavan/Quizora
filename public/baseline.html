@@ -220,6 +220,10 @@
             <input type="number" id="qCount" value="10" min="1" max="50">
         </div>
         <div class="field">
+            <label>Student Count (Auto-Stop)</label>
+            <input type="number" id="studentCount" value="30" min="1" max="500">
+        </div>
+        <div class="field">
             <label>Question Style</label>
             <select id="answerFormat" style="color: grey;">
                 <option value="blank" selected>Blank lines</option>
@@ -665,6 +669,7 @@ function isMobile() {
         setFormValue("curriculum", payload.curriculum || "");
         setFormValue("mMax", payload.maxMarks || "");
         setFormValue("qCount", payload.questionCount || "");
+        setFormValue("studentCount", payload.studentCount || "");
         setFormValue("answerFormat", detectAnswerFormat(payload));
         setFormValue("requests", payload.requests || "");
 
@@ -794,6 +799,7 @@ function isMobile() {
             grade: document.getElementById('grade').value,
             curriculum: document.getElementById('curriculum').value,
             maxMarks: document.getElementById('mMax').value,
+            studentCount: parseInt(document.getElementById('studentCount').value, 10),
             answerFormat: historyAnswerFormat
         };
 
@@ -1377,6 +1383,7 @@ function isMobile() {
                 grade: document.getElementById('grade').value,
                 curriculum: document.getElementById('curriculum').value,
                 maxMarks: document.getElementById('mMax').value,
+                studentCount: parseInt(document.getElementById('studentCount').value, 10),
                 answerFormat: document.getElementById('answerFormat').value
             };
 
@@ -1578,7 +1585,7 @@ function isMobile() {
                         answerFormat: meta.answerFormat,
                         requests: document.getElementById('requests').value,
                         learnedContext,
-                        studentCount: 1,
+                        studentCount: meta.studentCount,
                         students: [
                             {
                                 studentName: quiz.studentName,

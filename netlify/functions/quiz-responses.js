@@ -253,6 +253,16 @@ exports.handler = async (event) => {
             return { statusCode: 403, body: JSON.stringify({ error: "Invalid access code." }) };
         }
 
+        const maxResponses = Number(session?.maxResponses);
+        if (Number.isFinite(maxResponses) && maxResponses > 0) {
+            const existingSnap = await db.ref(`users/${session.uid}/${RESPONSE_COLLECTION}/${quizId}`).get();
+            const existing = existingSnap.exists() ? existingSnap.val() : {};
+            const count = Object.keys(existing || {}).length;
+            if (count >= maxResponses) {
+                return { statusCode: 409, body: JSON.stringify({ error: "Quiz is closed. Maximum responses reached." }) };
+            }
+        }
+
         const studentName = String(body?.studentName || session.studentName || "Student").trim().slice(0, 120);
         const answersRaw = Array.isArray(body?.answers) ? body.answers : [];
         const answers = answersRaw.map((a) => ({

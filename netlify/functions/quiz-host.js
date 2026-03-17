@@ -102,6 +102,10 @@ exports.handler = async (event) => {
             const accessCode = randomAccessCode();
             const sessionRef = db.ref(SESSION_COLLECTION).push();
             const quizId = sessionRef.key;
+            const parsedMaxResponses = Number(meta?.studentCount ?? meta?.maxResponses);
+            const maxResponses = Number.isFinite(parsedMaxResponses) && parsedMaxResponses > 0
+                ? Math.floor(parsedMaxResponses)
+                : null;
 
             await sessionRef.set({
                 uid,
@@ -112,6 +116,7 @@ exports.handler = async (event) => {
                 answerFormat: String(meta?.answerFormat || ""),
                 mode,
                 accessCode,
+                maxResponses,
                 createdAt: adminSdk.database.ServerValue.TIMESTAMP,
             });
 
@@ -142,6 +147,16 @@ exports.handler = async (event) => {
         const session = snap.val();
         if (!session || session.accessCode !== code) {
             return { statusCode: 403, body: JSON.stringify({ error: "Invalid access code." }) };
+        }
+
+        const maxResponses = Number(session?.maxResponses);
+        if (Number.isFinite(maxResponses) && maxResponses > 0 && session?.uid) {
+            const respSnap = await db.ref(`users/${session.uid}/quizResponses/${quizId}`).get();
+            const respData = respSnap.exists() ? respSnap.val() : {};
+            const count = Object.keys(respData || {}).length;
+            if (count >= maxResponses) {
+                return { statusCode: 409, body: JSON.stringify({ error: "Quiz is closed." }) };
+            }
         }
 
         const questions = Array.isArray(session.questions) ? session.questions : [];
