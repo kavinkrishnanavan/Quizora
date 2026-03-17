@@ -339,7 +339,7 @@ function isMobile() {
             if (historySidebar) historySidebar.style.display = "block";
             if (signOutBtn) signOutBtn.disabled = true;
             const list = document.getElementById("historyList");
-            if (list) list.innerHTML = "<div class=\"portal-meta\">Sign in to load history.</div>";
+            if (list) list.innerHTML = "<div class=\"portal-meta\"></div>";
             if (signedOut) signedOut.style.display = "block";
             if (signedIn) signedIn.style.display = "none";
             if (emailDisplay) emailDisplay.innerText = "";
@@ -363,7 +363,7 @@ function isMobile() {
 
     async function initFirebase() {
         if (!window.firebase || !firebase?.initializeApp) {
-            setAuthStatus("Firebase SDK not loaded.");
+            setAuthStatus("Firebase SDK not loaded.");Sign in to
             return;
         }
 
