@@ -778,7 +778,7 @@ if (isMobile()) {
     }
 
     async function loadHistory() {
-        if (!firebaseReady || !currentUser) return alert("Sign in to view history.");
+        if (!firebaseReady || !currentUser) return;
         setHistoryStatus("Loading history...");
         try {
             const token = await getAuthToken();
