@@ -323,16 +323,14 @@
 
     <button id="genBtn" onclick="run()">Generate Worksheets</button>
     <div class="portal-card" id="teacherViewCard" style="margin-top: 16px; display:none;">
-        <div class="portal-row" style="justify-content: space-between;">
+        <div class="portal-row" style="justify-content: space-between; align-items: center;">
             <div style="font-weight: 800;">Teacher View</div>
-            <div class="portal-row" id="teacherViewToggle">
-                <button type="button" class="view-toggle active" data-view="worksheets">Name + Worksheets</button>
-                <button type="button" class="view-toggle" data-view="quizzes">Name + Quizzes</button>
-            </div>
+            <button type="button" id="hostAllBtn" style="padding: 10px 12px; margin-top: 0;">Host Quiz for All</button>
         </div>
         <div class="portal-meta" id="teacherViewHint" style="margin-top: 6px;">
-            Switch between printable worksheets and hosted quizzes.
+            Worksheets are ready. Use "Host Quiz for All" to generate hosted quizzes for every student.
         </div>
+        <div class="portal-meta" id="teacherViewHostStatus" style="margin-top: 6px; display:none;"></div>
     </div>
     <div id="status"></div>
     <div id="output"></div>
@@ -487,28 +485,45 @@ if (isMobile()) {
     let historyAutoLoaded = false;
     let authChecked = false;
     const HISTORY_TYPE = "personalized";
-    let teacherViewMode = "worksheets";
+    let currentQuizCards = [];
+    let currentHistoryEntries = [];
+    let currentHistoryPayloadBase = null;
 
     function showTeacherViewCard() {
         const card = document.getElementById("teacherViewCard");
         if (card) card.style.display = "block";
+        updateHostAllUi();
     }
 
-    function setTeacherView(mode) {
-        teacherViewMode = mode === "quizzes" ? "quizzes" : "worksheets";
-        const buttons = document.querySelectorAll("#teacherViewToggle .view-toggle");
-        buttons.forEach((btn) => {
-            const view = btn.dataset?.view || "";
-            if (view === teacherViewMode) btn.classList.add("active");
-            else btn.classList.remove("active");
-        });
-
+    function setTeacherView() {
         const panels = document.querySelectorAll(".view-panel");
         panels.forEach((panel) => {
-            const view = panel.dataset?.view || "";
-            if (view === teacherViewMode) panel.classList.remove("hidden");
-            else panel.classList.add("hidden");
+            panel.classList.remove("hidden");
         });
+    }
+
+    function setHostAllStatus(text) {
+        const el = document.getElementById("teacherViewHostStatus");
+        if (!el) return;
+        if (!text) {
+            el.style.display = "none";
+            el.innerText = "";
+            return;
+        }
+        el.style.display = "block";
+        el.innerText = text;
+    }
+
+    function updateHostAllUi() {
+        const btn = document.getElementById("hostAllBtn");
+        if (!btn) return;
+        const hasCards = currentQuizCards.length > 0;
+        btn.disabled = !currentUser || !hasCards;
+        btn.title = !currentUser
+            ? "Sign in to host quizzes."
+            : hasCards
+                ? ""
+                : "Generate worksheets first.";
     }
 
     function setAuthStatus(text) {
@@ -534,6 +549,7 @@ if (isMobile()) {
             if (signedOut) signedOut.style.display = "none";
             if (signedIn) signedIn.style.display = "block";
             if (emailDisplay) emailDisplay.innerText = user.email || "teacher";
+            updateHostAllUi();
         } else {
             setAuthStatus("Enter email and password to sign in.");
             if (historySidebar) historySidebar.style.display = "block";
@@ -547,6 +563,7 @@ if (isMobile()) {
             if (signedOut) signedOut.style.display = "block";
             if (signedIn) signedIn.style.display = "none";
             if (emailDisplay) emailDisplay.innerText = "";
+            updateHostAllUi();
         }
     }
 
@@ -695,6 +712,81 @@ if (isMobile()) {
         return { quizId: data.quizId, accessCode: data.accessCode };
     }
 
+    async function hostQuizForAll() {
+        if (!currentUser) {
+            alert("Sign in to host quizzes.");
+            return;
+        }
+        if (!currentQuizCards.length) {
+            alert("Generate worksheets first.");
+            return;
+        }
+
+        const btn = document.getElementById("hostAllBtn");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Hosting quizzes...";
+        }
+        setHostAllStatus("Hosting quizzes for all students...");
+
+        let hostedCount = 0;
+        let skippedCount = 0;
+        let failedCount = 0;
+
+        for (let i = 0; i < currentQuizCards.length; i++) {
+            const item = currentQuizCards[i];
+            const existing = item?.quizSession;
+            if (existing?.quizId && existing?.accessCode) {
+                skippedCount += 1;
+                continue;
+            }
+            try {
+                const hosted = await createHostedQuizSession(item.quiz, item.meta);
+                if (hosted) {
+                    hostedCount += 1;
+                    item.quizSession = hosted;
+                    if (item.card?.__setQuizSession) item.card.__setQuizSession(hosted);
+                    if (Number.isFinite(item.entryIndex) && currentHistoryEntries[item.entryIndex]) {
+                        currentHistoryEntries[item.entryIndex].quizSession = hosted;
+                    }
+                } else {
+                    failedCount += 1;
+                }
+            } catch (err) {
+                console.warn("Failed to host quiz for", item?.quiz?.studentName, err);
+                failedCount += 1;
+            }
+        }
+
+        const total = currentQuizCards.length;
+        const statusParts = [
+            hostedCount ? `Hosted ${hostedCount}/${total}` : null,
+            skippedCount ? `Skipped ${skippedCount}` : null,
+            failedCount ? `Failed ${failedCount}` : null
+        ].filter(Boolean);
+        setHostAllStatus(statusParts.length ? statusParts.join(" \u2022 ") : "No quizzes hosted.");
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Host Quiz for All";
+        }
+        updateHostAllUi();
+
+        if (currentUser && currentHistoryPayloadBase && currentHistoryEntries.length) {
+            try {
+                const payload = {
+                    ...currentHistoryPayloadBase,
+                    createdAt: new Date().toISOString(),
+                    students: currentHistoryEntries
+                };
+                await saveHistory(payload);
+                await loadHistory();
+            } catch (err) {
+                console.warn("Failed to save hosted quiz history", err);
+            }
+        }
+    }
+
     async function fetchQuizResponses(quizId) {
         const token = await getAuthToken();
         if (!token) throw new Error("Please sign in to view responses.");
@@ -783,6 +875,11 @@ if (isMobile()) {
         revokeHistoryPdfUrls();
         const output = document.getElementById("output");
         if (output) output.innerHTML = "";
+        currentQuizCards = [];
+        currentHistoryEntries = [];
+        currentHistoryPayloadBase = null;
+        setHostAllStatus("");
+        updateHostAllUi();
     }
 
     function setFormValue(id, value) {
@@ -930,42 +1027,24 @@ if (isMobile()) {
         viewWorksheets.appendChild(btnRow);
 
         const viewQuizzes = document.createElement('div');
-        viewQuizzes.className = "view-panel hidden";
+        viewQuizzes.className = "view-panel";
         viewQuizzes.dataset.view = "quizzes";
 
         const renderQuizPanel = (session) => {
             viewQuizzes.innerHTML = "";
+            const sectionTitle = document.createElement("div");
+            sectionTitle.style.fontWeight = "700";
+            sectionTitle.style.marginBottom = "8px";
+            sectionTitle.innerText = "Hosted Quiz";
+            viewQuizzes.appendChild(sectionTitle);
 
             if (!session) {
-                if (!currentUser) {
-                    const note = document.createElement("div");
-                    note.className = "portal-meta";
-                    note.innerText = "Sign in to host quizzes and collect responses.";
-                    viewQuizzes.appendChild(note);
-                } else {
-                    const hostBtn = document.createElement("button");
-                    hostBtn.type = "button";
-                    hostBtn.innerText = "Host Quiz";
-                    hostBtn.style.padding = "10px 12px";
-                    hostBtn.style.marginTop = "0";
-                    hostBtn.onclick = async () => {
-                        hostBtn.disabled = true;
-                        hostBtn.innerText = "Hosting...";
-                        try {
-                            const hosted = await createHostedQuizSession(quiz, meta);
-                            if (hosted) {
-                                quizSession = hosted;
-                                renderQuizPanel(hosted);
-                            }
-                        } catch (err) {
-                            alert(err?.message || "Failed to host quiz.");
-                        } finally {
-                            hostBtn.disabled = false;
-                            hostBtn.innerText = "Host Quiz";
-                        }
-                    };
-                    viewQuizzes.appendChild(hostBtn);
-                }
+                const note = document.createElement("div");
+                note.className = "portal-meta";
+                note.innerText = currentUser
+                    ? "Use \"Host Quiz for All\" above to create quiz links."
+                    : "Sign in to host quizzes and collect responses.";
+                viewQuizzes.appendChild(note);
                 return;
             }
 
@@ -1028,6 +1107,10 @@ if (isMobile()) {
         };
 
         renderQuizPanel(quizSession);
+        card.__setQuizSession = (session) => {
+            quizSession = session;
+            renderQuizPanel(session);
+        };
 
         const preview = document.createElement('pre');
         preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
@@ -1130,6 +1213,9 @@ if (isMobile()) {
 
         clearOutputArea();
         status.style.display = "block";
+        currentHistoryEntries = students.map((student) => ({ ...student }));
+        currentHistoryPayloadBase = { ...payload };
+        delete currentHistoryPayloadBase.students;
 
         const meta = {
             subject: document.getElementById('subject').value,
@@ -1164,6 +1250,13 @@ if (isMobile()) {
                 quizSession: student.quizSession || null
             });
             output.appendChild(card);
+            currentQuizCards.push({
+                quiz,
+                meta,
+                card,
+                quizSession: student.quizSession || null,
+                entryIndex: i
+            });
             rendered += 1;
         }
 
@@ -1175,7 +1268,8 @@ if (isMobile()) {
 
         status.innerText = "History loaded.";
         showTeacherViewCard();
-        setTeacherView(teacherViewMode);
+        setTeacherView();
+        updateHostAllUi();
     }
 
     async function loadHistory() {
@@ -1214,16 +1308,14 @@ if (isMobile()) {
     document.getElementById("signOutBtn")?.addEventListener("click", signOut);
     document.getElementById("historyLoadBtn")?.addEventListener("click", loadHistory);
     document.getElementById("accountBtn")?.addEventListener("click", openAccountModal);
+    document.getElementById("hostAllBtn")?.addEventListener("click", hostQuizForAll);
     document.getElementById("accountBackdrop")?.addEventListener("click", closeAccountModal);
     document.getElementById("accountClose")?.addEventListener("click", closeAccountModal);
     document.getElementById("responsesClose")?.addEventListener("click", closeResponsesModal);
     document.getElementById("responsesBackdrop")?.addEventListener("click", closeResponsesModal);
-    document.querySelectorAll("#teacherViewToggle .view-toggle").forEach((btn) => {
-        btn.addEventListener("click", () => setTeacherView(btn.dataset?.view || "worksheets"));
-    });
     updateAuthUi(null);
     initFirebase();
-    setTeacherView(teacherViewMode);
+    setTeacherView();
 
     function sanitizeFilename(name) {
         return String(name || "Student")
@@ -2325,7 +2417,7 @@ if (isMobile()) {
 
         btn.disabled = true;
         status.style.display = "block";
-        output.innerHTML = "";
+        clearOutputArea();
 
         try {
             if (!ensureCsvStateMatchesFile(file)) {
@@ -2435,59 +2527,58 @@ if (isMobile()) {
                     answerFormat: document.getElementById('answerFormat').value
                 };
 
-                let quizSession = null;
-                if (currentUser) {
-                    try {
-                        quizSession = await createHostedQuizSession(quiz, meta);
-                    } catch (err) {
-                        console.warn("Failed to host quiz", err);
-                    }
-                }
-
                 const card = await buildQuizCard({
                     quiz,
                     meta,
                     marksValue: marksValue ? String(marksValue) : "",
-                    quizSession
+                    quizSession: null
                 });
                 output.appendChild(card);
 
+                const entryIndex = historyEntries.length;
                 historyEntries.push({
                     studentName: quiz.studentName,
                     score: marksValue ? String(marksValue).trim() : "",
                     marksValue: marksValue ? String(marksValue).trim() : "",
                     marks: marksValue ? `${marksValue}/${meta.maxMarks}` : "",
                     questions: quiz.questions,
-                    quizSession
+                    quizSession: null
                 });
+                currentQuizCards.push({ quiz, meta, card, quizSession: null, entryIndex });
             }
             status.innerText = "All Worksheets generated successfully!";
             showTeacherViewCard();
-            setTeacherView(teacherViewMode);
+            setTeacherView();
+            currentHistoryEntries = historyEntries;
+            updateHostAllUi();
 
-            if (currentUser && historyEntries.length) {
-                try {
-                    const payload = {
-                        title: `${document.getElementById('subject').value} - ${document.getElementById('topic').value}`,
-                        createdAt: new Date().toISOString(),
-                        summary: `${historyEntries.length} worksheet(s) generated for ${document.getElementById('grade').value} (${document.getElementById('curriculum').value}).`,
-                        type: HISTORY_TYPE,
-                        subject: document.getElementById('subject').value,
-                        topic: document.getElementById('topic').value,
-                        grade: document.getElementById('grade').value,
-                        curriculum: document.getElementById('curriculum').value,
-                        maxMarks: document.getElementById('mMax').value,
-                        questionCount: parseInt(document.getElementById('qCount').value, 10),
-                        answerFormat: document.getElementById('answerFormat').value,
-                        requests: document.getElementById('requests').value,
-                        learnedContext,
-                        studentCount: historyEntries.length,
-                        students: historyEntries
-                    };
-                    await saveHistory(payload);
-                    await loadHistory();
-                } catch (err) {
-                    status.innerText += " History save failed.";
+            if (historyEntries.length) {
+                const payload = {
+                    title: `${document.getElementById('subject').value} - ${document.getElementById('topic').value}`,
+                    createdAt: new Date().toISOString(),
+                    summary: `${historyEntries.length} worksheet(s) generated for ${document.getElementById('grade').value} (${document.getElementById('curriculum').value}).`,
+                    type: HISTORY_TYPE,
+                    subject: document.getElementById('subject').value,
+                    topic: document.getElementById('topic').value,
+                    grade: document.getElementById('grade').value,
+                    curriculum: document.getElementById('curriculum').value,
+                    maxMarks: document.getElementById('mMax').value,
+                    questionCount: parseInt(document.getElementById('qCount').value, 10),
+                    answerFormat: document.getElementById('answerFormat').value,
+                    requests: document.getElementById('requests').value,
+                    learnedContext,
+                    studentCount: historyEntries.length,
+                    students: historyEntries
+                };
+                currentHistoryPayloadBase = { ...payload };
+                delete currentHistoryPayloadBase.students;
+                if (currentUser) {
+                    try {
+                        await saveHistory(payload);
+                        await loadHistory();
+                    } catch (err) {
+                        status.innerText += " History save failed.";
+                    }
                 }
             }
         } catch (err) {
