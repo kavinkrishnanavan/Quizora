@@ -45,6 +45,17 @@
 
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         .full-width { grid-column: 1 / -1; }
+        .portal-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+        .portal-meta { color: var(--muted); font-size: 0.9rem; }
+        .history-list { display: grid; gap: 10px; margin-top: 12px; }
+        .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+        .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
+        .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
+        .history-entry-title { font-weight: 700; font-size: 0.98rem; }
+        .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
+        .history-entry-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .history-delete { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .history-delete:hover { border-color: rgba(239, 68, 68, 0.55); color: #ef4444; }
 
         .field { display: flex; flex-direction: column; }
         label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
@@ -149,6 +160,10 @@
                 <div class="muted" id="selectedInfo" style="margin-top: 6px;">You can select multiple images. Preview shows the first image. Use scroll + zoom to inspect before grading.</div>
             </div>
             <div class="field" style="min-width: 180px; margin-top: 10px;">
+                        <label for="studentName" style="margin-bottom: 4px;">Student Name</label>
+                        <input type="text" id="studentName" placeholder="Student name" style="padding: 10px 12px;">
+                    </div>
+            <div class="field" style="min-width: 180px; margin-top: 10px;">
                         <label for="outOf" style="margin-bottom: 4px;">Marks Out of</label>
                         <input type="number" id="outOf" value="20" min="1" max="1000" step="1" style="padding: 10px 12px;">
                     </div>
@@ -181,6 +196,13 @@
         </div>
 
         <div id="results" class="quiz-card" style="display:none;"></div>
+        <div id="historyCard" class="quiz-card" style="margin-top: 20px;">
+            <div class="portal-row">
+                <div style="font-weight: 800;">Saved Marks</div>
+            </div>
+            <div class="portal-meta">Click a student to view the last saved marks.</div>
+            <div id="historyList" class="history-list"></div>
+        </div>
     </div>
 
     <script>
@@ -211,13 +233,18 @@ function isMobile() {
         const zoomInBtn = document.getElementById("zoomInBtn");
         const zoomResetBtn = document.getElementById("zoomResetBtn");
         const markBtn = document.getElementById("markBtn");
+        const studentNameInput = document.getElementById("studentName");
         const outOfInput = document.getElementById("outOf");
         const status = document.getElementById("status");
         const results = document.getElementById("results");
         const redirectBtn = document.getElementById("redirectBtn");
         const selectedInfo = document.getElementById("selectedInfo");
+        const historyList = document.getElementById("historyList");
 
+        const HISTORY_KEY = "quizwiz_image_history_v1";
         let lastGradedBlockIds = [];
+        let historyItems = [];
+        let activeHistoryId = null;
 
         function setStatus(message) {
             status.style.display = "block";
@@ -329,6 +356,7 @@ function isMobile() {
                 results.innerHTML = html || "<div class='muted'>No results returned. Try a clearer photo or re-upload.</div>";
                 lastGradedBlockIds = files.map((_, i) => "img_" + i);
                 for (const id of lastGradedBlockIds) updateScore(id);
+                saveMarksToHistory();
                 clearStatus();
             } catch (err) {
                 setStatus("Error: " + (err && err.message ? err.message : "Unable to grade worksheet"));
@@ -345,6 +373,111 @@ function isMobile() {
                 .replaceAll(">", "&gt;")
                 .replaceAll("\"", "&quot;")
                 .replaceAll("'", "&#039;");
+        }
+
+        function loadHistory() {
+            try {
+                const raw = localStorage.getItem(HISTORY_KEY);
+                historyItems = raw ? JSON.parse(raw) : [];
+            } catch (_) {
+                historyItems = [];
+            }
+        }
+
+        function saveHistoryItems() {
+            try {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(historyItems));
+            } catch (_) {}
+        }
+
+        function setActiveHistory(id) {
+            activeHistoryId = id || null;
+            const entries = document.querySelectorAll(".history-entry");
+            entries.forEach((entry) => {
+                if (entry.dataset?.historyId === activeHistoryId) entry.classList.add("active");
+                else entry.classList.remove("active");
+            });
+        }
+
+        function renderHistory() {
+            if (!historyList) return;
+            historyList.innerHTML = "";
+            if (!historyItems.length) {
+                historyList.innerHTML = "<div class=\"portal-meta\">No saved marks yet.</div>";
+                return;
+            }
+
+            historyItems.forEach((item) => {
+                const entry = document.createElement("div");
+                entry.className = "history-entry";
+                entry.dataset.historyId = item.id;
+                entry.setAttribute("role", "button");
+                entry.setAttribute("tabindex", "0");
+
+                const row = document.createElement("div");
+                row.className = "history-entry-row";
+
+                const title = document.createElement("div");
+                title.className = "history-entry-title";
+                title.innerText = item.studentName || "Student";
+                row.appendChild(title);
+
+                const delBtn = document.createElement("button");
+                delBtn.type = "button";
+                delBtn.className = "history-delete";
+                delBtn.innerText = "Delete";
+                delBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    deleteHistoryEntry(item.id);
+                });
+                row.appendChild(delBtn);
+                entry.appendChild(row);
+
+                const meta = document.createElement("div");
+                meta.className = "history-entry-meta";
+                meta.innerText = item.summary || "Marks saved.";
+                entry.appendChild(meta);
+
+                const when = document.createElement("div");
+                when.className = "history-entry-meta";
+                when.innerText = item.createdAt ? new Date(item.createdAt).toLocaleString() : "";
+                entry.appendChild(when);
+
+                entry.addEventListener("click", () => showHistoryEntry(item));
+                entry.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        showHistoryEntry(item);
+                    }
+                });
+                historyList.appendChild(entry);
+            });
+
+            if (activeHistoryId) setActiveHistory(activeHistoryId);
+        }
+
+        function showHistoryEntry(item) {
+            if (!item) return;
+            setActiveHistory(item.id);
+            results.style.display = "block";
+            results.innerHTML = `
+                <div style="font-weight: 800; margin-bottom: 8px;">${escapeHtml(item.studentName || "Student")}</div>
+                <div>${escapeHtml(item.summary || "Marks saved.")}</div>
+                <div class="portal-meta" style="margin-top: 8px;">Saved ${escapeHtml(item.createdAt ? new Date(item.createdAt).toLocaleString() : "")}</div>
+            `;
+        }
+
+        function deleteHistoryEntry(id) {
+            const safeId = String(id || "").trim();
+            if (!safeId) return;
+            const ok = confirm("Delete this saved mark?");
+            if (!ok) return;
+            historyItems = historyItems.filter((item) => item.id !== safeId);
+            saveHistoryItems();
+            renderHistory();
+            if (activeHistoryId === safeId) {
+                activeHistoryId = null;
+            }
         }
 
         function renderResultsBlock({ blockId, title, questions }) {
@@ -414,6 +547,54 @@ function isMobile() {
             const scaledText = Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1);
             totalEl.textContent = "Student marks: " + scaledText + " / " + outOf + " (Correct: " + score + " / " + boxes.length + ")";
         }
+
+        function getBlockScoreData(blockId) {
+            const safeId = String(blockId || "");
+            const root = safeId ? document.querySelector(`.question-block[data-block-id="${safeId}"]`) : null;
+            if (!root) return null;
+            const boxes = root.querySelectorAll(".question input[type='checkbox']");
+            if (!boxes.length) return null;
+            let score = 0;
+            boxes.forEach((box) => { if (box.checked) score += 1; });
+
+            const outOfRaw = outOfInput && outOfInput.value ? Number(outOfInput.value) : NaN;
+            const outOf = Number.isFinite(outOfRaw) && outOfRaw > 0 ? outOfRaw : null;
+            if (!outOf) {
+                return { score, total: boxes.length, outOf: null, scaled: score };
+            }
+            const scaled = (score / boxes.length) * outOf;
+            const scaledText = Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1);
+            return { score, total: boxes.length, outOf, scaled: scaledText };
+        }
+
+        function buildMarksSummary() {
+            if (!lastGradedBlockIds.length) return "No marks saved.";
+            const parts = lastGradedBlockIds.map((id, idx) => {
+                const data = getBlockScoreData(id);
+                if (!data) return null;
+                if (!data.outOf) return `Paper ${idx + 1}: ${data.score} / ${data.total}`;
+                return `Paper ${idx + 1}: ${data.scaled} / ${data.outOf}`;
+            }).filter(Boolean);
+            return parts.join(" | ") || "No marks saved.";
+        }
+
+        function saveMarksToHistory() {
+            const studentName = String(studentNameInput?.value || "").trim() || "Student";
+            const summary = buildMarksSummary();
+            const entry = {
+                id: "img_" + Date.now(),
+                studentName,
+                summary,
+                createdAt: new Date().toISOString()
+            };
+            historyItems.unshift(entry);
+            saveHistoryItems();
+            renderHistory();
+            setActiveHistory(entry.id);
+        }
+
+        loadHistory();
+        renderHistory();
 
         imageInput.addEventListener("change", () => showPreview(getPreviewFile()));
         markBtn.addEventListener("click", upload);

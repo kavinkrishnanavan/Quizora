@@ -46,6 +46,9 @@
         .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
         .history-entry-title { font-weight: 700; font-size: 0.98rem; }
         .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
+        .history-entry-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .history-delete { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .history-delete:hover { border-color: rgba(239, 68, 68, 0.55); color: #ef4444; }
         .download-link { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; transition: 0.2s; }
         .download-link:hover { opacity: 0.9; transform: translateY(-1px); }
         .download-link.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
@@ -1154,30 +1157,51 @@ if (isMobile()) {
         }
 
         historyItems.forEach((item, index) => {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "history-entry";
+            const entry = document.createElement("div");
+            entry.className = "history-entry";
+            entry.setAttribute("role", "button");
+            entry.setAttribute("tabindex", "0");
+
+            const row = document.createElement("div");
+            row.className = "history-entry-row";
 
             const title = document.createElement("div");
             title.className = "history-entry-title";
             title.innerText = item.payload?.title || "Worksheet Batch";
-            btn.appendChild(title);
+            row.appendChild(title);
+
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.className = "history-delete";
+            delBtn.innerText = "Delete";
+            delBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                deleteHistoryEntry(item.id);
+            });
+            row.appendChild(delBtn);
+            entry.appendChild(row);
 
             const createdAt = item.payload?.createdAt || item.createdAt || "";
             const meta = document.createElement("div");
             meta.className = "history-entry-meta";
             meta.innerText = createdAt ? new Date(createdAt).toLocaleString() : "Saved history";
-            btn.appendChild(meta);
+            entry.appendChild(meta);
 
             if (item.payload?.summary) {
                 const summary = document.createElement("div");
                 summary.className = "history-entry-meta";
                 summary.innerText = item.payload.summary;
-                btn.appendChild(summary);
+                entry.appendChild(summary);
             }
 
-            btn.addEventListener("click", () => loadHistoryEntry(index));
-            list.appendChild(btn);
+            entry.addEventListener("click", () => loadHistoryEntry(index));
+            entry.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    loadHistoryEntry(index);
+                }
+            });
+            list.appendChild(entry);
         });
     }
 
@@ -1301,6 +1325,25 @@ if (isMobile()) {
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error(data?.error || "Failed to save history.");
         return data;
+    }
+
+    async function deleteHistoryEntry(id) {
+        if (!firebaseReady || !currentUser) return alert("Sign in to delete history.");
+        const safeId = String(id || "").trim();
+        if (!safeId) return;
+        const ok = confirm("Delete this history entry?");
+        if (!ok) return;
+        const token = await getAuthToken();
+        const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+            alert(data?.error || "Failed to delete history.");
+            return;
+        }
+        await loadHistory();
     }
 
     document.getElementById("signUpBtn")?.addEventListener("click", signUp);
