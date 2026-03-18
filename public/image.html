@@ -33,8 +33,17 @@
             }
         }
 
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
-        .container { max-width: 900px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 0; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
+        .app-shell { max-width: 1400px; margin: 0 auto; display: flex; gap: 24px; padding: 20px; align-items: flex-start; }
+        .container { flex: 1; max-width: 980px; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        .sidebar { width: 300px; min-width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; position: sticky; top: 20px; }
+        .sidebar-title { font-weight: 800; font-size: 1.05rem; }
+        .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
+        @media (max-width: 1100px) {
+            .app-shell { flex-direction: column; }
+            .sidebar { width: 100%; position: static; }
+            .container { max-width: 100%; }
+        }
         h2 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
         a { color: var(--primary); }
         hr { border-color: var(--border); }
@@ -47,7 +56,7 @@
         .full-width { grid-column: 1 / -1; }
         .portal-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
         .portal-meta { color: var(--muted); font-size: 0.9rem; }
-        .history-list { display: grid; gap: 10px; margin-top: 12px; }
+        .history-list { display: grid; gap: 10px; margin-top: 12px; max-height: 420px; overflow: auto; padding-right: 4px; }
         .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
         .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
         .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
@@ -132,6 +141,7 @@
         <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
     </div>
 
+    <div class="app-shell">
     <div class="container">
         <div style="display: flex; align-items: center; gap: 10px;">
             <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
@@ -159,6 +169,10 @@
                 <input type="file" id="imageInput" accept="image/*" multiple>
                 <div class="muted" id="selectedInfo" style="margin-top: 6px;">You can select multiple images. Preview shows the first image. Use scroll + zoom to inspect before grading.</div>
             </div>
+            <div class="field" style="min-width: 180px; margin-top: 10px;">
+                        <label for="generationName" style="margin-bottom: 4px;">Generation Name</label>
+                        <input type="text" id="generationName" placeholder="e.g. Week 3 Marker" style="padding: 10px 12px;">
+                    </div>
             <div class="field" style="min-width: 180px; margin-top: 10px;">
                         <label for="studentName" style="margin-bottom: 4px;">Student Name</label>
                         <input type="text" id="studentName" placeholder="Student name" style="padding: 10px 12px;">
@@ -196,13 +210,14 @@
         </div>
 
         <div id="results" class="quiz-card" style="display:none;"></div>
-        <div id="historyCard" class="quiz-card" style="margin-top: 20px;">
-            <div class="portal-row">
-                <div style="font-weight: 800;">Saved Marks</div>
-            </div>
-            <div class="portal-meta">Click a student to view the last saved marks.</div>
-            <div id="historyList" class="history-list"></div>
+    </div>
+    <aside class="sidebar" id="historyCard">
+        <div class="portal-row" style="justify-content: space-between;">
+            <div class="sidebar-title">Generations</div>
         </div>
+        <div class="sidebar-subtitle">Click a generation to view saved marks.</div>
+        <div id="historyList" class="history-list"></div>
+    </aside>
     </div>
 
     <script>
@@ -233,6 +248,7 @@ function isMobile() {
         const zoomInBtn = document.getElementById("zoomInBtn");
         const zoomResetBtn = document.getElementById("zoomResetBtn");
         const markBtn = document.getElementById("markBtn");
+        const generationNameInput = document.getElementById("generationName");
         const studentNameInput = document.getElementById("studentName");
         const outOfInput = document.getElementById("outOf");
         const status = document.getElementById("status");
@@ -419,7 +435,7 @@ function isMobile() {
 
                 const title = document.createElement("div");
                 title.className = "history-entry-title";
-                title.innerText = item.studentName || "Student";
+                title.innerText = item.generationName || "Generation";
                 row.appendChild(title);
 
                 const delBtn = document.createElement("button");
@@ -461,7 +477,7 @@ function isMobile() {
             setActiveHistory(item.id);
             results.style.display = "block";
             results.innerHTML = `
-                <div style="font-weight: 800; margin-bottom: 8px;">${escapeHtml(item.studentName || "Student")}</div>
+                <div style="font-weight: 800; margin-bottom: 8px;">${escapeHtml(item.generationName || "Generation")}</div>
                 <div>${escapeHtml(item.summary || "Marks saved.")}</div>
                 <div class="portal-meta" style="margin-top: 8px;">Saved ${escapeHtml(item.createdAt ? new Date(item.createdAt).toLocaleString() : "")}</div>
             `;
@@ -579,10 +595,12 @@ function isMobile() {
         }
 
         function saveMarksToHistory() {
+            const generationName = String(generationNameInput?.value || "").trim() || "Generation";
             const studentName = String(studentNameInput?.value || "").trim() || "Student";
             const summary = buildMarksSummary();
             const entry = {
                 id: "img_" + Date.now(),
+                generationName,
                 studentName,
                 summary,
                 createdAt: new Date().toISOString()

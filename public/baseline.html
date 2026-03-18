@@ -40,7 +40,7 @@
         .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
         .sidebar-title { font-weight: 800; font-size: 1.05rem; }
         .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
-        .history-list { display: grid; gap: 10px; margin-top: 12px; }
+        .history-list { display: grid; gap: 10px; margin-top: 12px; max-height: 420px; overflow: auto; padding-right: 4px; }
         .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
         .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
         .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
@@ -856,7 +856,7 @@ function isMobile() {
 
             const title = document.createElement("div");
             title.className = "history-entry-title";
-            title.innerText = item.payload?.title || "Baseline Worksheet";
+            title.innerText = item.payload?.title || "Generation";
             row.appendChild(title);
 
             const delBtn = document.createElement("button");
