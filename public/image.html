@@ -142,6 +142,13 @@
     </div>
 
     <div class="app-shell">
+    <aside class="sidebar" id="historyCard">
+        <div class="portal-row" style="justify-content: space-between;">
+            <div class="sidebar-title">Generations</div>
+        </div>
+        <div class="sidebar-subtitle">Click a generation to view saved marks.</div>
+        <div id="historyList" class="history-list"></div>
+    </aside>
     <div class="container">
         <div style="display: flex; align-items: center; gap: 10px;">
             <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
@@ -164,11 +171,6 @@
 
        
         <div class="form-grid" style="margin-top: 20px;">
-            <div class="field full-width">
-                <label for="imageInput">Upload worksheet image</label>
-                <input type="file" id="imageInput" accept="image/*" multiple>
-                <div class="muted" id="selectedInfo" style="margin-top: 6px;">You can select multiple images. Preview shows the first image. Use scroll + zoom to inspect before grading.</div>
-            </div>
             <div class="field" style="min-width: 180px; margin-top: 10px;">
                         <label for="generationName" style="margin-bottom: 4px;">Generation Name</label>
                         <input type="text" id="generationName" placeholder="e.g. Week 3 Marker" style="padding: 10px 12px;">
@@ -181,6 +183,12 @@
                         <label for="outOf" style="margin-bottom: 4px;">Marks Out of</label>
                         <input type="number" id="outOf" value="20" min="1" max="1000" step="1" style="padding: 10px 12px;">
                     </div>
+            <div class="field full-width">
+                <label for="imageInput">Upload worksheet image</label>
+                <input type="file" id="imageInput" accept="image/*" multiple>
+                <div class="muted" id="selectedInfo" style="margin-top: 6px;">You can select multiple images. Preview shows the first image. Use scroll + zoom to inspect before grading.</div>
+            </div>
+            
 
             <div class="full-width" id="previewSection" style="display:none;">
                 <div class="preview-wrap">
@@ -211,13 +219,6 @@
 
         <div id="results" class="quiz-card" style="display:none;"></div>
     </div>
-    <aside class="sidebar" id="historyCard">
-        <div class="portal-row" style="justify-content: space-between;">
-            <div class="sidebar-title">Generations</div>
-        </div>
-        <div class="sidebar-subtitle">Click a generation to view saved marks.</div>
-        <div id="historyList" class="history-list"></div>
-    </aside>
     </div>
 
     <script>
