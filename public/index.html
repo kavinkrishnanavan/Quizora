@@ -952,9 +952,9 @@ if (isMobile()) {
         return match ? match[1] : str;
     }
 
-    async function buildPdfLinks(quiz, meta) {
-        const qBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false });
-        const aBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true });
+    async function buildPdfLinks(quiz, meta, marksValue = "") {
+        const qBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false, marksValue });
+        const aBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true, marksValue });
         const qUrl = URL.createObjectURL(new Blob([qBytes], { type: "application/pdf" }));
         const aUrl = URL.createObjectURL(new Blob([aBytes], { type: "application/pdf" }));
         historyPdfUrls.push(qUrl, aUrl);
@@ -1011,7 +1011,7 @@ if (isMobile()) {
             qBtn.onclick = async () => {
                 qBtn.disabled = true;
                 try {
-                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false });
+                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false, marksValue });
                     await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`);
                 } finally {
                     qBtn.disabled = false;
@@ -1021,7 +1021,7 @@ if (isMobile()) {
             aBtn.onclick = async () => {
                 aBtn.disabled = true;
                 try {
-                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true });
+                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true, marksValue });
                     await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`);
                 } finally {
                     aBtn.disabled = false;
@@ -1252,7 +1252,9 @@ if (isMobile()) {
             grade: document.getElementById('grade').value,
             curriculum: document.getElementById('curriculum').value,
             maxMarks: document.getElementById('mMax').value,
-            answerFormat: historyAnswerFormat
+            answerFormat: historyAnswerFormat,
+            generationName: payload?.title || "",
+            mode: "personalized"
         };
 
         let rendered = 0;
@@ -1270,7 +1272,7 @@ if (isMobile()) {
             }
             const quiz = { studentName, questions: savedQuestions };
 
-            const links = await buildPdfLinks(quiz, meta);
+            const links = await buildPdfLinks(quiz, meta, scoreRaw ? String(scoreRaw) : "");
             const card = await buildQuizCard({
                 quiz,
                 meta,
@@ -1401,7 +1403,7 @@ if (isMobile()) {
         return out;
     }
 
-    async function buildWorksheetPdf({ quiz, meta, includeAnswers }) {
+    async function buildWorksheetPdf({ quiz, meta, includeAnswers, marksValue = "" }) {
         const { PDFDocument, StandardFonts, rgb } = PDFLib;
         const answerFormat = meta?.answerFormat === "mcq" ? "mcq" : "blank";
 
@@ -1413,8 +1415,8 @@ if (isMobile()) {
         const headerText = "Quiz-Wiz : Worksheets Empowered";
         const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
 
-        const form = doc.getForm();
-        const sheetTitle = includeAnswers ? "Teacher Answer Sheet" : "Student Question Sheet";
+        const typeLabel = meta?.mode === "baseline" ? "Baseline" : "Personalized";
+        const sheetTitle = includeAnswers ? "Answer Sheet" : "Question Sheet";
 
         const startPage = ({ withMarks }) => {
             const page = doc.addPage();
@@ -1424,21 +1426,22 @@ if (isMobile()) {
 
             page.drawText(headerText, { x: margin, y, size: 14, font: fontBold, color: rgb(0.12, 0.2, 0.35) });
             y -= 18;
+            page.drawText(`Type: ${typeLabel} | ${sheetTitle}`, { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) });
+            y -= 16;
             page.drawText(`Generated: ${dateStr}`, { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) });
             y -= 18;
 
-            page.drawText(`Student: ${quiz.studentName}`, { x: margin, y, size: 12, font: fontBold });
-            y -= 18;
+            if (meta?.generationName) {
+                page.drawText(`Generation: ${meta.generationName}`, { x: margin, y, size: 11, font: fontBold });
+                y -= 18;
+            }
 
-            if (withMarks) {
-                page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
-                const marksField = form.createTextField(`marks_${Math.random().toString(16).slice(2)}`);
-                marksField.setText("");
-                marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
-                page.drawText(`/ ${meta.maxMarks}`, { x: margin + 180, y, size: 11, font });
-                y -= 24;
-            } else {
-                y -= 6;
+            if (typeLabel === "Personalized") {
+                page.drawText(`Student: ${quiz.studentName}`, { x: margin, y, size: 12, font: fontBold });
+                y -= 18;
+                const marksText = marksValue ? `${marksValue}` : "____";
+                page.drawText(`Marks: ${marksText} / ${meta.maxMarks}`, { x: margin, y, size: 11, font: fontBold });
+                y -= 20;
             }
 
             page.drawText(`${meta.subject} | ${meta.topic} | ${meta.grade} | ${meta.curriculum}`, {
@@ -2572,7 +2575,9 @@ if (isMobile()) {
                     grade: document.getElementById('grade').value,
                     curriculum: document.getElementById('curriculum').value,
                     maxMarks: document.getElementById('mMax').value,
-                    answerFormat: document.getElementById('answerFormat').value
+                    answerFormat: document.getElementById('answerFormat').value,
+                    generationName: String(document.getElementById('genName')?.value || "").trim(),
+                    mode: "personalized"
                 };
 
                 const card = await buildQuizCard({

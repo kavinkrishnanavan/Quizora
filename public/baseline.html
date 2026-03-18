@@ -943,7 +943,9 @@ function isMobile() {
             curriculum: document.getElementById('curriculum').value,
             maxMarks: document.getElementById('mMax').value,
             studentCount: parseInt(document.getElementById('studentCount').value, 10),
-            answerFormat: historyAnswerFormat
+            answerFormat: historyAnswerFormat,
+            generationName: payload?.title || "",
+            mode: "baseline"
         };
 
         status.innerText = "Loading saved baseline worksheet...";
@@ -1195,9 +1197,8 @@ function isMobile() {
         const margin = 48;
         const dateStr = new Date().toLocaleString();
         const headerText = "Quiz-Wiz Worksheet";
-
-        const form = doc.getForm();
-        const sheetTitle = includeAnswers ? "Teacher Answer Sheet" : "Student Question Sheet";
+        const typeLabel = meta?.mode === "baseline" ? "Baseline" : "Personalized";
+        const sheetTitle = includeAnswers ? "Answer Sheet" : "Question Sheet";
 
         const startPage = ({ withMarks }) => {
             const page = doc.addPage();
@@ -1207,29 +1208,14 @@ function isMobile() {
 
             page.drawText(headerText, { x: margin, y, size: 14, font: fontBold, color: rgb(0.12, 0.2, 0.35) });
             y -= 18;
+            page.drawText(`Type: ${typeLabel} | ${sheetTitle}`, { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) });
+            y -= 16;
             page.drawText(`Generated: ${dateStr}`, { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) });
             y -= 18;
 
-            page.drawText(`Worksheet: ${quiz.studentName}`, { x: margin, y, size: 12, font: fontBold });
-            y -= 18;
-
-            if (!includeAnswers) {
-                page.drawText("Name:", { x: margin, y, size: 11, font: fontBold });
-                const nameField = form.createTextField(`name_${Math.random().toString(16).slice(2)}`);
-                nameField.setText("");
-                nameField.addToPage(page, { x: margin + 54, y: y - 2, width: 260, height: 16 });
-                y -= 24;
-            }
-
-            if (withMarks) {
-                page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
-                const marksField = form.createTextField(`marks_${Math.random().toString(16).slice(2)}`);
-                marksField.setText("");
-                marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
-                page.drawText(`/ ${meta.maxMarks}`, { x: margin + 180, y, size: 11, font });
-                y -= 24;
-            } else {
-                y -= 6;
+            if (meta?.generationName) {
+                page.drawText(`Generation: ${meta.generationName}`, { x: margin, y, size: 11, font: fontBold });
+                y -= 18;
             }
 
             page.drawText(`${meta.subject} | ${meta.topic} | ${meta.grade} | ${meta.curriculum}`, {
@@ -1543,7 +1529,9 @@ function isMobile() {
                 curriculum: document.getElementById('curriculum').value,
                 maxMarks: document.getElementById('mMax').value,
                 studentCount: parseInt(document.getElementById('studentCount').value, 10),
-                answerFormat: document.getElementById('answerFormat').value
+                answerFormat: document.getElementById('answerFormat').value,
+                generationName: String(document.getElementById('genName')?.value || "").trim(),
+                mode: "baseline"
             };
 
             const quiz = await requestQuiz({

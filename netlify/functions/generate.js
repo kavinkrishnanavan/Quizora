@@ -161,25 +161,60 @@ exports.handler = async (event) => {
             const intersection = [...aTokens].filter((t) => bTokens.has(t)).length;
             const union = new Set([...aTokens, ...bTokens]).size;
             const jaccard = union ? intersection / union : 0;
-            return jaccard >= 0.8;
+            return jaccard >= 0.7;
         };
 
-        const hasDuplicateQuestions = (questions) => {
+        const getDuplicateIndexes = (questions) => {
             const seen = new Set();
+            const duplicates = new Set();
             for (const q of questions) {
                 const normalized = normalizeQuestion(q?.question);
-                if (!normalized) return true;
-                if (seen.has(normalized)) return true;
+                if (!normalized) {
+                    duplicates.add(q?.number ?? -1);
+                    continue;
+                }
+                if (seen.has(normalized)) {
+                    duplicates.add(q?.number ?? -1);
+                    continue;
+                }
                 for (const prev of seen) {
-                    if (isTooSimilar(normalized, prev)) return true;
+                    if (isTooSimilar(normalized, prev)) {
+                        duplicates.add(q?.number ?? -1);
+                        break;
+                    }
                 }
                 seen.add(normalized);
             }
-            return false;
+            return [...duplicates].filter((n) => Number.isFinite(n));
+        };
+
+        const repairDuplicates = async (quiz) => {
+            const dupIdx = getDuplicateIndexes(Array.isArray(quiz?.questions) ? quiz.questions : []);
+            if (!dupIdx.length) return quiz;
+            const existing = Array.isArray(quiz.questions)
+                ? quiz.questions.map((q) => ({ number: q.number, question: q.question, answer: q.answer, options: q.options, correctOption: q.correctOption }))
+                : [];
+
+            const repairPrompt = `Replace ONLY the duplicate question numbers: ${dupIdx.join(", ")}.
+Return the full JSON with ALL questions, keeping non-duplicate questions exactly the same.
+All replacement questions must be distinct from each other and from existing questions, and must be about ${topic}.`;
+
+            const completion = await groq.chat.completions.create({
+                messages: [
+                    { role: "system", content: buildSystemPrompt(uniquenessRule) },
+                    { role: "user", content: `${buildUserPrompt()}\n\nEXISTING_QUESTIONS: ${JSON.stringify(existing)}\n\n${repairPrompt}` }
+                ],
+                model: "openai/gpt-oss-120B",
+            });
+
+            const text = completion?.choices?.[0]?.message?.content;
+            if (!text) return quiz;
+            const repaired = parseQuizFromText(text);
+            return repaired || quiz;
         };
 
         let quiz = null;
-        for (let attempt = 0; attempt < 2; attempt++) {
+        for (let attempt = 0; attempt < 3; attempt++) {
             const completion = await groq.chat.completions.create({
                 messages: [
                     { role: "system", content: buildSystemPrompt(attempt === 0 ? "" : uniquenessRule) },
@@ -195,7 +230,11 @@ exports.handler = async (event) => {
 
             quiz = parseQuizFromText(text);
             if (!quiz || typeof quiz !== "object") continue;
-            if (Array.isArray(quiz.questions) && !hasDuplicateQuestions(quiz.questions)) break;
+            if (Array.isArray(quiz.questions)) {
+                quiz = await repairDuplicates(quiz);
+                const dupIdx = getDuplicateIndexes(quiz.questions);
+                if (!dupIdx.length) break;
+            }
         }
 
         if (!quiz || typeof quiz !== "object") throw new Error("Invalid quiz JSON.");
