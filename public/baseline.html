@@ -192,6 +192,10 @@
             <input id="topic" value="Linear Equations">
         </div>
         <div class="field">
+            <label>Generation Name</label>
+            <input id="genName" placeholder="e.g. Week 3 Baseline">
+        </div>
+        <div class="field">
             <label>Grade Level</label>
             <select id="grade" style="color: grey;">
                 <option>Grade 1</option>
@@ -782,6 +786,7 @@ function isMobile() {
         if (!payload || typeof payload !== "object") return;
         setFormValue("subject", payload.subject || "");
         setFormValue("topic", payload.topic || "");
+        setFormValue("genName", payload.title || "");
         setFormValue("grade", payload.grade || "");
         setFormValue("curriculum", payload.curriculum || "");
         setFormValue("mMax", payload.maxMarks || "");
@@ -1713,8 +1718,9 @@ function isMobile() {
             showTeacherViewCard();
             updateHostAllUi();
 
+            const generationName = String(document.getElementById('genName')?.value || "").trim();
             const payload = {
-                title: `${meta.subject} - ${meta.topic}`,
+                title: generationName || `${meta.subject} - ${meta.topic}`,
                 createdAt: new Date().toISOString(),
                 summary: `Baseline worksheet generated for ${meta.grade} (${meta.curriculum}).`,
                 type: HISTORY_TYPE,

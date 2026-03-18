@@ -267,6 +267,10 @@
             <input id="topic" value="Linear Equations">
         </div>
         <div class="field">
+            <label>Generation Name</label>
+            <input id="genName" placeholder="e.g. Week 3 Quiz">
+        </div>
+        <div class="field">
             <label>Grade Level</label>
             <select id="grade" style="color: grey;">
                 <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
@@ -917,6 +921,7 @@ if (isMobile()) {
         if (!payload || typeof payload !== "object") return;
         setFormValue("subject", payload.subject || "");
         setFormValue("topic", payload.topic || "");
+        setFormValue("genName", payload.title || "");
         setFormValue("grade", payload.grade || "");
         setFormValue("curriculum", payload.curriculum || "");
         setFormValue("mMax", payload.maxMarks || "");
@@ -2596,8 +2601,9 @@ if (isMobile()) {
             updateHostAllUi();
 
             if (historyEntries.length) {
+                const generationName = String(document.getElementById('genName')?.value || "").trim();
                 const payload = {
-                    title: `${document.getElementById('subject').value} - ${document.getElementById('topic').value}`,
+                    title: generationName || `${document.getElementById('subject').value} - ${document.getElementById('topic').value}`,
                     createdAt: new Date().toISOString(),
                     summary: `${historyEntries.length} worksheet(s) generated for ${document.getElementById('grade').value} (${document.getElementById('curriculum').value}).`,
                     type: HISTORY_TYPE,
