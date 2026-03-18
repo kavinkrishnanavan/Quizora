@@ -54,7 +54,7 @@ exports.handler = async (event) => {
              ]
            }`;
 
-        const systemPrompt =
+        const basePrompt =
             mode === "base"
                 ? `You are an expert educator specializing in the ${curriculum} curriculum.
         Your task is to generate a generic, non-personalized ${qCount}-question worksheet with answers.
@@ -78,6 +78,7 @@ exports.handler = async (event) => {
         6. Ensure questions align with ${curriculum} standards.
         7. Special Requirements : ${requests}
         8. Reminder : Questions must only be about ${topic}
+        8b. All questions must be distinct and test different sub-skills; do not repeat or paraphrase any question or subtopic.
         ${learnedContext ? "9. Prefer questions that match the provided learning materials summary; avoid content outside what was taught." : ""}
         10.Warning : Don't use any special characters. Only the numbers and the alphabet.`
                 : `You are an expert educator specializing in the ${curriculum} curriculum.
@@ -103,52 +104,98 @@ exports.handler = async (event) => {
         5. Ensure questions align with ${curriculum} standards.
         6. Special Requirements : ${requests}
         7. Reminder : Questions must only be about ${topic}
+        7b. All questions must be distinct and test different sub-skills; do not repeat or paraphrase any question or subtopic.
         ${learnedContext ? "8. Prefer questions that match the provided learning materials summary; avoid content outside what was taught." : ""}
         9.Warning (Important): Use only the numbers and the alphabet and a few exceptions which are the symbols : . , ? + - / * () If necessary, please use this symbols intead of words.`;
-        
+        const uniquenessRule = "All questions must be distinct and test different sub-skills. Do NOT repeat or paraphrase any question or subtopic.";
 
-        const completion = await groq.chat.completions.create({
-            messages: [
-                { role: "system", content: systemPrompt },
-                {
-                    role: "user",
-                    content: hasRowObject
-                        ? `MODE: ${mode}\nANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "JSON OBJECT"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`
-                        : `MODE: ${mode}\nANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "RAW CSV LINE"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`,
-                }
-            ],
-            model: "openai/gpt-oss-120B",
-        });
+        const buildSystemPrompt = (extra = "") => {
+            return extra ? `${basePrompt}\n\nAdditional Requirements:\n- ${extra}` : basePrompt;
+        };
 
-        const text = completion?.choices?.[0]?.message?.content;
-        if (!text) {
-            throw new Error("Groq returned no content.");
-        }
+        const buildUserPrompt = () =>
+            hasRowObject
+                ? `MODE: ${mode}\nANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "JSON OBJECT"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`
+                : `MODE: ${mode}\nANSWER_FORMAT: ${answerFormat}\nMARKS_COLUMN: ${marksColumn}\nNAME_COLUMN: ${normalizedNameColumn}\nSTUDENT_NAME_HINT: ${normalizedStudentNameHint}\nSCORE: ${score}\nDATA ROW (${providedRowText ? "TEXT" : "RAW CSV LINE"}): ${normalizedRowText}\nSPECIAL REQUESTS: ${requests}`;
 
-        let quiz = null;
-        try {
-            quiz = JSON.parse(text);
-        } catch (_) {
-            // Some models occasionally wrap JSON; strip common wrappers and retry.
-            const cleaned = String(text)
-                .trim()
-                .replace(/^```json\s*/i, "")
-                .replace(/^```\s*/i, "")
-                .replace(/```$/i, "")
-                .trim();
-
+        const parseQuizFromText = (text) => {
+            let quiz = null;
             try {
-                quiz = JSON.parse(cleaned);
-            } catch (e2) {
-                // Last resort: extract the largest JSON object substring.
-                const first = cleaned.indexOf("{");
-                const last = cleaned.lastIndexOf("}");
-                if (first >= 0 && last > first) {
-                    quiz = JSON.parse(cleaned.slice(first, last + 1));
-                } else {
-                    throw e2;
+                quiz = JSON.parse(text);
+            } catch (_) {
+                const cleaned = String(text)
+                    .trim()
+                    .replace(/^```json\s*/i, "")
+                    .replace(/^```\s*/i, "")
+                    .replace(/```$/i, "")
+                    .trim();
+
+                try {
+                    quiz = JSON.parse(cleaned);
+                } catch (e2) {
+                    const first = cleaned.indexOf("{");
+                    const last = cleaned.lastIndexOf("}");
+                    if (first >= 0 && last > first) {
+                        quiz = JSON.parse(cleaned.slice(first, last + 1));
+                    } else {
+                        throw e2;
+                    }
                 }
             }
+            return quiz;
+        };
+
+        const normalizeQuestion = (text) =>
+            String(text || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+
+        const tokens = (text) => normalizeQuestion(text).split(" ").filter(Boolean);
+
+        const isTooSimilar = (a, b) => {
+            const aTokens = new Set(tokens(a));
+            const bTokens = new Set(tokens(b));
+            if (aTokens.size === 0 || bTokens.size === 0) return false;
+            const intersection = [...aTokens].filter((t) => bTokens.has(t)).length;
+            const union = new Set([...aTokens, ...bTokens]).size;
+            const jaccard = union ? intersection / union : 0;
+            return jaccard >= 0.8;
+        };
+
+        const hasDuplicateQuestions = (questions) => {
+            const seen = new Set();
+            for (const q of questions) {
+                const normalized = normalizeQuestion(q?.question);
+                if (!normalized) return true;
+                if (seen.has(normalized)) return true;
+                for (const prev of seen) {
+                    if (isTooSimilar(normalized, prev)) return true;
+                }
+                seen.add(normalized);
+            }
+            return false;
+        };
+
+        let quiz = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const completion = await groq.chat.completions.create({
+                messages: [
+                    { role: "system", content: buildSystemPrompt(attempt === 0 ? "" : uniquenessRule) },
+                    { role: "user", content: buildUserPrompt() }
+                ],
+                model: "openai/gpt-oss-120B",
+            });
+
+            const text = completion?.choices?.[0]?.message?.content;
+            if (!text) {
+                throw new Error("Groq returned no content.");
+            }
+
+            quiz = parseQuizFromText(text);
+            if (!quiz || typeof quiz !== "object") continue;
+            if (Array.isArray(quiz.questions) && !hasDuplicateQuestions(quiz.questions)) break;
         }
 
         if (!quiz || typeof quiz !== "object") throw new Error("Invalid quiz JSON.");
