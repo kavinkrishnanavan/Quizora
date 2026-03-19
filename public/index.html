@@ -1435,6 +1435,7 @@ if (isMobile()) {
         const doc = await PDFDocument.create();
         const font = await doc.embedFont(StandardFonts.Helvetica);
         const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+        const form = doc.getForm();
 
         const margin = 48;
         const headerText = "Quiz-Wiz : Worksheets Empowered";
@@ -1464,8 +1465,7 @@ if (isMobile()) {
             if (typeLabel === "Personalized") {
                 page.drawText(`Student: ${quiz.studentName}`, { x: margin, y, size: 12, font: fontBold });
                 y -= 18;
-                const marksText = marksValue ? `${marksValue}` : "____";
-                page.drawText(`Marks: ${marksText} / ${meta.maxMarks}`, { x: margin, y, size: 11, font: fontBold });
+                page.drawText(`Marks: ____ / ${meta.maxMarks}`, { x: margin, y, size: 11, font: fontBold });
                 y -= 20;
             }
 
@@ -1555,6 +1555,7 @@ if (isMobile()) {
             y -= 10;
         }
 
+        if (form?.updateFieldAppearances) form.updateFieldAppearances(font);
         return await doc.save();
     }
 
