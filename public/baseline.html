@@ -1201,6 +1201,12 @@ function isMobile() {
         return out;
     }
 
+    function sanitizePdfText(text) {
+        return String(text || "")
+            .replace(/[\u2010-\u2015\u2212]/g, "-")
+            .replace(/[^\x20-\x7E]/g, " ");
+    }
+
     async function downloadPdf(bytes, filename) {
         const blob = new Blob([bytes], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
@@ -1239,7 +1245,7 @@ function isMobile() {
             y -= 18;
 
             if (meta?.generationName) {
-                page.drawText(`Generation: ${meta.generationName}`, { x: margin, y, size: 11, font: fontBold });
+                page.drawText(`Generation: ${sanitizePdfText(meta.generationName)}`, { x: margin, y, size: 11, font: fontBold });
                 y -= 18;
             }
 
@@ -1254,11 +1260,11 @@ function isMobile() {
                 const marksField = doc.getForm().createTextField(`marks_${Math.random().toString(16).slice(2)}`);
                 marksField.setText("");
                 marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
-                page.drawText(`/ ${meta.maxMarks}`, { x: margin + 180, y, size: 11, font });
+                page.drawText(`/ ${sanitizePdfText(meta.maxMarks)}`, { x: margin + 180, y, size: 11, font });
                 y -= 24;
             }
 
-            page.drawText(`${meta.subject} | ${meta.topic} | ${meta.grade} | ${meta.curriculum}`, {
+            page.drawText(`${sanitizePdfText(meta.subject)} | ${sanitizePdfText(meta.topic)} | ${sanitizePdfText(meta.grade)} | ${sanitizePdfText(meta.curriculum)}`, {
                 x: margin,
                 y,
                 size: 10,
@@ -1288,7 +1294,7 @@ function isMobile() {
         };
 
         for (const q of quiz.questions) {
-            const qText = `${q.number}. ${q.question}`;
+            const qText = `${q.number}. ${sanitizePdfText(q.question)}`;
             const qLines = wrapLines(qText, font, qFontSize, maxWidth);
 
             ensureSpace(qLines.length * qLineGap + 18);
@@ -1302,7 +1308,7 @@ function isMobile() {
                     meta.answerFormat === "mcq" && typeof q.correctOption === "string"
                         ? `Correct option: ${q.correctOption}`
                         : "";
-                const aText = extra ? `${extra}\nAnswer: ${q.answer}` : `Answer: ${q.answer}`;
+                const aText = extra ? `${extra}\nAnswer: ${sanitizePdfText(q.answer)}` : `Answer: ${sanitizePdfText(q.answer)}`;
                 const aLines = wrapLines(aText, font, aFontSize, maxWidth - 18);
                 ensureSpace(aLines.length * aLineGap + 12);
                 for (const line of aLines) {
@@ -1318,7 +1324,7 @@ function isMobile() {
                     const optLines = [];
                     for (let idx = 0; idx < q.options.length; idx++) {
                         const label = labels[idx] || String(idx + 1);
-                        const txt = `${label}) ${q.options[idx]}`;
+                        const txt = `${label}) ${sanitizePdfText(q.options[idx])}`;
                         optLines.push(...wrapLines(txt, font, optFontSize, maxWidth - 18));
                     }
 
