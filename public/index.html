@@ -1468,11 +1468,15 @@ if (isMobile()) {
                 y -= 18;
             }
 
-            if (typeLabel === "Personalized") {
+        if (typeLabel === "Personalized") {
                 page.drawText(`Student: ${sanitizePdfText(quiz.studentName)}`, { x: margin, y, size: 12, font: fontBold });
                 y -= 18;
-                page.drawText(`Marks: ____ / ${sanitizePdfText(meta.maxMarks)}`, { x: margin, y, size: 11, font: fontBold });
-                y -= 20;
+                page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
+                const marksField = form.createTextField(`marks_${Math.random().toString(16).slice(2)}`);
+                marksField.setText("");
+                marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
+                page.drawText(`/ ${sanitizePdfText(meta.maxMarks)}`, { x: margin + 180, y, size: 11, font });
+                y -= 24;
             }
 
             page.drawText(`${sanitizePdfText(meta.subject)} | ${sanitizePdfText(meta.topic)} | ${sanitizePdfText(meta.grade)} | ${sanitizePdfText(meta.curriculum)}`, {
