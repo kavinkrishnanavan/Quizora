@@ -50,7 +50,7 @@ exports.handler = async (event) => {
         return { statusCode: 204 };
     }
 
-    if (event.httpMethod !== "GET" && event.httpMethod !== "POST" && event.httpMethod !== "DELETE") {
+    if (event.httpMethod !== "GET" && event.httpMethod !== "POST" && event.httpMethod !== "PUT" && event.httpMethod !== "DELETE") {
         return { statusCode: 405, body: "Method Not Allowed" };
     }
 
@@ -93,6 +93,33 @@ exports.handler = async (event) => {
                 statusCode: 200,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: newRef.key }),
+            };
+        }
+
+        if (event.httpMethod === "PUT") {
+            const body = event.body ? JSON.parse(event.body) : {};
+            const payload = body?.payload && typeof body.payload === "object" ? body.payload : null;
+            const id = String(event.queryStringParameters?.id || body?.id || "").trim();
+            if (!id) {
+                return { statusCode: 400, body: JSON.stringify({ error: "Missing history id." }) };
+            }
+            if (!payload) {
+                return { statusCode: 400, body: JSON.stringify({ error: "Missing payload." }) };
+            }
+
+            const payloadJson = JSON.stringify(payload);
+            await historyRef.child(id).set({
+                uid,
+                email,
+                payload,
+                payloadJson,
+                createdAt: adminSdk.database.ServerValue.TIMESTAMP,
+            });
+
+            return {
+                statusCode: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id }),
             };
         }
 

@@ -495,6 +495,7 @@ if (isMobile()) {
     let currentQuizCards = [];
     let currentHistoryEntries = [];
     let currentHistoryPayloadBase = null;
+    let currentHistoryId = null;
 
     function showTeacherViewCard() {
         const card = document.getElementById("teacherViewCard");
@@ -786,7 +787,11 @@ if (isMobile()) {
                     createdAt: new Date().toISOString(),
                     students: currentHistoryEntries
                 };
-                await saveHistory(payload);
+                if (currentHistoryId) {
+                    await updateHistoryEntry(currentHistoryId, payload);
+                } else {
+                    await saveHistory(payload);
+                }
                 await loadHistory();
             } catch (err) {
                 console.warn("Failed to save hosted quiz history", err);
@@ -885,6 +890,7 @@ if (isMobile()) {
         currentQuizCards = [];
         currentHistoryEntries = [];
         currentHistoryPayloadBase = null;
+        currentHistoryId = null;
         setHostAllStatus("");
         updateHostAllUi();
     }
@@ -1221,6 +1227,7 @@ if (isMobile()) {
     async function loadHistoryEntry(index) {
         const item = historyItems[index];
         if (!item?.payload) return alert("History entry missing data.");
+        currentHistoryId = item.id || null;
         setActiveHistory(index);
         applyHistoryPayload(item.payload);
         await generateFromHistory(item.payload);
@@ -1331,6 +1338,23 @@ if (isMobile()) {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error(data?.error || "Failed to save history.");
+        if (data?.id) currentHistoryId = data.id;
+        return data;
+    }
+
+    async function updateHistoryEntry(id, payload) {
+        if (!firebaseReady || !currentUser) return;
+        const safeId = String(id || "").trim();
+        if (!safeId) return;
+        const token = await getAuthToken();
+        const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id: safeId, payload })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to update history.");
+        if (data?.id) currentHistoryId = data.id;
         return data;
     }
 
@@ -1350,6 +1374,7 @@ if (isMobile()) {
             alert(data?.error || "Failed to delete history.");
             return;
         }
+        if (currentHistoryId === safeId) currentHistoryId = null;
         await loadHistory();
     }
 
