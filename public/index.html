@@ -1036,6 +1036,17 @@ if (isMobile()) {
             btnRow.appendChild(aBtn);
         }
 
+        const blooketBtn = document.createElement("button");
+        blooketBtn.type = "button";
+        blooketBtn.className = "download-link secondary";
+        blooketBtn.innerText = "Export Blooket CSV";
+        blooketBtn.onclick = () => {
+            const csv = buildBlooketCsv(quiz, meta);
+            const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
+            downloadCsv(csv, `${sanitizeFilename(label)} - Blooket.csv`);
+        };
+        btnRow.appendChild(blooketBtn);
+
         viewWorksheets.appendChild(btnRow);
 
         const viewQuizzes = document.createElement('div');
@@ -1396,6 +1407,61 @@ if (isMobile()) {
             .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
             .replace(/\s+/g, " ")
             .slice(0, 80);
+    }
+
+    function csvEscape(value) {
+        const text = String(value ?? "");
+        const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        if (/[",\n]/.test(normalized)) return `"${normalized.replace(/"/g, '""')}"`;
+        return normalized;
+    }
+
+    function buildBlooketCsv(quiz, meta) {
+        const header = ["Question", "Answer", "Wrong Answer 1", "Wrong Answer 2", "Wrong Answer 3"];
+        const rows = [header];
+        const answerFormat = String(meta?.answerFormat || "").toLowerCase();
+        const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+        const labelToIndex = { A: 0, B: 1, C: 2, D: 3, E: 4, F: 5 };
+
+        for (const q of questions) {
+            const questionText = String(q?.question || "").trim();
+            if (!questionText) continue;
+
+            let answerText = String(q?.answer || "").trim();
+            let wrongs = ["", "", ""];
+
+            if (answerFormat === "mcq") {
+                const options = Array.isArray(q?.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
+                const rawLabel = String(q?.correctOption || "").trim().toUpperCase();
+                const correctIdx = Object.prototype.hasOwnProperty.call(labelToIndex, rawLabel) ? labelToIndex[rawLabel] : -1;
+
+                if (correctIdx >= 0 && options[correctIdx]) {
+                    answerText = options[correctIdx];
+                } else if (!answerText && options.length) {
+                    answerText = options[0];
+                }
+
+                const wrongCandidates = options.filter((opt, idx) => idx !== correctIdx && opt && opt !== answerText);
+                wrongs = [wrongCandidates[0] || "", wrongCandidates[1] || "", wrongCandidates[2] || ""];
+            }
+
+            rows.push([questionText, answerText, ...wrongs]);
+        }
+
+        return rows.map((r) => r.map(csvEscape).join(",")).join("\r\n");
+    }
+
+    function downloadCsv(text, filename) {
+        const csvText = "\uFEFF" + String(text || "");
+        const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
     }
 
     function wrapLines(text, font, size, maxWidth) {
