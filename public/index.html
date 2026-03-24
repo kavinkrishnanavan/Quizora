@@ -1041,7 +1041,15 @@ if (isMobile()) {
         blooketBtn.className = "download-link secondary";
         blooketBtn.innerText = "Export Blooket CSV";
         blooketBtn.onclick = () => {
+            if (String(meta?.answerFormat || "").toLowerCase() !== "mcq") {
+                alert('Blooket export requires "Multiple choice (A-D)".\n\nSet Question Style to Multiple choice, then generate worksheets again.');
+                return;
+            }
             const csv = buildBlooketCsv(quiz, meta);
+            if (!csv) {
+                alert("Could not create a Blooket CSV for this worksheet.");
+                return;
+            }
             const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
             downloadCsv(csv, `${sanitizeFilename(label)} - Blooket.csv`);
         };
@@ -1419,6 +1427,8 @@ if (isMobile()) {
     function buildBlooketCsv(quiz, meta) {
         // Matches Blooket's Spreadsheet Import template column order.
         // Columns A-H are required; Column J can be set to "typing" for typing-answer questions.
+        const answerFormat = String(meta?.answerFormat || "").toLowerCase();
+        if (answerFormat !== "mcq") return null;
         const header = [
             "Question #",
             "Question Text",
@@ -1432,7 +1442,6 @@ if (isMobile()) {
             ""
         ];
         const rows = [header];
-        const answerFormat = String(meta?.answerFormat || "").toLowerCase();
         const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
         const labelToIndex = { A: 0, B: 1, C: 2, D: 3 };
 
@@ -1447,7 +1456,7 @@ if (isMobile()) {
             const options = Array.isArray(q?.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
             const answerText = String(q?.answer || "").trim();
 
-            if (answerFormat === "mcq" && options.length >= 2) {
+            if (options.length >= 2) {
                 const rawLabel = String(q?.correctOption || "").trim().toUpperCase();
                 let correctIdx = Object.prototype.hasOwnProperty.call(labelToIndex, rawLabel) ? labelToIndex[rawLabel] : -1;
 
@@ -1468,20 +1477,6 @@ if (isMobile()) {
                     String(correctIdx + 1),
                     "",
                     ""
-                ]);
-            } else {
-                // Blank-line format -> import as typing-answer (uses Answer columns as acceptable exact answers).
-                rows.push([
-                    qNum,
-                    questionText,
-                    answerText || "",
-                    "",
-                    "",
-                    "",
-                    timeLimit,
-                    "1",
-                    "",
-                    "typing"
                 ]);
             }
         }
