@@ -307,14 +307,7 @@
             <label>Upload Student Names and Marks (CSV/Excel)</label>
             <input type="file" id="csvFile" accept=".csv,.xlsx,.xls">
         </div>
-        <div class="field">
-            <label>Name Column (choose after upload)</label>
-            <input type="text" id="nCol" value="" placeholder="Upload CSV to choose…" readonly>
-        </div>
-        <div class="field">
-            <label>Marks Column (choose after upload)</label>
-            <input type="text" id="mCol" value="" placeholder="Upload CSV to choose…" readonly>
-        </div>
+        
         <div class="field full-width">
             <label>Learning Materials (Optional)</label>
             <div style="display:flex; gap: 12px; flex-wrap: wrap; align-items: center;">
@@ -392,6 +385,7 @@
                     <label>Paste text (optional)</label>
                     <textarea id="materialsText" rows="5" placeholder="Paste notes / what was taught"></textarea>
                 </div>
+    
 
                 <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
@@ -409,6 +403,8 @@
 
 </div>
 </div>
+<p id="ncol" hidden></p>
+<p id="mcol" hidden></p>
 
 <div id="accountModal" class="account-modal">
     <div class="account-backdrop" id="accountBackdrop"></div>
