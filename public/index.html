@@ -1417,42 +1417,80 @@ if (isMobile()) {
     }
 
     function buildBlooketCsv(quiz, meta) {
-        const header = ["Question", "Answer", "Wrong Answer 1", "Wrong Answer 2", "Wrong Answer 3"];
+        // Matches Blooket's Spreadsheet Import template column order.
+        // Columns A-H are required; Column J can be set to "typing" for typing-answer questions.
+        const header = [
+            "Question #",
+            "Question Text",
+            "Answer 1",
+            "Answer 2",
+            "Answer 3",
+            "Answer 4",
+            "Time Limit (sec)",
+            "Correct Answer(s)",
+            "",
+            ""
+        ];
         const rows = [header];
         const answerFormat = String(meta?.answerFormat || "").toLowerCase();
         const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
-        const labelToIndex = { A: 0, B: 1, C: 2, D: 3, E: 4, F: 5 };
+        const labelToIndex = { A: 0, B: 1, C: 2, D: 3 };
 
-        for (const q of questions) {
+        for (let i = 0; i < questions.length; i++) {
+            const q = questions[i];
             const questionText = String(q?.question || "").trim();
             if (!questionText) continue;
 
-            let answerText = String(q?.answer || "").trim();
-            let wrongs = ["", "", ""];
+            const qNum = Number.isFinite(q?.number) ? q.number : i + 1;
+            const timeLimit = "20";
 
-            if (answerFormat === "mcq") {
-                const options = Array.isArray(q?.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
+            const options = Array.isArray(q?.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
+            const answerText = String(q?.answer || "").trim();
+
+            if (answerFormat === "mcq" && options.length >= 2) {
                 const rawLabel = String(q?.correctOption || "").trim().toUpperCase();
-                const correctIdx = Object.prototype.hasOwnProperty.call(labelToIndex, rawLabel) ? labelToIndex[rawLabel] : -1;
+                let correctIdx = Object.prototype.hasOwnProperty.call(labelToIndex, rawLabel) ? labelToIndex[rawLabel] : -1;
 
-                if (correctIdx >= 0 && options[correctIdx]) {
-                    answerText = options[correctIdx];
-                } else if (!answerText && options.length) {
-                    answerText = options[0];
+                if (correctIdx < 0 && answerText) {
+                    const match = options.findIndex((opt) => opt && opt === answerText);
+                    if (match >= 0) correctIdx = match;
                 }
+                if (correctIdx < 0) correctIdx = 0;
 
-                const wrongCandidates = options.filter((opt, idx) => idx !== correctIdx && opt && opt !== answerText);
-                wrongs = [wrongCandidates[0] || "", wrongCandidates[1] || "", wrongCandidates[2] || ""];
+                rows.push([
+                    qNum,
+                    questionText,
+                    options[0] || "",
+                    options[1] || "",
+                    options[2] || "",
+                    options[3] || "",
+                    timeLimit,
+                    String(correctIdx + 1),
+                    "",
+                    ""
+                ]);
+            } else {
+                // Blank-line format -> import as typing-answer (uses Answer columns as acceptable exact answers).
+                rows.push([
+                    qNum,
+                    questionText,
+                    answerText || "",
+                    "",
+                    "",
+                    "",
+                    timeLimit,
+                    "1",
+                    "",
+                    "typing"
+                ]);
             }
-
-            rows.push([questionText, answerText, ...wrongs]);
         }
 
         return rows.map((r) => r.map(csvEscape).join(",")).join("\r\n");
     }
 
     function downloadCsv(text, filename) {
-        const csvText = "\uFEFF" + String(text || "");
+        const csvText = String(text || "");
         const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
