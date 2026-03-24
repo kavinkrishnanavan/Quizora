@@ -256,8 +256,13 @@
     </div>
     <hr>
     <br>
+    
 
     <div class="form-grid">
+        <div class="field">
+            <label>Test Name</label>
+            <input id="genName" placeholder="e.g. Week 3 Quiz">
+         </div>
         <div class="field">
             <label>Subject</label>
             <input id="subject" value="Mathematics">
@@ -266,10 +271,7 @@
             <label>Topic</label>
             <input id="topic" value="Linear Equations">
         </div>
-        <div class="field">
-            <label>Generation Name</label>
-            <input id="genName" placeholder="e.g. Week 3 Quiz">
-        </div>
+        
         <div class="field">
             <label>Grade Level</label>
             <select id="grade" style="color: grey;">
@@ -304,7 +306,7 @@
         </div>
         
         <div class="field">
-            <label>Upload Student Names and Marks (CSV/Excel)</label>
+            <label style="font-size: x-small;">Upload Student Names & Marks (CSV/Excel)</label>
             <input type="file" id="csvFile" accept=".csv,.xlsx,.xls">
         </div>
         
@@ -403,8 +405,8 @@
 
 </div>
 </div>
-<p id="ncol" hidden></p>
-<p id="mcol" hidden></p>
+<p id="ncol" style="position: absolute; visibility: hidden;"></p>
+<p id="mcol" style="position: absolute; visibility: hidden;"></p>
 
 <div id="accountModal" class="account-modal">
     <div class="account-backdrop" id="accountBackdrop"></div>
@@ -1460,7 +1462,7 @@ if (isMobile()) {
             y -= 18;
 
             if (meta?.generationName) {
-                page.drawText(`Generation: ${sanitizePdfText(meta.generationName)}`, { x: margin, y, size: 11, font: fontBold });
+                page.drawText(`Test: ${sanitizePdfText(meta.generationName)}`, { x: margin, y, size: 11, font: fontBold });
                 y -= 18;
             }
 
