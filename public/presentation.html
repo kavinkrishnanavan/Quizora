@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz-Wiz — Presentation Maker</title>
+  <title>Quiz-Wiz</title>
   <link rel="icon" type="image/png" href="favicon_2.png" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -149,8 +149,8 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div>
-          <div class="sidebar-title">Presentation Generations</div>
-          <div class="sidebar-subtitle">Loads and auto-exports PDF by id.</div>
+          <div class="sidebar-title">Notes</div>
+          <div class="sidebar-subtitle">Reload previous notes.</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
           <button id="accountBtn" type="button" class="history-delete" title="Account">⚙️</button>
@@ -176,7 +176,7 @@
         <a class="tab" href="index.html">Personalized Tests</a>
         <a class="tab" href="baseline.html">Baseline Test</a>
         <a class="tab" href="image.html">Worksheet Marker</a>
-        <a class="tab active" href="presentation.html">Presentation Maker</a>
+        <a class="tab active" href="presentation.html">Notes Maker</a>
       </div>
       <hr>
 
@@ -216,7 +216,7 @@
       <div id="status" class="status">Ready.</div>
       <div class="hint">PDF is generated page-by-page (one slide per page) to avoid blank/split pages.</div>
 
-      <div class="preview-wrap">
+      <div class="preview-wrap" style="display: none;">
         <iframe id="previewFrame" title="Presentation preview"></iframe>
       </div>
     </div>
@@ -581,6 +581,7 @@ if (isMobile()) {
     }
 
     function buildDeckHtml(deck) {
+
       const title = escapeHtml(deck?.title || "Presentation");
       const subtitle = escapeHtml(deck?.subtitle || "");
       const slides = Array.isArray(deck?.slides) ? deck.slides : [];
@@ -690,6 +691,8 @@ if (isMobile()) {
         lastDeck = data.deck;
         lastHtml = buildDeckHtml(lastDeck);
         lastFilename = sanitizeFilename(lastDeck?.title || topic || "Presentation");
+
+        previewFrame.parentElement.style.display = "block";
 
         previewFrame.srcdoc = lastHtml;
         statusEl.textContent = `Done: ${lastDeck?.title || topic}`;
