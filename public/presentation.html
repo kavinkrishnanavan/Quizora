@@ -208,6 +208,12 @@
       try { new URL(u); return true; } catch { return false; }
     }
 
+    function toProxiedImageUrl(url) {
+      const u = String(url || "").trim();
+      if (!isSafeImageUrl(u)) return "";
+      return "/.netlify/functions/imgproxy?url=" + encodeURIComponent(u);
+    }
+
     function sanitizeFilename(name) {
       return String(name || "Presentation")
         .replace(/[\\/:*?"<>|]+/g, "-")
@@ -226,7 +232,11 @@
         const bullets = Array.isArray(slide?.bullets) ? slide.bullets : [];
         const paragraphs = Array.isArray(slide?.paragraphs) ? slide.paragraphs : [];
         const imageUrlsRaw = Array.isArray(slide?.imageUrls) ? slide.imageUrls : [];
-        const imageUrls = imageUrlsRaw.map(String).map((s) => s.trim()).filter(isSafeImageUrl).slice(0, 2);
+        const imageUrls = imageUrlsRaw
+          .map(String)
+          .map((s) => s.trim())
+          .filter(isSafeImageUrl)
+          .slice(0, 2);
 
         const paragraphsHtml = paragraphs.length
           ? paragraphs.slice(0, 3).map(p => `<p class="para">${escapeHtml(p)}</p>`).join("")
@@ -237,12 +247,13 @@
         const imagesHtml = imageUrls.length
           ? `<div class="images">
               ${imageUrls
-                .map(
-                  (u) => `
+                .map((u) => {
+                  const proxyUrl = toProxiedImageUrl(u);
+                  return `
                     <div class="img-wrap">
                       <img
                         class="slide-img"
-                        src="${escapeHtml(u)}"
+                        src="${escapeHtml(proxyUrl || u)}"
                         alt="Slide image"
                         loading="lazy"
                         decoding="async"
@@ -250,10 +261,13 @@
                         referrerpolicy="no-referrer"
                         onerror="this.style.display='none'; var fb=this.parentElement&&this.parentElement.querySelector('.img-fallback'); if(fb){fb.style.display='block';}"
                       >
-                      <div class="img-fallback" style="display:none;">Image failed to load</div>
+                      <div class="img-fallback" style="display:none;">
+                        Image failed to load
+                        <div class="img-url">${escapeHtml(u)}</div>
+                      </div>
                     </div>
-                  `
-                )
+                  `;
+                })
                 .join("")}
             </div>`
           : "";
@@ -358,6 +372,12 @@
           border: 1px dashed rgba(148, 163, 184, 0.35);
           border-radius: 14px;
           padding: 14px;
+        }
+        .deck .img-url {
+          margin-top: 8px;
+          font-size: 12px;
+          color: rgba(148, 163, 184, 0.9);
+          word-break: break-word;
         }
         .deck .footer { display: flex; justify-content: space-between; gap: 18px; font-weight: 800; font-size: 14px; color: rgba(226, 232, 240, 0.7); }
         .deck .visual { margin-top: 10px; font-size: 13px; color: rgba(148, 163, 184, 0.92); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 10px 12px; }
