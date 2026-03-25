@@ -989,26 +989,26 @@ if (isMobile()) {
             qLink.href = links.qUrl;
             qLink.download = `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`;
             qLink.className = "download-link";
-            qLink.innerText = "Download Question PDF";
+            qLink.innerText = "🡻 Question Sheet";
 
             const aLink = document.createElement('a');
             aLink.href = links.aUrl;
             aLink.download = `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`;
             aLink.className = "download-link";
-            aLink.innerText = "Download Answer PDF";
+            aLink.innerText = "🡻 Answer Sheet";
 
             btnRow.appendChild(qLink);
             btnRow.appendChild(aLink);
         } else {
             const qBtn = document.createElement('button');
             qBtn.type = "button";
-            qBtn.innerText = "Download Question PDF";
+            qBtn.innerText = "🡻 Question Sheet";
             qBtn.style.padding = "10px 12px";
             qBtn.style.marginTop = "0";
 
             const aBtn = document.createElement('button');
             aBtn.type = "button";
-            aBtn.innerText = "Download Answer PDF";
+            aBtn.innerText = "🡻 Answer Sheet";
             aBtn.style.padding = "10px 12px";
             aBtn.style.marginTop = "0";
 
@@ -1118,9 +1118,21 @@ if (isMobile()) {
                 }
             };
 
+            const blooketBtn = document.createElement("button");
+            blooketBtn.type = "button";
+            blooketBtn.className = "quiz-link secondary";
+            blooketBtn.style.marginTop = "0";
+            blooketBtn.innerText = "Export To Blooket";
+            blooketBtn.onclick = () => {
+                const csv = buildBlooketCsv(quiz, meta);
+                const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
+                downloadCsv(csv, `${sanitizeFilename(label)} - Blooket.csv`);
+            };
+
             row.appendChild(openBtn);
             row.appendChild(copyBtn);
             row.appendChild(responsesBtn);
+            row.appendChild(blooketBtn);
             viewQuizzes.appendChild(row);
 
             const hint = document.createElement("div");
