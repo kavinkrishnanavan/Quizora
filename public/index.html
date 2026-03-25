@@ -1041,7 +1041,7 @@ if (isMobile()) {
         const blooketBtn = document.createElement("button");
         blooketBtn.type = "button";
         blooketBtn.className = "download-link";
-        blooketBtn.innerText = "Export Blooket CSV";
+        blooketBtn.innerText = "Export To Blooket";
         blooketBtn.onclick = () => {
             const csv = buildBlooketCsv(quiz, meta);
             const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
