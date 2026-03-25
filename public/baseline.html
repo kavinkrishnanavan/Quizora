@@ -291,11 +291,11 @@
                     <textarea id="materialsText" rows="5" placeholder="Paste notes / what was taught"></textarea>
                 </div>
                 <div class="field">
-                    <label>Saved summaries</label>
-                    <select id="materialsPresetSelect">
-                        <option value="">(Select a saved summary)</option>
+                    <label>Use Presentation History</label>
+                    <select id="materialsPresentationSelect">
+                        <option value="">(Select a presentation to summarize)</option>
                     </select>
-                    <div style="color: var(--muted); font-size: 0.85rem;">Selecting one loads the summary immediately.</div>
+                    <div style="color: var(--muted); font-size: 0.85rem;">Select a saved Presentation Maker generation to auto-generate a learning summary.</div>
                 </div>
 
                 <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
@@ -1508,12 +1508,14 @@ function isMobile() {
 
     const MATERIALS_STORAGE_KEY = "quizwiz_materials_v1";
     let learnedContext = "";
+    let materialsPresentationItems = [];
 
     function openMaterialsModal() {
         const modal = document.getElementById("materialsModal");
         if (!modal) return;
         modal.style.display = "block";
         document.body.style.overflow = "hidden";
+        loadPresentationHistoryForMaterials();
     }
 
     function closeMaterialsModal() {
@@ -1704,6 +1706,94 @@ function isMobile() {
         });
     }
 
+    function buildPresentationText(deck) {
+        const lines = [];
+        const title = String(deck?.title || "").trim();
+        const subtitle = String(deck?.subtitle || "").trim();
+        if (title) lines.push(title);
+        if (subtitle) lines.push(subtitle);
+
+        const slides = Array.isArray(deck?.slides) ? deck.slides : [];
+        slides.forEach((s, idx) => {
+            const heading = String(s?.heading || "").trim();
+            if (heading) lines.push(`Slide ${idx + 1}: ${heading}`);
+            const paragraphs = Array.isArray(s?.paragraphs) ? s.paragraphs : [];
+            for (const p of paragraphs) {
+                const t = String(p || "").trim();
+                if (t) lines.push(t);
+            }
+            const bullets = Array.isArray(s?.bullets) ? s.bullets : [];
+            for (const b of bullets) {
+                const t = String(b || "").trim();
+                if (t) lines.push(`- ${t}`);
+            }
+        });
+
+        return lines.join("\n");
+    }
+
+    async function loadPresentationHistoryForMaterials() {
+        const select = document.getElementById("materialsPresentationSelect");
+        if (!select) return;
+
+        select.disabled = true;
+        select.innerHTML = "<option value=\"\">Loading presentations…</option>";
+        materialsPresentationItems = [];
+
+        if (!firebaseReady || !currentUser) {
+            select.innerHTML = "<option value=\"\">(Sign in to load presentation history)</option>";
+            return;
+        }
+
+        try {
+            const token = await getAuthToken();
+            const res = await fetch("/.netlify/functions/history?limit=50", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data?.error || "Failed to load history.");
+
+            const rawItems = Array.isArray(data?.items) ? data.items : [];
+            const items = rawItems.map((item) => {
+                let payload = null;
+                try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; }
+                return { ...item, payload };
+            }).filter((x) => x?.payload?.type === "presentation" && x?.payload?.deck);
+
+            materialsPresentationItems = items;
+
+            select.innerHTML = "<option value=\"\">(Select a presentation to summarize)</option>";
+            for (const item of items) {
+                const opt = document.createElement("option");
+                opt.value = item.id;
+                const createdAt = item.payload?.createdAt || item.createdAt || "";
+                const label = String(item.payload?.title || "Presentation");
+                opt.innerText = createdAt ? `${label} (${new Date(createdAt).toLocaleDateString()})` : label;
+                select.appendChild(opt);
+            }
+        } catch (_) {
+            select.innerHTML = "<option value=\"\">(Could not load presentation history)</option>";
+        } finally {
+            select.disabled = false;
+        }
+    }
+
+    async function onMaterialsPresentationSelected(presentationId) {
+        const id = String(presentationId || "").trim();
+        if (!id) return;
+        const item = materialsPresentationItems.find((x) => String(x?.id || "") === id);
+        const deck = item?.payload?.deck;
+        if (!deck) return;
+
+        const text = buildPresentationText(deck);
+        const filesEl = document.getElementById("materialsFiles");
+        const textEl = document.getElementById("materialsText");
+        if (filesEl) filesEl.value = "";
+        if (textEl) textEl.value = text;
+
+        await analyzeMaterials();
+    }
+
     async function analyzeMaterials() {
         const btn = document.getElementById("materialsAnalyzeBtn");
         const filesEl = document.getElementById("materialsFiles");
@@ -1777,7 +1867,7 @@ function isMobile() {
 
     document.getElementById("materialsAnalyzeBtn")?.addEventListener("click", analyzeMaterials);
     document.getElementById("materialsClearBtn")?.addEventListener("click", clearMaterials);
-    document.getElementById("materialsPresetSelect")?.addEventListener("change", (e) => applyMaterialsPreset(e.target.value));
+    document.getElementById("materialsPresentationSelect")?.addEventListener("change", (e) => onMaterialsPresentationSelected(e.target.value));
     document.getElementById("materialsOpenBtn")?.addEventListener("click", openMaterialsModal);
     document.getElementById("materialsModalClose")?.addEventListener("click", closeMaterialsModal);
     document.getElementById("materialsModalBackdrop")?.addEventListener("click", closeMaterialsModal);

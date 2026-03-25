@@ -7,6 +7,8 @@
   <link rel="icon" type="image/png" href="favicon_2.png" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <style>
     :root {
       color-scheme: light dark;
@@ -150,7 +152,10 @@
           <div class="sidebar-title">Presentation Generations</div>
           <div class="sidebar-subtitle">Loads and auto-exports PDF by id.</div>
         </div>
-        <button id="clearHistoryBtn" type="button" class="history-delete" title="Clear history">Clear</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="accountBtn" type="button" class="history-delete" title="Account">⚙️</button>
+          <button id="clearHistoryBtn" type="button" class="history-delete" title="Clear selection">Clear</button>
+        </div>
       </div>
       <div id="historyList" class="history-list"></div>
     </aside>
@@ -217,6 +222,40 @@
   <div id="pdfHost" aria-hidden="true"></div>
   <style id="pdfDeckStyle"></style>
 
+  <div id="accountModal" class="account-modal" style="display:none; position: fixed; inset: 0; z-index: 10002;">
+    <div id="accountBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
+    <div role="dialog" aria-modal="true" aria-labelledby="accountTitle" style="position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px;">
+      <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
+          <div style="color: var(--muted); font-size: 0.9rem;" id="authStatus">Enter email and password to sign in.</div>
+        </div>
+        <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">X</button>
+      </div>
+
+      <div id="accountSignedOut" style="display:none;">
+        <div class="field">
+          <label>Email</label>
+          <input id="authEmail" type="email" placeholder="teacher@school.edu">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+        </div>
+        <div class="actions" style="margin-top: 12px;">
+          <button type="button" id="signUpBtn">Create Account</button>
+          <button type="button" id="signInBtn">Sign In</button>
+        </div>
+      </div>
+
+      <div id="accountSignedIn" style="display:none;">
+        <div style="color: var(--muted); font-size: 0.9rem;">Signed in as</div>
+        <div id="accountEmailDisplay" style="font-weight: 800; margin-bottom: 12px;"></div>
+        <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const previewFrame = document.getElementById("previewFrame");
     const statusEl = document.getElementById("status");
@@ -226,10 +265,28 @@
     const pdfDeckStyle = document.getElementById("pdfDeckStyle");
     const historyListEl = document.getElementById("historyList");
     const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+    const accountBtn = document.getElementById("accountBtn");
 
-    const HISTORY_STORAGE_KEY = "quizwiz_presentation_history_v1";
+    const accountModal = document.getElementById("accountModal");
+    const accountBackdrop = document.getElementById("accountBackdrop");
+    const accountClose = document.getElementById("accountClose");
+    const authStatus = document.getElementById("authStatus");
+    const accountSignedOut = document.getElementById("accountSignedOut");
+    const accountSignedIn = document.getElementById("accountSignedIn");
+    const accountEmailDisplay = document.getElementById("accountEmailDisplay");
+    const authEmail = document.getElementById("authEmail");
+    const authPassword = document.getElementById("authPassword");
+    const signUpBtn = document.getElementById("signUpBtn");
+    const signInBtn = document.getElementById("signInBtn");
+    const signOutBtn = document.getElementById("signOutBtn");
+
+    const HISTORY_TYPE = "presentation";
+    let firebaseReady = false;
+    let currentUser = null;
+
     let historyItems = [];
     let activeHistoryId = "";
+    let pendingLoadId = new URL(window.location.href).searchParams.get("id") || "";
 
     let lastDeck = null;
     let lastHtml = "";
@@ -252,25 +309,6 @@
         .slice(0, 120);
     }
 
-    function readHistoryStore() {
-      try {
-        const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    }
-
-    function writeHistoryStore(items) {
-      try {
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(items.slice(0, 50)));
-      } catch {
-        // ignore
-      }
-    }
-
     function updateUrlId(id) {
       const url = new URL(window.location.href);
       if (id) url.searchParams.set("id", id);
@@ -287,16 +325,164 @@
       });
     }
 
-    function renderHistoryList() {
+    function openAccountModal() {
+      if (!accountModal) return;
+      accountModal.style.display = "block";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeAccountModal() {
+      if (!accountModal) return;
+      accountModal.style.display = "none";
+      document.body.style.overflow = "";
+    }
+
+    function updateAuthUi(user) {
+      currentUser = user || null;
+      if (!authStatus || !accountSignedOut || !accountSignedIn) return;
+      if (currentUser) {
+        authStatus.innerText = "Signed in. History is stored in Firebase.";
+        accountSignedOut.style.display = "none";
+        accountSignedIn.style.display = "block";
+        if (accountEmailDisplay) accountEmailDisplay.innerText = currentUser.email || "";
+      } else {
+        authStatus.innerText = firebaseReady ? "Sign in to save/load history." : "Firebase not configured yet.";
+        accountSignedOut.style.display = "block";
+        accountSignedIn.style.display = "none";
+        if (accountEmailDisplay) accountEmailDisplay.innerText = "";
+      }
+    }
+
+    async function initFirebase() {
+      if (!window.firebase || !firebase?.initializeApp) return;
+      try {
+        const res = await fetch("/.netlify/functions/firebase-config");
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.config) throw new Error(data?.error || "Missing Firebase config");
+        firebase.initializeApp(data.config);
+        firebaseReady = true;
+        firebase.auth().onAuthStateChanged(async (user) => {
+          updateAuthUi(user);
+          if (user) {
+            await loadHistory();
+            if (pendingLoadId) {
+              const id = pendingLoadId;
+              pendingLoadId = "";
+              loadHistoryItem(id, { autoPdf: true });
+            }
+          } else {
+            renderHistoryList([]);
+          }
+        });
+      } catch (err) {
+        firebaseReady = false;
+        updateAuthUi(null);
+        renderHistoryList([]);
+      }
+    }
+
+    async function getAuthToken() {
+      if (!firebaseReady || !firebase.auth().currentUser) return "";
+      return firebase.auth().currentUser.getIdToken();
+    }
+
+    async function signUp() {
+      if (!firebaseReady) return alert("Firebase is not configured yet.");
+      const email = String(authEmail?.value || "").trim();
+      const password = String(authPassword?.value || "").trim();
+      if (!email || password.length < 6) return alert("Enter email + password (min 6 chars).");
+      await firebase.auth().createUserWithEmailAndPassword(email, password);
+    }
+
+    async function signIn() {
+      if (!firebaseReady) return alert("Firebase is not configured yet.");
+      const email = String(authEmail?.value || "").trim();
+      const password = String(authPassword?.value || "").trim();
+      if (!email || !password) return alert("Enter email + password.");
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+    }
+
+    async function signOut() {
+      if (!firebaseReady) return;
+      await firebase.auth().signOut();
+    }
+
+    async function fetchHistoryItems() {
+      const token = await getAuthToken();
+      if (!token) return [];
+      const res = await fetch("/.netlify/functions/history?limit=50", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to load history.");
+      const items = Array.isArray(data?.items) ? data.items : [];
+      return items.map((item) => {
+        let payload = null;
+        try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; }
+        return { ...item, payload };
+      }).filter((x) => x?.payload?.type === HISTORY_TYPE);
+    }
+
+    async function loadHistory() {
+      if (!firebaseReady || !currentUser) return;
+      statusEl.textContent = "Loading history…";
+      try {
+        historyItems = await fetchHistoryItems();
+        renderHistoryList(historyItems);
+        statusEl.textContent = "Ready.";
+      } catch (err) {
+        renderHistoryList([]);
+        statusEl.textContent = "History load failed.";
+      }
+    }
+
+    async function saveHistory(payload) {
+      const token = await getAuthToken();
+      if (!token) throw new Error("Sign in to save history.");
+      const res = await fetch("/.netlify/functions/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ payload })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to save history.");
+      return data?.id || "";
+    }
+
+    async function deleteHistoryEntry(id) {
+      const safeId = String(id || "").trim();
+      if (!safeId) return;
+      const ok = confirm("Delete this history entry?");
+      if (!ok) return;
+      const token = await getAuthToken();
+      if (!token) return alert("Sign in to delete history.");
+      const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return alert(data?.error || "Failed to delete history.");
+      if (activeHistoryId === safeId) {
+        activeHistoryId = "";
+        updateUrlId("");
+      }
+      await loadHistory();
+    }
+
+    function renderHistoryList(items) {
       if (!historyListEl) return;
-      historyItems = readHistoryStore();
+      const listItems = Array.isArray(items) ? items : [];
       historyListEl.innerHTML = "";
-      if (!historyItems.length) {
-        historyListEl.innerHTML = "<div class=\"history-entry-meta\">No saved generations yet.</div>";
+      if (!firebaseReady || !currentUser) {
+        historyListEl.innerHTML = "<div class=\"history-entry-meta\">Sign in to load/save history.</div>";
+        return;
+      }
+      if (!listItems.length) {
+        historyListEl.innerHTML = "<div class=\"history-entry-meta\">No history found yet.</div>";
         return;
       }
 
-      historyItems.forEach((item) => {
+      listItems.forEach((item) => {
         const entry = document.createElement("div");
         entry.className = "history-entry";
         entry.dataset.id = item.id;
@@ -306,7 +492,7 @@
 
         const title = document.createElement("div");
         title.className = "history-entry-title";
-        title.innerText = item.title || "Generation";
+        title.innerText = item.payload?.title || "Presentation";
         row.appendChild(title);
 
         const delBtn = document.createElement("button");
@@ -315,20 +501,21 @@
         delBtn.innerText = "Delete";
         delBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          deleteHistoryItem(item.id);
+          deleteHistoryEntry(item.id);
         });
         row.appendChild(delBtn);
         entry.appendChild(row);
 
+        const createdAt = item.payload?.createdAt || item.createdAt || "";
         const meta = document.createElement("div");
         meta.className = "history-entry-meta";
-        meta.innerText = item.createdAt ? new Date(item.createdAt).toLocaleString() : "Saved";
+        meta.innerText = createdAt ? new Date(createdAt).toLocaleString() : "Saved";
         entry.appendChild(meta);
 
-        if (item.summary) {
+        if (item.payload?.summary) {
           const summary = document.createElement("div");
           summary.className = "history-entry-meta";
-          summary.innerText = item.summary;
+          summary.innerText = item.payload.summary;
           entry.appendChild(summary);
         }
 
@@ -339,63 +526,30 @@
       if (activeHistoryId) setActiveHistory(activeHistoryId);
     }
 
-    function addHistoryItem({ title, summary, deck, inputs }) {
-      const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-      const item = {
-        id,
-        title: String(title || "Presentation").trim(),
-        summary: String(summary || "").trim(),
-        createdAt: new Date().toISOString(),
-        deck,
-        inputs
-      };
-      const items = [item, ...readHistoryStore()].slice(0, 50);
-      writeHistoryStore(items);
-      renderHistoryList();
-      setActiveHistory(id);
-      updateUrlId(id);
-      return id;
-    }
-
-    function deleteHistoryItem(id) {
-      const safeId = String(id || "");
-      if (!safeId) return;
-      const ok = confirm("Delete this generation?");
-      if (!ok) return;
-      const items = readHistoryStore().filter((x) => x && x.id !== safeId);
-      writeHistoryStore(items);
-      if (activeHistoryId === safeId) {
-        activeHistoryId = "";
-        updateUrlId("");
-      }
-      renderHistoryList();
-    }
-
     async function loadHistoryItem(id, { autoPdf } = {}) {
-      const safeId = String(id || "");
+      const safeId = String(id || "").trim();
       if (!safeId) return;
-      const item = readHistoryStore().find((x) => x && x.id === safeId);
-      if (!item) return alert("Generation not found.");
+      const item = historyItems.find((x) => String(x?.id || "") === safeId);
+      if (!item?.payload) return alert("History entry missing data.");
 
       setActiveHistory(safeId);
       updateUrlId(safeId);
 
-      if (item.inputs && typeof item.inputs === "object") {
-        document.getElementById("topic").value = item.inputs.topic || "";
-        document.getElementById("audience").value = item.inputs.audience || "";
-        document.getElementById("slideCount").value = item.inputs.slideCount || 8;
-        document.getElementById("tone").value = item.inputs.tone || "Clear, student-friendly";
-        document.getElementById("extra").value = item.inputs.extra || "";
-      }
+      const inputs = item.payload?.inputs && typeof item.payload.inputs === "object" ? item.payload.inputs : {};
+      document.getElementById("topic").value = inputs.topic || "";
+      document.getElementById("audience").value = inputs.audience || "";
+      document.getElementById("slideCount").value = inputs.slideCount || 8;
+      document.getElementById("tone").value = inputs.tone || "Clear, student-friendly";
+      document.getElementById("extra").value = inputs.extra || "";
 
-      lastDeck = item.deck || null;
-      if (!lastDeck) return alert("This saved generation is missing deck data.");
+      lastDeck = item.payload?.deck || null;
+      if (!lastDeck) return alert("This history entry is missing deck data.");
 
       lastHtml = buildDeckHtml(lastDeck);
-      lastFilename = sanitizeFilename(lastDeck?.title || item.title || "Presentation");
+      lastFilename = sanitizeFilename(lastDeck?.title || item.payload?.title || "Presentation");
       previewFrame.srcdoc = lastHtml;
       downloadPdfBtn.disabled = false;
-      statusEl.textContent = "Generation loaded.";
+      statusEl.textContent = "History loaded.";
 
       if (autoPdf) setTimeout(() => downloadPdf(), 150);
     }
@@ -515,12 +669,25 @@
         statusEl.textContent = `Done: ${lastDeck?.title || topic}`;
         downloadPdfBtn.disabled = false;
 
-        addHistoryItem({
-          title: lastDeck?.title || topic,
+        const payload = {
+          type: HISTORY_TYPE,
+          title: lastDeck?.title || topic || "Presentation",
+          createdAt: new Date().toISOString(),
           summary: `${audience || "Audience"} • ${slideCount} slides`,
           deck: lastDeck,
           inputs: { topic, audience, slideCount, tone, extra }
-        });
+        };
+
+        if (currentUser) {
+          const savedId = await saveHistory(payload);
+          await loadHistory();
+          if (savedId) {
+            setActiveHistory(savedId);
+            updateUrlId(savedId);
+          }
+        } else {
+          statusEl.textContent += " (Sign in to save history)";
+        }
       } catch (err) {
         statusEl.textContent = "Error: " + (err?.message || "Unable to generate");
         previewFrame.srcdoc = "";
@@ -579,18 +746,25 @@
     downloadPdfBtn.addEventListener("click", downloadPdf);
 
     clearHistoryBtn?.addEventListener("click", () => {
-      const ok = confirm("Clear all presentation history?");
-      if (!ok) return;
-      writeHistoryStore([]);
       activeHistoryId = "";
       updateUrlId("");
-      renderHistoryList();
+      setActiveHistory("");
+      lastDeck = null;
+      lastHtml = "";
+      previewFrame.srcdoc = "";
+      downloadPdfBtn.disabled = true;
+      statusEl.textContent = "Cleared selection.";
     });
 
-    renderHistoryList();
-    const initialId = new URL(window.location.href).searchParams.get("id");
-    if (initialId) loadHistoryItem(initialId, { autoPdf: true });
+    accountBtn?.addEventListener("click", openAccountModal);
+    accountBackdrop?.addEventListener("click", closeAccountModal);
+    accountClose?.addEventListener("click", closeAccountModal);
+    signUpBtn?.addEventListener("click", () => signUp().catch((e) => alert(e?.message || "Sign up failed.")));
+    signInBtn?.addEventListener("click", () => signIn().catch((e) => alert(e?.message || "Sign in failed.")));
+    signOutBtn?.addEventListener("click", () => signOut().catch((e) => alert(e?.message || "Sign out failed.")));
+
+    updateAuthUi(null);
+    initFirebase();
   </script>
 </body>
 </html>
-
