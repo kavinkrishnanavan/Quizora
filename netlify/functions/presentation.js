@@ -38,7 +38,9 @@ exports.handler = async (event) => {
   "slides": [
     {
       "heading": "string",
+      "paragraphs": ["string"],
       "bullets": ["string"],
+      "imageUrls": ["string"],
       "speakerNotes": "string",
       "visualHint": "string"
     }
@@ -58,10 +60,11 @@ Strict requirements:
 2) The JSON must match this schema exactly:
 ${schema}
 3) "slides" must have exactly ${slideCount} items.
-4) Each slide must have 3-6 bullets max, unless it's a title/closing slide (then bullets can be []).
-5) Keep bullets short (<= 12 words each) and concrete.
-6) Avoid repeating the same bullet across slides.
-7) Use safe plain text only (no links, no code blocks).`;
+4) Each slide must have 1-3 "paragraphs" (40-90 words each), unless it's a title slide (then paragraphs can be []).
+5) Each slide can have 0-6 bullets; keep bullets short (<= 12 words each) and concrete.
+6) Each slide can have 0-2 "imageUrls" that are direct http(s) image URLs (jpg/png/webp). No data: URLs.
+7) Avoid repeating the same bullet or paragraph idea across slides.
+8) Use safe plain text only. Do not include links inside paragraphs/bullets. Put images only in "imageUrls".`;
 
     const completion = await groq.chat.completions.create({
       model: "openai/gpt-oss-120B",
@@ -103,13 +106,36 @@ ${schema}
     for (const slide of deck.slides) {
       if (!slide || typeof slide !== "object") throw new Error("Invalid slide format.");
       if (!slide.heading || typeof slide.heading !== "string") throw new Error("Slide missing heading.");
-      if (!Array.isArray(slide.bullets)) throw new Error("Slide missing bullets array.");
+      if (!Array.isArray(slide.paragraphs)) slide.paragraphs = [];
+      if (!Array.isArray(slide.bullets)) slide.bullets = [];
+      if (!Array.isArray(slide.imageUrls)) slide.imageUrls = [];
       if (typeof slide.speakerNotes !== "string") slide.speakerNotes = "";
       if (typeof slide.visualHint !== "string") slide.visualHint = "";
+
+      slide.paragraphs = slide.paragraphs
+        .filter((p) => typeof p === "string" && p.trim())
+        .map((p) => p.trim())
+        .slice(0, 4);
+
       slide.bullets = slide.bullets
         .filter((b) => typeof b === "string" && b.trim())
         .map((b) => b.trim())
         .slice(0, 8);
+
+      slide.imageUrls = slide.imageUrls
+        .filter((u) => typeof u === "string" && u.trim())
+        .map((u) => u.trim())
+        .filter((u) => /^https?:\/\//i.test(u))
+        .filter((u) => {
+          try {
+            const parsed = new URL(u);
+            const path = (parsed.pathname || "").toLowerCase();
+            return /\.(png|jpe?g|webp)$/i.test(path);
+          } catch {
+            return false;
+          }
+        })
+        .slice(0, 2);
     }
 
     return {
@@ -136,4 +162,3 @@ ${schema}
     };
   }
 };
-
