@@ -66,36 +66,99 @@ ${schema}
 7) Avoid repeating the same bullet or paragraph idea across slides.
 8) Use safe plain text only. Do not include links inside paragraphs/bullets. Put images only in "imageUrls".`;
 
-    const completion = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120B",
-      messages: [
+    const extractJsonCandidate = (raw) => {
+      let s = String(raw || "").trim();
+      s = s.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+      const start = s.indexOf("{");
+      const end = s.lastIndexOf("}");
+      if (start >= 0 && end > start) s = s.slice(start, end + 1);
+      return s.trim();
+    };
+
+    const normalizeJsonText = (raw) => {
+      let s = extractJsonCandidate(raw);
+      s = s
+        .replaceAll("\u201c", '"')
+        .replaceAll("\u201d", '"')
+        .replaceAll("\u2018", "'")
+        .replaceAll("\u2019", "'")
+        .replaceAll("\u00a0", " ");
+      // Remove trailing commas before ] or }
+      s = s.replace(/,\s*([}\]])/g, "$1");
+      return s;
+    };
+
+    const parseJsonLoose = (raw) => {
+      const s1 = extractJsonCandidate(raw);
+      try {
+        return JSON.parse(s1);
+      } catch (_) {
+        const s2 = normalizeJsonText(raw);
+        return JSON.parse(s2);
+      }
+    };
+
+    const getCompletionText = async (messages) => {
+      const completion = await groq.chat.completions.create({
+        model: "openai/gpt-oss-120B",
+        messages,
+      });
+      return String(completion?.choices?.[0]?.message?.content || "").trim();
+    };
+
+    let text = "";
+    let deck = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      text = await getCompletionText([
         {
           role: "system",
           content:
             "You are an expert teacher and presentation designer. Follow the schema precisely and return strictly valid JSON.",
         },
         { role: "user", content: prompt },
-      ],
-    });
-
-    const text = String(completion?.choices?.[0]?.message?.content || "").trim();
-    if (!text) throw new Error("Groq returned no content.");
-
-    const parseJsonLoose = (raw) => {
+      ]);
+      if (!text) continue;
       try {
-        return JSON.parse(raw);
-      } catch {
-        const start = raw.indexOf("{");
-        const end = raw.lastIndexOf("}");
-        if (start >= 0 && end > start) {
-          const sliced = raw.slice(start, end + 1);
-          return JSON.parse(sliced);
-        }
-        throw new Error("Invalid JSON returned by Groq.");
-      }
-    };
+        deck = parseJsonLoose(text);
+        break;
+      } catch (err) {
+        // Ask Groq to repair its own output into strict JSON.
+        const repairPrompt = `Your previous output was NOT valid JSON.
+Fix it and output ONLY valid JSON that matches this schema exactly:
+${schema}
 
-    const deck = parseJsonLoose(text);
+Rules:
+- Do not add any extra keys.
+- Ensure all arrays/strings are valid JSON (double quotes, escaped characters).
+- Keep exactly ${slideCount} slides.
+
+INVALID_OUTPUT:
+${text}`;
+
+        const repaired = await getCompletionText([
+          {
+            role: "system",
+            content:
+              "You repair invalid JSON into valid JSON. Output strictly valid JSON only.",
+          },
+          { role: "user", content: repairPrompt },
+        ]);
+        if (!repaired) continue;
+        try {
+          deck = parseJsonLoose(repaired);
+          text = repaired;
+          break;
+        } catch (_) {
+          // loop and try again
+        }
+      }
+    }
+
+    if (!deck) {
+      throw new Error(
+        "Groq returned invalid JSON for the deck. Please click Generate again."
+      );
+    }
 
     if (!deck || typeof deck !== "object") throw new Error("Invalid deck JSON.");
     if (!deck.title || typeof deck.title !== "string") throw new Error("Missing title.");
