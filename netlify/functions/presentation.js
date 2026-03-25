@@ -62,13 +62,13 @@ ${schema}
 3) "slides" must have exactly ${slideCount} items.
 4) Each slide must have 1-3 "paragraphs" (40-90 words each), unless it's a title slide (then paragraphs can be []).
 5) Each slide can have 0-6 bullets; keep bullets short (<= 12 words each) and concrete.
-6) Each slide can have 0-2 "imageUrls" that are direct http(s) image URLs that an <img src="..."> can load.
-   Prefer reliable sources like:
-   - https://images.unsplash.com/...
-   - https://source.unsplash.com/featured/?<keywords> (this is a direct image redirect)
-   Avoid Google Images result pages or sites that require login. No data: URLs.
-7) Avoid repeating the same bullet or paragraph idea across slides.
-8) Use safe plain text only. Do not include links inside paragraphs/bullets. Put images only in "imageUrls".`;
+6) Title slide (slide 1) can have 0 images. Every other slide must have exactly 1 image URL in "imageUrls".
+7) The image URL MUST be in this exact format (so it always works in a browser):
+   https://source.unsplash.com/1600x900/?<comma-separated-keywords>
+   Example: https://source.unsplash.com/1600x900/?linear,equations,math,classroom
+8) Do not use any other image host. No data: URLs.
+9) Avoid repeating the same bullet or paragraph idea across slides.
+10) Use safe plain text only. Do not include links inside paragraphs/bullets. Put images only in "imageUrls".`;
 
     const extractJsonCandidate = (raw) => {
       let s = String(raw || "").trim();
@@ -170,9 +170,24 @@ ${text}`;
       throw new Error(`Expected exactly ${slideCount} slides.`);
     }
 
-    for (const slide of deck.slides) {
-      if (!slide || typeof slide !== "object") throw new Error("Invalid slide format.");
-      if (!slide.heading || typeof slide.heading !== "string") throw new Error("Slide missing heading.");
+    const buildUnsplashUrl = (keywords) => {
+      const cleaned = String(keywords || "")
+        .replace(/[^a-zA-Z0-9\s,-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const parts = cleaned
+        ? cleaned
+            .split(/[,]/g)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+      const joined = (parts.length ? parts : [topic]).join(",");
+      return `https://source.unsplash.com/1600x900/?${encodeURIComponent(joined).replace(/%2C/g, ",")}`;
+    };
+
+    deck.slides = deck.slides.map((s, i) => {
+      const slide = s && typeof s === "object" ? s : {};
+
       if (!Array.isArray(slide.paragraphs)) slide.paragraphs = [];
       if (!Array.isArray(slide.bullets)) slide.bullets = [];
       if (!Array.isArray(slide.imageUrls)) slide.imageUrls = [];
@@ -195,6 +210,29 @@ ${text}`;
         .filter((u) => /^https?:\/\//i.test(u))
         .filter((u) => !/^data:/i.test(u))
         .slice(0, 2);
+
+      const isTitle = i === 0;
+      const hasUnsplashUrl = slide.imageUrls.some((u) => /^https:\/\/source\.unsplash\.com\/1600x900\/\?/i.test(u));
+
+      if (isTitle) {
+        // Allow 0 images for title.
+        slide.imageUrls = hasUnsplashUrl ? [slide.imageUrls.find((u) => /^https:\/\/source\.unsplash\.com\/1600x900\/\?/i.test(u))] : [];
+      } else {
+        // Force exactly 1 reliable image URL.
+        if (!hasUnsplashUrl) {
+          const keywords = [topic, slide.heading, slide.visualHint].filter(Boolean).join(", ");
+          slide.imageUrls = [buildUnsplashUrl(keywords)];
+        } else {
+          slide.imageUrls = [slide.imageUrls.find((u) => /^https:\/\/source\.unsplash\.com\/1600x900\/\?/i.test(u))];
+        }
+      }
+
+      return slide;
+    });
+
+    for (const slide of deck.slides) {
+      if (!slide || typeof slide !== "object") throw new Error("Invalid slide format.");
+      if (!slide.heading || typeof slide.heading !== "string") throw new Error("Slide missing heading.");
     }
 
     return {
