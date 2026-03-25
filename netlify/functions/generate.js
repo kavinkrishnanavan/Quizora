@@ -80,7 +80,7 @@ exports.handler = async (event) => {
         8. Reminder : Questions must only be about ${topic}
         8b. All questions must be distinct and test different sub-skills; do not repeat or paraphrase any question or subtopic.
         ${learnedContext ? "9. Prefer questions that match the provided learning materials summary; avoid content outside what was taught." : ""}
-        10.Warning : Don't use any special characters. Only the numbers and the alphabet.`
+        10.Warning (Important): Use only the numbers and the alphabet and a few exceptions which are the symbols : . , ? + - / * () If necessary, please use this symbols intead of words.`
                 : `You are an expert educator specializing in the ${curriculum} curriculum.
         Your task is to extract a student's name from the provided student row data and generate a personalized ${qCount}-question quiz with answers.
         

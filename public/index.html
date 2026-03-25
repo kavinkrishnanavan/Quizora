@@ -458,6 +458,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/@pdf-lib/fontkit"></script>
+<script src="/pdf-unicode.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 <script>
@@ -1038,18 +1040,10 @@ if (isMobile()) {
 
         const blooketBtn = document.createElement("button");
         blooketBtn.type = "button";
-        blooketBtn.className = "download-link secondary";
+        blooketBtn.className = "download-link";
         blooketBtn.innerText = "Export Blooket CSV";
         blooketBtn.onclick = () => {
-            if (String(meta?.answerFormat || "").toLowerCase() !== "mcq") {
-                alert('Blooket export requires "Multiple choice (A-D)".\n\nSet Question Style to Multiple choice, then generate worksheets again.');
-                return;
-            }
             const csv = buildBlooketCsv(quiz, meta);
-            if (!csv) {
-                alert("Could not create a Blooket CSV for this worksheet.");
-                return;
-            }
             const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
             downloadCsv(csv, `${sanitizeFilename(label)} - Blooket.csv`);
         };
@@ -1427,8 +1421,6 @@ if (isMobile()) {
     function buildBlooketCsv(quiz, meta) {
         // Matches Blooket's Spreadsheet Import template column order.
         // Columns A-H are required; Column J can be set to "typing" for typing-answer questions.
-        const answerFormat = String(meta?.answerFormat || "").toLowerCase();
-        if (answerFormat !== "mcq") return null;
         const header = [
             "Question #",
             "Question Text",
@@ -1442,6 +1434,7 @@ if (isMobile()) {
             ""
         ];
         const rows = [header];
+        const answerFormat = String(meta?.answerFormat || "").toLowerCase();
         const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
         const labelToIndex = { A: 0, B: 1, C: 2, D: 3 };
 
@@ -1456,7 +1449,7 @@ if (isMobile()) {
             const options = Array.isArray(q?.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
             const answerText = String(q?.answer || "").trim();
 
-            if (options.length >= 2) {
+            if (answerFormat === "mcq" && options.length >= 2) {
                 const rawLabel = String(q?.correctOption || "").trim().toUpperCase();
                 let correctIdx = Object.prototype.hasOwnProperty.call(labelToIndex, rawLabel) ? labelToIndex[rawLabel] : -1;
 
@@ -1477,6 +1470,20 @@ if (isMobile()) {
                     String(correctIdx + 1),
                     "",
                     ""
+                ]);
+            } else {
+                // Blank-line format -> import as typing-answer (uses Answer columns as acceptable exact answers).
+                rows.push([
+                    qNum,
+                    questionText,
+                    answerText || "",
+                    "",
+                    "",
+                    "",
+                    timeLimit,
+                    "1",
+                    "",
+                    "typing"
                 ]);
             }
         }
@@ -1528,16 +1535,17 @@ if (isMobile()) {
     function sanitizePdfText(text) {
         return String(text || "")
             .replace(/[\u2010-\u2015\u2212]/g, "-")
-            .replace(/[^\x20-\x7E]/g, " ");
+            .replace(/[\u0000-\u001F\u007F]/g, " ");
     }
 
     async function buildWorksheetPdf({ quiz, meta, includeAnswers, marksValue = "" }) {
-        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const { PDFDocument, rgb } = PDFLib;
         const answerFormat = meta?.answerFormat === "mcq" ? "mcq" : "blank";
 
         const doc = await PDFDocument.create();
-        const font = await doc.embedFont(StandardFonts.Helvetica);
-        const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+        const fonts = await PDFUnicode.ensureFonts(doc);
+        const font = fonts.text;
+        const fontBold = fonts.textBold;
         const form = doc.getForm();
 
         const margin = 48;
@@ -1553,39 +1561,68 @@ if (isMobile()) {
             const maxWidth = width - margin * 2;
             let y = height - margin;
 
-            page.drawText(headerText, { x: margin, y, size: 14, font: fontBold, color: rgb(0.12, 0.2, 0.35) });
+            PDFUnicode.drawRunsLine(page, PDFUnicode.segmentToRuns(headerText, fonts, true), {
+                x: margin,
+                y,
+                size: 14,
+                color: rgb(0.12, 0.2, 0.35),
+            });
             y -= 18;
-            page.drawText(`Type: ${typeLabel} | ${sheetTitle}`, { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) });
+            PDFUnicode.drawRunsLine(page, PDFUnicode.segmentToRuns(`Type: ${typeLabel} | ${sheetTitle}`, fonts, false), {
+                x: margin,
+                y,
+                size: 10,
+                color: rgb(0.35, 0.45, 0.55),
+            });
             y -= 16;
-            page.drawText(`Generated: ${dateStr}`, { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) });
+            PDFUnicode.drawRunsLine(page, PDFUnicode.segmentToRuns(`Generated: ${dateStr}`, fonts, false), {
+                x: margin,
+                y,
+                size: 10,
+                color: rgb(0.35, 0.45, 0.55),
+            });
             y -= 18;
 
             if (meta?.generationName) {
-                page.drawText(`Test: ${sanitizePdfText(meta.generationName)}`, { x: margin, y, size: 11, font: fontBold });
+                PDFUnicode.drawRunsLine(
+                    page,
+                    PDFUnicode.segmentToRuns(`Test: ${sanitizePdfText(meta.generationName)}`, fonts, true),
+                    { x: margin, y, size: 11 }
+                );
                 y -= 18;
             }
 
         if (typeLabel === "Personalized") {
-                page.drawText(`Student: ${sanitizePdfText(quiz.studentName)}`, { x: margin, y, size: 12, font: fontBold });
+                PDFUnicode.drawRunsLine(
+                    page,
+                    PDFUnicode.segmentToRuns(`Student: ${sanitizePdfText(quiz.studentName)}`, fonts, true),
+                    { x: margin, y, size: 12 }
+                );
                 y -= 18;
-                page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
+                PDFUnicode.drawRunsLine(page, PDFUnicode.segmentToRuns("Marks:", fonts, true), { x: margin, y, size: 11 });
                 const marksField = form.createTextField(`marks_${Math.random().toString(16).slice(2)}`);
                 marksField.setText("");
                 marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
-                page.drawText(`/ ${sanitizePdfText(meta.maxMarks)}`, { x: margin + 180, y, size: 11, font });
+                PDFUnicode.drawRunsLine(
+                    page,
+                    PDFUnicode.segmentToRuns(`/ ${sanitizePdfText(meta.maxMarks)}`, fonts, false),
+                    { x: margin + 180, y, size: 11 }
+                );
                 y -= 24;
             }
 
-            page.drawText(`${sanitizePdfText(meta.subject)} | ${sanitizePdfText(meta.topic)} | ${sanitizePdfText(meta.grade)} | ${sanitizePdfText(meta.curriculum)}`, {
-                x: margin,
-                y,
-                size: 10,
-                font,
-                color: rgb(0.35, 0.45, 0.55),
-            });
+            PDFUnicode.drawRunsLine(
+                page,
+                PDFUnicode.segmentToRuns(
+                    `${sanitizePdfText(meta.subject)} | ${sanitizePdfText(meta.topic)} | ${sanitizePdfText(meta.grade)} | ${sanitizePdfText(meta.curriculum)}`,
+                    fonts,
+                    false
+                ),
+                { x: margin, y, size: 10, color: rgb(0.35, 0.45, 0.55) }
+            );
             y -= 24;
 
-            page.drawText(sheetTitle, { x: margin, y, size: 12, font: fontBold });
+            PDFUnicode.drawRunsLine(page, PDFUnicode.segmentToRuns(sheetTitle, fonts, true), { x: margin, y, size: 12 });
             y -= 18;
 
             return { page, y, maxWidth };
@@ -1607,11 +1644,11 @@ if (isMobile()) {
 
         for (const q of quiz.questions) {
             const qText = `${q.number}. ${sanitizePdfText(q.question)}`;
-            const qLines = wrapLines(qText, font, qFontSize, maxWidth);
+            const qLines = PDFUnicode.wrapText(qText, fonts, qFontSize, maxWidth);
 
             ensureSpace(qLines.length * qLineGap + 18);
             for (const line of qLines) {
-                page.drawText(line, { x: margin, y, size: qFontSize, font });
+                PDFUnicode.drawRunsLine(page, line, { x: margin, y, size: qFontSize });
                 y -= qLineGap;
             }
 
@@ -1621,10 +1658,10 @@ if (isMobile()) {
                         ? `Correct option: ${q.correctOption}`
                         : "";
                 const aText = extra ? `${extra}\nAnswer: ${sanitizePdfText(q.answer)}` : `Answer: ${sanitizePdfText(q.answer)}`;
-                const aLines = wrapLines(aText, font, aFontSize, maxWidth - 18);
+                const aLines = PDFUnicode.wrapText(aText, fonts, aFontSize, maxWidth - 18);
                 ensureSpace(aLines.length * aLineGap + 12);
                 for (const line of aLines) {
-                    page.drawText(line, { x: margin + 18, y, size: aFontSize, font, color: rgb(0.15, 0.3, 0.2) });
+                    PDFUnicode.drawRunsLine(page, line, { x: margin + 18, y, size: aFontSize, color: rgb(0.15, 0.3, 0.2) });
                     y -= aLineGap;
                 }
             } else {
@@ -1637,12 +1674,12 @@ if (isMobile()) {
                     for (let idx = 0; idx < q.options.length; idx++) {
                         const label = labels[idx] || String(idx + 1);
                         const txt = `${label}) ${sanitizePdfText(q.options[idx])}`;
-                        optLines.push(...wrapLines(txt, font, optFontSize, maxWidth - 18));
+                        optLines.push(...PDFUnicode.wrapText(txt, fonts, optFontSize, maxWidth - 18));
                     }
 
                     ensureSpace(optLines.length * optLineGap + 10);
                     for (const line of optLines) {
-                        page.drawText(line, { x: margin + 18, y, size: optFontSize, font, color: rgb(0.2, 0.25, 0.32) });
+                        PDFUnicode.drawRunsLine(page, line, { x: margin + 18, y, size: optFontSize, color: rgb(0.2, 0.25, 0.32) });
                         y -= optLineGap;
                     }
                 } else {
@@ -1662,7 +1699,7 @@ if (isMobile()) {
             y -= 10;
         }
 
-        if (form?.updateFieldAppearances) form.updateFieldAppearances(font);
+        if (form?.updateFieldAppearances) form.updateFieldAppearances(fonts.text);
         return await doc.save();
     }
 
