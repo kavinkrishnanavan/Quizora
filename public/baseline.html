@@ -290,6 +290,13 @@
                     <label>Paste text (optional)</label>
                     <textarea id="materialsText" rows="5" placeholder="Paste notes / what was taught"></textarea>
                 </div>
+                <div class="field">
+                    <label>Saved summaries</label>
+                    <select id="materialsPresetSelect">
+                        <option value="">(Select a saved summary)</option>
+                    </select>
+                    <div style="color: var(--muted); font-size: 0.85rem;">Selecting one loads the summary immediately.</div>
+                </div>
 
                 <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
@@ -1537,31 +1544,113 @@ function isMobile() {
         if (previewEl) previewEl.value = previewText || "";
     }
 
-    function loadMaterialsFromStorage() {
+    function getMaterialsStore() {
         try {
             const raw = localStorage.getItem(MATERIALS_STORAGE_KEY);
-            if (!raw) return;
+            if (!raw) return { learnedContext: "", presets: [] };
             const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed.learnedContext === "string") {
-                learnedContext = parsed.learnedContext.trim();
-                if (learnedContext) {
-                    setMaterialsUi({
-                        statusText: "Using saved learning materials summary.",
-                        previewText: learnedContext
-                    });
-                }
-                updateMaterialsBadge();
+            if (parsed && typeof parsed === "object") {
+                const presets = Array.isArray(parsed.presets) ? parsed.presets : [];
+                const ctx = typeof parsed.learnedContext === "string" ? parsed.learnedContext : "";
+                return { learnedContext: ctx, presets };
             }
+            // Back-compat: old format stored only { learnedContext }
+            if (parsed && typeof parsed.learnedContext === "string") {
+                return { learnedContext: parsed.learnedContext, presets: [] };
+            }
+            return { learnedContext: "", presets: [] };
+        } catch (_) {
+            return { learnedContext: "", presets: [] };
+        }
+    }
+
+    function saveMaterialsStore(store) {
+        try {
+            localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(store));
         } catch (_) {
             // ignore
         }
     }
 
+    function loadMaterialsFromStorage() {
+        const store = getMaterialsStore();
+        learnedContext = String(store.learnedContext || "").trim();
+        if (learnedContext) {
+            setMaterialsUi({
+                statusText: "Using saved learning materials summary.",
+                previewText: learnedContext
+            });
+        }
+        updateMaterialsBadge();
+        renderMaterialsPresets();
+    }
+
     function saveMaterialsToStorage() {
-        try {
-            localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify({ learnedContext }));
-        } catch (_) {
-            // ignore
+        const store = getMaterialsStore();
+        store.learnedContext = learnedContext || "";
+        saveMaterialsStore(store);
+    }
+
+    function addMaterialsPreset({ title, learnedContextText, subject, topic, grade, curriculum } = {}) {
+        const ctx = String(learnedContextText || "").trim();
+        if (!ctx) return;
+        const store = getMaterialsStore();
+        const preset = {
+            id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+            title: String(title || "").trim() || "Materials Summary",
+            createdAt: new Date().toISOString(),
+            subject: String(subject || "").trim(),
+            topic: String(topic || "").trim(),
+            grade: String(grade || "").trim(),
+            curriculum: String(curriculum || "").trim(),
+            learnedContext: ctx
+        };
+        store.presets = [preset, ...(Array.isArray(store.presets) ? store.presets : [])].slice(0, 30);
+        store.learnedContext = ctx;
+        saveMaterialsStore(store);
+    }
+
+    function renderMaterialsPresets() {
+        const select = document.getElementById("materialsPresetSelect");
+        if (!select) return;
+        const store = getMaterialsStore();
+        const presets = Array.isArray(store.presets) ? store.presets : [];
+        const current = String(select.value || "");
+
+        select.innerHTML = "";
+        const opt0 = document.createElement("option");
+        opt0.value = "";
+        opt0.innerText = "(Select a saved summary)";
+        select.appendChild(opt0);
+
+        for (const p of presets) {
+            if (!p || typeof p !== "object") continue;
+            const opt = document.createElement("option");
+            opt.value = String(p.id || "");
+            const created = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "";
+            const label = String(p.title || "Summary");
+            opt.innerText = created ? `${label} (${created})` : label;
+            select.appendChild(opt);
+        }
+
+        if (current && presets.some((p) => String(p?.id || "") === current)) {
+            select.value = current;
+        } else {
+            select.value = "";
+        }
+    }
+
+    function applyMaterialsPreset(presetId) {
+        const id = String(presetId || "").trim();
+        if (!id) return;
+        const store = getMaterialsStore();
+        const preset = (Array.isArray(store.presets) ? store.presets : []).find((p) => String(p?.id || "") === id);
+        if (!preset) return;
+        learnedContext = String(preset.learnedContext || "").trim();
+        if (learnedContext) {
+            setMaterialsUi({ statusText: "Loaded saved summary.", previewText: learnedContext });
+            updateMaterialsBadge();
+            saveMaterialsToStorage();
         }
     }
 
@@ -1573,11 +1662,9 @@ function isMobile() {
         if (textEl) textEl.value = "";
         setMaterialsUi({ statusText: "Cleared.", previewText: "" });
         updateMaterialsBadge();
-        try {
-            localStorage.removeItem(MATERIALS_STORAGE_KEY);
-        } catch (_) {
-            // ignore
-        }
+        saveMaterialsToStorage();
+        const select = document.getElementById("materialsPresetSelect");
+        if (select) select.value = "";
     }
 
     function fileToBase64(file) {
@@ -1646,6 +1733,15 @@ function isMobile() {
 
             learnedContext = summary;
             saveMaterialsToStorage();
+            addMaterialsPreset({
+                title: `${payload.subject || "Subject"} - ${payload.topic || "Topic"}`,
+                learnedContextText: learnedContext,
+                subject: payload.subject,
+                topic: payload.topic,
+                grade: payload.grade,
+                curriculum: payload.curriculum
+            });
+            renderMaterialsPresets();
 
             const warnText = Array.isArray(data?.warnings) && data.warnings.length ? ` Warnings: ${data.warnings.join(" | ")}` : "";
             setMaterialsUi({ statusText: "Materials summary ready. It will be used for worksheet generation." + warnText, previewText: learnedContext });
@@ -1657,6 +1753,7 @@ function isMobile() {
 
     document.getElementById("materialsAnalyzeBtn")?.addEventListener("click", analyzeMaterials);
     document.getElementById("materialsClearBtn")?.addEventListener("click", clearMaterials);
+    document.getElementById("materialsPresetSelect")?.addEventListener("change", (e) => applyMaterialsPreset(e.target.value));
     document.getElementById("materialsOpenBtn")?.addEventListener("click", openMaterialsModal);
     document.getElementById("materialsModalClose")?.addEventListener("click", closeMaterialsModal);
     document.getElementById("materialsModalBackdrop")?.addEventListener("click", closeMaterialsModal);

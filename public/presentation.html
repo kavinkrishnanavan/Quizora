@@ -7,7 +7,6 @@
   <link rel="icon" type="image/png" href="favicon_2.png" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       color-scheme: light dark;
@@ -61,9 +60,22 @@
       box-shadow: var(--shadow);
     }
 
+    .sidebar {
+      width: 320px;
+      min-width: 260px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+      position: sticky;
+      top: 20px;
+    }
+
     @media (max-width: 1100px) {
       .app-shell { flex-direction: column; }
       .container { max-width: 100%; }
+      .sidebar { width: 100%; position: static; }
     }
 
     .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
@@ -112,18 +124,43 @@
     iframe { width: 100%; height: 720px; border: 0; background: white; }
     .hint { color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
 
+    /* Sidebar history */
+    .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .sidebar-title { font-weight: 800; font-size: 1.05rem; }
+    .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
+    .history-list { display: grid; gap: 10px; margin-top: 12px; max-height: 560px; overflow: auto; padding-right: 4px; }
+    .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+    .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
+    .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
+    .history-entry-title { font-weight: 800; font-size: 0.98rem; }
+    .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
+    .history-entry-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .history-delete { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 0.75rem; font-weight: 800; cursor: pointer; }
+    .history-delete:hover { border-color: rgba(239, 68, 68, 0.55); color: #ef4444; }
+
     /* Hidden host used for PDF rendering */
     #pdfHost { position: fixed; left: -99999px; top: 0; width: 1280px; }
   </style>
 </head>
 <body>
   <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div>
+          <div class="sidebar-title">Presentation Generations</div>
+          <div class="sidebar-subtitle">Loads and auto-exports PDF by id.</div>
+        </div>
+        <button id="clearHistoryBtn" type="button" class="history-delete" title="Clear history">Clear</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </aside>
+
     <div class="container">
       <div style="display:flex; align-items:center; gap:10px;">
         <img src="favicon.png" style="width: 160px;" alt="Quiz-Wiz logo" />
         <div>
           <h1 style="margin:0;">Presentation Maker</h1>
-          <div style="color: var(--muted); font-weight: 700;">Generate HTML with Groq → export to PDF</div>
+          <div style="color: var(--muted); font-weight: 700;">Generate with Groq → auto-export PDF from history</div>
         </div>
       </div>
 
@@ -165,12 +202,11 @@
 
       <div class="actions">
         <button class="primary" id="genBtn" type="button">Generate Presentation</button>
-        <button id="downloadHtmlBtn" type="button" disabled>Download HTML</button>
         <button id="downloadPdfBtn" type="button" disabled>Download PDF</button>
       </div>
 
       <div id="status" class="status">Ready.</div>
-      <div class="hint">Tip: If PDF export looks blurry, regenerate and try again (it uses canvas rendering).</div>
+      <div class="hint">PDF is generated page-by-page (one slide per page) to avoid blank/split pages.</div>
 
       <div class="preview-wrap">
         <iframe id="previewFrame" title="Presentation preview"></iframe>
@@ -185,10 +221,15 @@
     const previewFrame = document.getElementById("previewFrame");
     const statusEl = document.getElementById("status");
     const genBtn = document.getElementById("genBtn");
-    const downloadHtmlBtn = document.getElementById("downloadHtmlBtn");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const pdfHost = document.getElementById("pdfHost");
     const pdfDeckStyle = document.getElementById("pdfDeckStyle");
+    const historyListEl = document.getElementById("historyList");
+    const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+
+    const HISTORY_STORAGE_KEY = "quizwiz_presentation_history_v1";
+    let historyItems = [];
+    let activeHistoryId = "";
 
     let lastDeck = null;
     let lastHtml = "";
@@ -211,6 +252,154 @@
         .slice(0, 120);
     }
 
+    function readHistoryStore() {
+      try {
+        const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeHistoryStore(items) {
+      try {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(items.slice(0, 50)));
+      } catch {
+        // ignore
+      }
+    }
+
+    function updateUrlId(id) {
+      const url = new URL(window.location.href);
+      if (id) url.searchParams.set("id", id);
+      else url.searchParams.delete("id");
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    function setActiveHistory(id) {
+      activeHistoryId = String(id || "");
+      const entries = document.querySelectorAll(".history-entry");
+      entries.forEach((entry) => {
+        if (entry.dataset?.id === activeHistoryId) entry.classList.add("active");
+        else entry.classList.remove("active");
+      });
+    }
+
+    function renderHistoryList() {
+      if (!historyListEl) return;
+      historyItems = readHistoryStore();
+      historyListEl.innerHTML = "";
+      if (!historyItems.length) {
+        historyListEl.innerHTML = "<div class=\"history-entry-meta\">No saved generations yet.</div>";
+        return;
+      }
+
+      historyItems.forEach((item) => {
+        const entry = document.createElement("div");
+        entry.className = "history-entry";
+        entry.dataset.id = item.id;
+
+        const row = document.createElement("div");
+        row.className = "history-entry-row";
+
+        const title = document.createElement("div");
+        title.className = "history-entry-title";
+        title.innerText = item.title || "Generation";
+        row.appendChild(title);
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "history-delete";
+        delBtn.innerText = "Delete";
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteHistoryItem(item.id);
+        });
+        row.appendChild(delBtn);
+        entry.appendChild(row);
+
+        const meta = document.createElement("div");
+        meta.className = "history-entry-meta";
+        meta.innerText = item.createdAt ? new Date(item.createdAt).toLocaleString() : "Saved";
+        entry.appendChild(meta);
+
+        if (item.summary) {
+          const summary = document.createElement("div");
+          summary.className = "history-entry-meta";
+          summary.innerText = item.summary;
+          entry.appendChild(summary);
+        }
+
+        entry.addEventListener("click", () => loadHistoryItem(item.id, { autoPdf: true }));
+        historyListEl.appendChild(entry);
+      });
+
+      if (activeHistoryId) setActiveHistory(activeHistoryId);
+    }
+
+    function addHistoryItem({ title, summary, deck, inputs }) {
+      const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      const item = {
+        id,
+        title: String(title || "Presentation").trim(),
+        summary: String(summary || "").trim(),
+        createdAt: new Date().toISOString(),
+        deck,
+        inputs
+      };
+      const items = [item, ...readHistoryStore()].slice(0, 50);
+      writeHistoryStore(items);
+      renderHistoryList();
+      setActiveHistory(id);
+      updateUrlId(id);
+      return id;
+    }
+
+    function deleteHistoryItem(id) {
+      const safeId = String(id || "");
+      if (!safeId) return;
+      const ok = confirm("Delete this generation?");
+      if (!ok) return;
+      const items = readHistoryStore().filter((x) => x && x.id !== safeId);
+      writeHistoryStore(items);
+      if (activeHistoryId === safeId) {
+        activeHistoryId = "";
+        updateUrlId("");
+      }
+      renderHistoryList();
+    }
+
+    async function loadHistoryItem(id, { autoPdf } = {}) {
+      const safeId = String(id || "");
+      if (!safeId) return;
+      const item = readHistoryStore().find((x) => x && x.id === safeId);
+      if (!item) return alert("Generation not found.");
+
+      setActiveHistory(safeId);
+      updateUrlId(safeId);
+
+      if (item.inputs && typeof item.inputs === "object") {
+        document.getElementById("topic").value = item.inputs.topic || "";
+        document.getElementById("audience").value = item.inputs.audience || "";
+        document.getElementById("slideCount").value = item.inputs.slideCount || 8;
+        document.getElementById("tone").value = item.inputs.tone || "Clear, student-friendly";
+        document.getElementById("extra").value = item.inputs.extra || "";
+      }
+
+      lastDeck = item.deck || null;
+      if (!lastDeck) return alert("This saved generation is missing deck data.");
+
+      lastHtml = buildDeckHtml(lastDeck);
+      lastFilename = sanitizeFilename(lastDeck?.title || item.title || "Presentation");
+      previewFrame.srcdoc = lastHtml;
+      downloadPdfBtn.disabled = false;
+      statusEl.textContent = "Generation loaded.";
+
+      if (autoPdf) setTimeout(() => downloadPdf(), 150);
+    }
+
     function buildDeckHtml(deck) {
       const title = escapeHtml(deck?.title || "Presentation");
       const subtitle = escapeHtml(deck?.subtitle || "");
@@ -228,12 +417,6 @@
           ? `<ul class="bullets">${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`
           : "";
 
-        const notes = String(slide?.speakerNotes || "").trim();
-        const visual = String(slide?.visualHint || "").trim();
-
-        const metaRight = visual ? `<div class="visual">${escapeHtml(visual)}</div>` : "";
-        const notesHtml = notes ? `<aside class="notes">${escapeHtml(notes)}</aside>` : "";
-
         const isTitle = idx === 0;
         const titleBlock = isTitle
           ? `<div class="title">
@@ -244,16 +427,8 @@
           : `<h2>${heading}</h2>`;
 
         const middleHtml = isTitle
-          ? `<div class="title-body">
-              ${paragraphsHtml}
-              ${bulletsHtml}
-            </div>`
-          : `<div class="content-grid">
-              <div class="text">
-                ${paragraphsHtml}
-                ${bulletsHtml}
-              </div>
-            </div>`;
+          ? `<div class="title-body">${paragraphsHtml}${bulletsHtml}</div>`
+          : `<div class="content"><div class="text">${paragraphsHtml}${bulletsHtml}</div></div>`;
 
         return `
           <section class="slide ${isTitle ? "is-title" : ""}">
@@ -262,46 +437,26 @@
                 ${titleBlock}
                 ${!isTitle && subtitle ? `<div class="deck-subtitle">${subtitle}</div>` : ""}
               </div>
-              <div class="middle">
-                ${middleHtml}
-              </div>
+              <div class="middle">${middleHtml}</div>
               <div class="bottom">
                 <div class="footer">
                   <span class="page">${idx + 1} / ${slides.length}</span>
                   <span class="topic">${title}</span>
                 </div>
-                ${metaRight}
               </div>
-              ${notesHtml}
             </div>
           </section>
         `;
       }).join("");
 
       const css = `
-        .deck {
-          font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-          width: 1280px;
-          background: #0b1220;
-        }
+        .deck { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; width: 1280px; background: #0b1220; }
         .deck .slide {
-          width: 1280px;
-          height: 720px;
-          box-sizing: border-box;
-          padding: 56px;
-          margin: 0;
+          width: 1280px; height: 720px; box-sizing: border-box; padding: 56px; margin: 0;
           background: radial-gradient(1200px 720px at 10% 10%, rgba(37, 99, 235, 0.35), transparent 55%),
                       radial-gradient(900px 600px at 90% 10%, rgba(16, 185, 129, 0.22), transparent 50%),
                       linear-gradient(180deg, #0b1220, #0f172a);
-          color: #e2e8f0;
-          border-bottom: 1px solid rgba(148, 163, 184, 0.08);
-          position: relative;
-          break-inside: avoid-page;
-          page-break-inside: avoid;
-        }
-        .deck .slide + .slide {
-          break-before: page;
-          page-break-before: always;
+          color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.08); position: relative;
         }
         .deck .slide-inner { height: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
         .deck .middle { flex: 1; overflow: hidden; }
@@ -313,11 +468,7 @@
         .deck .para { margin: 0 0 14px; font-size: 22px; line-height: 1.28; color: rgba(226, 232, 240, 0.92); }
         .deck .bullets { margin: 8px 0 0; padding-left: 28px; font-size: 26px; line-height: 1.2; }
         .deck .bullets li { margin: 12px 0; }
-        .deck .content-grid { display: grid; grid-template-columns: 1fr; gap: 18px; height: 100%; align-content: start; }
-        .deck .text { min-width: 0; }
         .deck .footer { display: flex; justify-content: space-between; gap: 18px; font-weight: 800; font-size: 14px; color: rgba(226, 232, 240, 0.7); }
-        .deck .visual { margin-top: 10px; font-size: 13px; color: rgba(148, 163, 184, 0.92); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 10px 12px; }
-        .deck .notes { display: none; }
       `.trim();
 
       return `<!doctype html>
@@ -334,21 +485,8 @@
 </html>`;
     }
 
-    function downloadBytes(bytes, filename, type) {
-      const blob = new Blob([bytes], { type });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
-
     async function generate() {
       genBtn.disabled = true;
-      downloadHtmlBtn.disabled = true;
       downloadPdfBtn.disabled = true;
       statusEl.textContent = "Generating with Groq…";
 
@@ -374,16 +512,18 @@
         lastFilename = sanitizeFilename(lastDeck?.title || topic || "Presentation");
 
         previewFrame.srcdoc = lastHtml;
-        pdfHost.innerHTML = "";
-        pdfDeckStyle.textContent = "";
-
         statusEl.textContent = `Done: ${lastDeck?.title || topic}`;
-        downloadHtmlBtn.disabled = false;
         downloadPdfBtn.disabled = false;
+
+        addHistoryItem({
+          title: lastDeck?.title || topic,
+          summary: `${audience || "Audience"} • ${slideCount} slides`,
+          deck: lastDeck,
+          inputs: { topic, audience, slideCount, tone, extra }
+        });
       } catch (err) {
         statusEl.textContent = "Error: " + (err?.message || "Unable to generate");
         previewFrame.srcdoc = "";
-        pdfHost.innerHTML = "";
       } finally {
         genBtn.disabled = false;
       }
@@ -397,10 +537,9 @@
       try {
         const hostDoc = new DOMParser().parseFromString(lastHtml, "text/html");
         const styleText = hostDoc.querySelector("style")?.textContent || "";
-        const deckEl = hostDoc.querySelector(".deck") || hostDoc.body;
+        const deckEl = hostDoc.querySelector(".deck");
         if (!deckEl) throw new Error("Deck element not found.");
 
-        // Render using a live element so html2canvas can measure layout.
         pdfHost.innerHTML = "";
         pdfDeckStyle.textContent = styleText;
         pdfHost.appendChild(deckEl);
@@ -411,10 +550,7 @@
         const html2canvasFn = window.html2canvas;
         if (typeof html2canvasFn !== "function") throw new Error("html2canvas not available.");
 
-        const jsPDFCtor =
-          (window.jspdf && window.jspdf.jsPDF) ||
-          window.jsPDF ||
-          null;
+        const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF || null;
         if (typeof jsPDFCtor !== "function") throw new Error("jsPDF not available.");
 
         const pageW = 1280;
@@ -422,10 +558,8 @@
         const pdf = new jsPDFCtor({ unit: "px", format: [pageW, pageH], orientation: "landscape" });
 
         for (let i = 0; i < slides.length; i++) {
-          const slide = slides[i];
-          const canvas = await html2canvasFn(slide, { scale: 2, backgroundColor: "#0b1220" });
+          const canvas = await html2canvasFn(slides[i], { scale: 2, backgroundColor: "#0b1220" });
           const imgData = canvas.toDataURL("image/jpeg", 0.98);
-
           if (i > 0) pdf.addPage([pageW, pageH], "landscape");
           pdf.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
         }
@@ -442,8 +576,21 @@
     }
 
     genBtn.addEventListener("click", generate);
-    downloadHtmlBtn.addEventListener("click", () => downloadBytes(lastHtml, `${lastFilename}.html`, "text/html"));
     downloadPdfBtn.addEventListener("click", downloadPdf);
+
+    clearHistoryBtn?.addEventListener("click", () => {
+      const ok = confirm("Clear all presentation history?");
+      if (!ok) return;
+      writeHistoryStore([]);
+      activeHistoryId = "";
+      updateUrlId("");
+      renderHistoryList();
+    });
+
+    renderHistoryList();
+    const initialId = new URL(window.location.href).searchParams.get("id");
+    if (initialId) loadHistoryItem(initialId, { autoPdf: true });
   </script>
 </body>
 </html>
+
