@@ -403,16 +403,32 @@
         pdfDeckStyle.textContent = styleText;
         pdfHost.appendChild(deckEl);
 
-        const opt = {
-          margin: 0,
-          filename: `${lastFilename}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, backgroundColor: "#0b1220" },
-          jsPDF: { unit: "px", format: [1280, 720], orientation: "landscape" },
-          pagebreak: { mode: ["css", "avoid-all"], before: ".slide + .slide" }
-        };
+        const slides = Array.from(pdfHost.querySelectorAll(".slide"));
+        if (!slides.length) throw new Error("No slides found to export.");
 
-        await html2pdf().set(opt).from(deckEl).save();
+        const html2canvasFn = window.html2canvas;
+        if (typeof html2canvasFn !== "function") throw new Error("html2canvas not available.");
+
+        const jsPDFCtor =
+          (window.jspdf && window.jspdf.jsPDF) ||
+          window.jsPDF ||
+          null;
+        if (typeof jsPDFCtor !== "function") throw new Error("jsPDF not available.");
+
+        const pageW = 1280;
+        const pageH = 720;
+        const pdf = new jsPDFCtor({ unit: "px", format: [pageW, pageH], orientation: "landscape" });
+
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i];
+          const canvas = await html2canvasFn(slide, { scale: 2, backgroundColor: "#0b1220" });
+          const imgData = canvas.toDataURL("image/jpeg", 0.98);
+
+          if (i > 0) pdf.addPage([pageW, pageH], "landscape");
+          pdf.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
+        }
+
+        pdf.save(`${lastFilename}.pdf`);
         statusEl.textContent = "PDF downloaded.";
       } catch (err) {
         statusEl.textContent = "PDF error: " + (err?.message || "Unable to export");
