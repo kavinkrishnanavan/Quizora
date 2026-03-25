@@ -2532,7 +2532,31 @@ if (isMobile()) {
         }
     }
 
+    function ensureLegacyPreset() {
+        const store = getMaterialsStore();
+        const ctx = String(store.learnedContext || "").trim();
+        const presets = Array.isArray(store.presets) ? store.presets : [];
+        if (!ctx) return;
+        if (presets.some((p) => String(p?.learnedContext || "").trim() === ctx)) return;
+
+        store.presets = [
+            {
+                id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                title: "Saved summary",
+                createdAt: new Date().toISOString(),
+                subject: "",
+                topic: "",
+                grade: "",
+                curriculum: "",
+                learnedContext: ctx
+            },
+            ...presets
+        ].slice(0, 30);
+        saveMaterialsStore(store);
+    }
+
     function loadMaterialsFromStorage() {
+        ensureLegacyPreset();
         const store = getMaterialsStore();
         learnedContext = String(store.learnedContext || "").trim();
         if (learnedContext) {
