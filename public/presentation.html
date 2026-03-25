@@ -144,7 +144,7 @@
     #pdfHost { position: fixed; left: -99999px; top: 0; width: 1280px; }
   </style>
 </head>
-<body>
+<body style="background-image: url(background.png);">
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -154,20 +154,23 @@
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
           <button id="accountBtn" type="button" class="history-delete" title="Account">⚙️</button>
-          <button id="clearHistoryBtn" type="button" class="history-delete" title="Clear selection">Clear</button>
+          <button id="clearHistoryBtn" type="button" class="history-delete" title="Clear selection" style="display:none;"></button>
         </div>
       </div>
       <div id="historyList" class="history-list"></div>
     </aside>
 
     <div class="container">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <img src="favicon.png" style="width: 160px;" alt="Quiz-Wiz logo" />
-        <div>
-          <h1 style="margin:0;">Presentation Maker</h1>
-          <div style="color: var(--muted); font-weight: 700;">Generate with Groq → auto-export PDF from history</div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+            <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
+            <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
         </div>
-      </div>
+         <h1 id="mobile1">Quiz-Wiz</h1>
+         <h3 id="mobile2">Worksheets Empowered</h3>
+        <div style="text-align: right;">
+            <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin, Vaibhav, Vyom and Marshal</h3>
+            <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+        </div>
 
       <div class="tabs">
         <a class="tab" href="index.html">Personalized Tests</a>
@@ -175,7 +178,7 @@
         <a class="tab" href="image.html">Worksheet Marker</a>
         <a class="tab active" href="presentation.html">Presentation Maker</a>
       </div>
-      <hr style="border-color: var(--border);" />
+      <hr>
 
       <div class="form-grid">
         <div class="field">
@@ -257,6 +260,29 @@
   </div>
 
   <script>
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
+
+if (isMobile()) {
+    const banner = document.getElementById("bottom-bar");
+    banner.remove();
+    const logo = document.getElementById("title");
+    logo.remove();
+  console.log("User is on mobile");
+
+} else {
+    const mobile1 = document.getElementById("mobile1");
+    const mobile2 = document.getElementById("mobile2");
+    mobile1.remove();
+    mobile2.remove();
+  console.log("User is on desktop");
+}
+</script>
+
+<script>
+
+
     const previewFrame = document.getElementById("previewFrame");
     const statusEl = document.getElementById("status");
     const genBtn = document.getElementById("genBtn");
