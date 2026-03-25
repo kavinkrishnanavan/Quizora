@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz-Wiz — Presentation Maker</title>
+  <link rel="icon" type="image/png" href="favicon_2.png" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --status-bg: #eff6ff;
+      --status-text: #2563eb;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1220;
+        --card: #0f172a;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --border: #263145;
+        --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+        --status-bg: rgba(37, 99, 235, 0.18);
+        --status-text: #93c5fd;
+      }
+    }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .app-shell {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      gap: 24px;
+      padding: 20px;
+      align-items: flex-start;
+    }
+
+    .container {
+      flex: 1;
+      max-width: 980px;
+      background: var(--card);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    @media (max-width: 1100px) {
+      .app-shell { flex-direction: column; }
+      .container { max-width: 100%; }
+    }
+
+    .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
+    .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
+    .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    label { color: var(--muted); font-weight: 700; font-size: 0.92rem; }
+    input, select, textarea {
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: inherit;
+      outline: none;
+    }
+    textarea { resize: vertical; min-height: 110px; }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+    button {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button.primary { background: var(--primary); border-color: transparent; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+
+    .status {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--status-bg);
+      color: var(--status-text);
+      border: 1px solid rgba(37, 99, 235, 0.22);
+      font-weight: 700;
+    }
+
+    .preview-wrap { margin-top: 18px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    iframe { width: 100%; height: 720px; border: 0; background: white; }
+    .hint { color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
+
+    /* Hidden host used for PDF rendering */
+    #pdfHost { position: fixed; left: -99999px; top: 0; width: 1280px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="container">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <img src="favicon.png" style="width: 160px;" alt="Quiz-Wiz logo" />
+        <div>
+          <h1 style="margin:0;">Presentation Maker</h1>
+          <div style="color: var(--muted); font-weight: 700;">Generate HTML with Groq → export to PDF</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <a class="tab" href="index.html">Personalized Tests</a>
+        <a class="tab" href="baseline.html">Baseline Test</a>
+        <a class="tab" href="image.html">Worksheet Marker</a>
+        <a class="tab active" href="presentation.html">Presentation Maker</a>
+      </div>
+      <hr style="border-color: var(--border);" />
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Topic</label>
+          <input id="topic" placeholder="e.g. Linear Equations" value="Linear Equations" />
+        </div>
+        <div class="field">
+          <label>Audience</label>
+          <input id="audience" placeholder="e.g. Grade 9 (KSSM)" value="Grade 9 (KSSM)" />
+        </div>
+        <div class="field">
+          <label>Slides</label>
+          <input id="slideCount" type="number" min="3" max="20" value="8" />
+        </div>
+        <div class="field">
+          <label>Tone</label>
+          <select id="tone">
+            <option selected>Clear, student-friendly</option>
+            <option>Exam-focused</option>
+            <option>Fun and engaging</option>
+            <option>Concise and formal</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Extra instructions (optional)</label>
+          <textarea id="extra" placeholder="e.g. Include 1 real-world example and 1 common mistake slide."></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="genBtn" type="button">Generate Presentation</button>
+        <button id="downloadHtmlBtn" type="button" disabled>Download HTML</button>
+        <button id="downloadPdfBtn" type="button" disabled>Download PDF</button>
+      </div>
+
+      <div id="status" class="status">Ready.</div>
+      <div class="hint">Tip: If PDF export looks blurry, regenerate and try again (it uses canvas rendering).</div>
+
+      <div class="preview-wrap">
+        <iframe id="previewFrame" title="Presentation preview"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfHost" aria-hidden="true"></div>
+  <style id="pdfDeckStyle"></style>
+
+  <script>
+    const previewFrame = document.getElementById("previewFrame");
+    const statusEl = document.getElementById("status");
+    const genBtn = document.getElementById("genBtn");
+    const downloadHtmlBtn = document.getElementById("downloadHtmlBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const pdfHost = document.getElementById("pdfHost");
+    const pdfDeckStyle = document.getElementById("pdfDeckStyle");
+
+    let lastDeck = null;
+    let lastHtml = "";
+    let lastFilename = "Presentation";
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function sanitizeFilename(name) {
+      return String(name || "Presentation")
+        .replace(/[\\/:*?"<>|]+/g, "-")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 120);
+    }
+
+    function buildDeckHtml(deck) {
+      const title = escapeHtml(deck?.title || "Presentation");
+      const subtitle = escapeHtml(deck?.subtitle || "");
+      const slides = Array.isArray(deck?.slides) ? deck.slides : [];
+
+      const slideEls = slides.map((slide, idx) => {
+        const heading = escapeHtml(slide?.heading || `Slide ${idx + 1}`);
+        const bullets = Array.isArray(slide?.bullets) ? slide.bullets : [];
+        const bulletsHtml = bullets.length
+          ? `<ul class="bullets">${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`
+          : "";
+        const notes = String(slide?.speakerNotes || "").trim();
+        const visual = String(slide?.visualHint || "").trim();
+
+        const metaRight = visual ? `<div class="visual">${escapeHtml(visual)}</div>` : "";
+        const notesHtml = notes ? `<aside class="notes">${escapeHtml(notes)}</aside>` : "";
+
+        const isTitle = idx === 0;
+        const titleBlock = isTitle
+          ? `<div class="title">
+              <div class="kicker">Quiz-Wiz Presentation</div>
+              <h1>${title}</h1>
+              ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
+            </div>`
+          : `<h2>${heading}</h2>`;
+
+        return `
+          <section class="slide ${isTitle ? "is-title" : ""}">
+            <div class="slide-inner">
+              <div class="top">
+                ${titleBlock}
+                ${!isTitle && subtitle ? `<div class="deck-subtitle">${subtitle}</div>` : ""}
+              </div>
+              <div class="middle">
+                ${!isTitle ? bulletsHtml : ""}
+              </div>
+              <div class="bottom">
+                <div class="footer">
+                  <span class="page">${idx + 1} / ${slides.length}</span>
+                  <span class="topic">${title}</span>
+                </div>
+                ${metaRight}
+              </div>
+              ${notesHtml}
+            </div>
+          </section>
+        `;
+      }).join("");
+
+      const css = `
+        .deck {
+          font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+          width: 1280px;
+          background: #0b1220;
+        }
+        .deck .slide {
+          width: 1280px;
+          height: 720px;
+          box-sizing: border-box;
+          padding: 56px;
+          margin: 0;
+          background: radial-gradient(1200px 720px at 10% 10%, rgba(37, 99, 235, 0.35), transparent 55%),
+                      radial-gradient(900px 600px at 90% 10%, rgba(16, 185, 129, 0.22), transparent 50%),
+                      linear-gradient(180deg, #0b1220, #0f172a);
+          color: #e2e8f0;
+          border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+          page-break-after: always;
+          position: relative;
+        }
+        .deck .slide-inner { height: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+        .deck .kicker { font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; font-size: 12px; color: rgba(226, 232, 240, 0.72); }
+        .deck h1 { margin: 10px 0 6px; font-size: 56px; line-height: 1.05; }
+        .deck .subtitle { font-size: 22px; color: rgba(226, 232, 240, 0.8); font-weight: 700; }
+        .deck h2 { margin: 0; font-size: 42px; line-height: 1.1; }
+        .deck .deck-subtitle { margin-top: 10px; color: rgba(226, 232, 240, 0.7); font-weight: 700; }
+        .deck .bullets { margin: 0; padding-left: 28px; font-size: 28px; line-height: 1.25; }
+        .deck .bullets li { margin: 14px 0; }
+        .deck .footer { display: flex; justify-content: space-between; gap: 18px; font-weight: 800; font-size: 14px; color: rgba(226, 232, 240, 0.7); }
+        .deck .visual { margin-top: 10px; font-size: 13px; color: rgba(148, 163, 184, 0.92); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 10px 12px; }
+        .deck .notes { display: none; }
+      `.trim();
+
+      return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${title}</title>
+  <style>${css}</style>
+</head>
+<body>
+  <div class="deck">${slideEls}</div>
+</body>
+</html>`;
+    }
+
+    function downloadBytes(bytes, filename, type) {
+      const blob = new Blob([bytes], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function generate() {
+      genBtn.disabled = true;
+      downloadHtmlBtn.disabled = true;
+      downloadPdfBtn.disabled = true;
+      statusEl.textContent = "Generating with Groq…";
+
+      try {
+        const topic = document.getElementById("topic").value.trim();
+        const audience = document.getElementById("audience").value.trim();
+        const slideCount = Number.parseInt(document.getElementById("slideCount").value, 10) || 8;
+        const tone = document.getElementById("tone").value.trim();
+        const extra = document.getElementById("extra").value.trim();
+
+        const res = await fetch("/.netlify/functions/presentation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, audience, slideCount, tone, extra })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+        if (!data?.deck) throw new Error("No deck returned.");
+
+        lastDeck = data.deck;
+        lastHtml = buildDeckHtml(lastDeck);
+        lastFilename = sanitizeFilename(lastDeck?.title || topic || "Presentation");
+
+        previewFrame.srcdoc = lastHtml;
+        pdfHost.innerHTML = "";
+        pdfDeckStyle.textContent = "";
+
+        statusEl.textContent = `Done: ${lastDeck?.title || topic}`;
+        downloadHtmlBtn.disabled = false;
+        downloadPdfBtn.disabled = false;
+      } catch (err) {
+        statusEl.textContent = "Error: " + (err?.message || "Unable to generate");
+        previewFrame.srcdoc = "";
+        pdfHost.innerHTML = "";
+      } finally {
+        genBtn.disabled = false;
+      }
+    }
+
+    async function downloadPdf() {
+      if (!lastHtml) return;
+      downloadPdfBtn.disabled = true;
+      statusEl.textContent = "Rendering PDF…";
+
+      try {
+        const hostDoc = new DOMParser().parseFromString(lastHtml, "text/html");
+        const styleText = hostDoc.querySelector("style")?.textContent || "";
+        const deckEl = hostDoc.querySelector(".deck") || hostDoc.body;
+        if (!deckEl) throw new Error("Deck element not found.");
+
+        // Render using a live element so html2canvas can measure layout.
+        pdfHost.innerHTML = "";
+        pdfDeckStyle.textContent = styleText;
+        pdfHost.appendChild(deckEl);
+
+        const opt = {
+          margin: 0,
+          filename: `${lastFilename}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, backgroundColor: "#0b1220" },
+          jsPDF: { unit: "px", format: [1280, 720], orientation: "landscape" },
+          pagebreak: { mode: ["css", "legacy"] }
+        };
+
+        await html2pdf().set(opt).from(deckEl).save();
+        statusEl.textContent = "PDF downloaded.";
+      } catch (err) {
+        statusEl.textContent = "PDF error: " + (err?.message || "Unable to export");
+      } finally {
+        pdfHost.innerHTML = "";
+        pdfDeckStyle.textContent = "";
+        downloadPdfBtn.disabled = false;
+      }
+    }
+
+    genBtn.addEventListener("click", generate);
+    downloadHtmlBtn.addEventListener("click", () => downloadBytes(lastHtml, `${lastFilename}.html`, "text/html"));
+    downloadPdfBtn.addEventListener("click", downloadPdf);
+  </script>
+</body>
+</html>
