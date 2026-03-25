@@ -201,19 +201,6 @@
         .replaceAll("'", "&#39;");
     }
 
-    function isSafeImageUrl(url) {
-      const u = String(url || "").trim();
-      if (!/^https?:\/\//i.test(u)) return false;
-      if (/^data:/i.test(u)) return false;
-      try { new URL(u); return true; } catch { return false; }
-    }
-
-    function toProxiedImageUrl(url) {
-      const u = String(url || "").trim();
-      if (!isSafeImageUrl(u)) return "";
-      return "/.netlify/functions/imgproxy?url=" + encodeURIComponent(u);
-    }
-
     function sanitizeFilename(name) {
       return String(name || "Presentation")
         .replace(/[\\/:*?"<>|]+/g, "-")
@@ -231,45 +218,12 @@
         const heading = escapeHtml(slide?.heading || `Slide ${idx + 1}`);
         const bullets = Array.isArray(slide?.bullets) ? slide.bullets : [];
         const paragraphs = Array.isArray(slide?.paragraphs) ? slide.paragraphs : [];
-        const imageUrlsRaw = Array.isArray(slide?.imageUrls) ? slide.imageUrls : [];
-        const imageUrls = imageUrlsRaw
-          .map(String)
-          .map((s) => s.trim())
-          .filter(isSafeImageUrl)
-          .slice(0, 2);
 
         const paragraphsHtml = paragraphs.length
           ? paragraphs.slice(0, 3).map(p => `<p class="para">${escapeHtml(p)}</p>`).join("")
           : "";
         const bulletsHtml = bullets.length
           ? `<ul class="bullets">${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`
-          : "";
-        const imagesHtml = imageUrls.length
-          ? `<div class="images">
-              ${imageUrls
-                .map((u) => {
-                  const proxyUrl = toProxiedImageUrl(u);
-                  return `
-                    <div class="img-wrap">
-                      <img
-                        class="slide-img"
-                        src="${escapeHtml(proxyUrl || u)}"
-                        alt="Slide image"
-                        loading="lazy"
-                        decoding="async"
-                        crossorigin="anonymous"
-                        referrerpolicy="no-referrer"
-                        onerror="this.style.display='none'; var fb=this.parentElement&&this.parentElement.querySelector('.img-fallback'); if(fb){fb.style.display='block';}"
-                      >
-                      <div class="img-fallback" style="display:none;">
-                        Image failed to load
-                        <div class="img-url">${escapeHtml(u)}</div>
-                      </div>
-                    </div>
-                  `;
-                })
-                .join("")}
-            </div>`
           : "";
 
         const notes = String(slide?.speakerNotes || "").trim();
@@ -292,12 +246,11 @@
               ${paragraphsHtml}
               ${bulletsHtml}
             </div>`
-          : `<div class="content-grid ${imagesHtml ? "has-images" : ""}">
+          : `<div class="content-grid">
               <div class="text">
                 ${paragraphsHtml}
                 ${bulletsHtml}
               </div>
-              ${imagesHtml}
             </div>`;
 
         return `
@@ -359,33 +312,7 @@
         .deck .bullets { margin: 8px 0 0; padding-left: 28px; font-size: 26px; line-height: 1.2; }
         .deck .bullets li { margin: 12px 0; }
         .deck .content-grid { display: grid; grid-template-columns: 1fr; gap: 18px; height: 100%; align-content: start; }
-        .deck .content-grid.has-images { grid-template-columns: 1.15fr 0.85fr; }
         .deck .text { min-width: 0; }
-        .deck .images { display: grid; gap: 12px; align-content: start; }
-        .deck .img-wrap { display: grid; gap: 10px; }
-        .deck .slide-img {
-          width: 100%;
-          height: auto;
-          aspect-ratio: 16 / 9;
-          max-height: 280px;
-          object-fit: cover;
-          border-radius: 16px;
-          border: 1px solid rgba(148, 163, 184, 0.22);
-          background: rgba(148, 163, 184, 0.08);
-        }
-        .deck .img-fallback {
-          font-size: 14px;
-          color: rgba(148, 163, 184, 0.95);
-          border: 1px dashed rgba(148, 163, 184, 0.35);
-          border-radius: 14px;
-          padding: 14px;
-        }
-        .deck .img-url {
-          margin-top: 8px;
-          font-size: 12px;
-          color: rgba(148, 163, 184, 0.9);
-          word-break: break-word;
-        }
         .deck .footer { display: flex; justify-content: space-between; gap: 18px; font-weight: 800; font-size: 14px; color: rgba(226, 232, 240, 0.7); }
         .deck .visual { margin-top: 10px; font-size: 13px; color: rgba(148, 163, 184, 0.92); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 10px 12px; }
         .deck .notes { display: none; }
@@ -476,32 +403,11 @@
         pdfDeckStyle.textContent = styleText;
         pdfHost.appendChild(deckEl);
 
-        const waitForImages = async (root, timeoutMs) => {
-          const imgs = Array.from(root.querySelectorAll("img"));
-          if (!imgs.length) return;
-          await Promise.race([
-            Promise.all(
-              imgs.map(
-                (img) =>
-                  new Promise((resolve) => {
-                    if (img.complete) return resolve();
-                    const done = () => resolve();
-                    img.addEventListener("load", done, { once: true });
-                    img.addEventListener("error", done, { once: true });
-                  })
-              )
-            ),
-            new Promise((resolve) => setTimeout(resolve, timeoutMs)),
-          ]);
-        };
-
-        await waitForImages(deckEl, 12000);
-
         const opt = {
           margin: 0,
           filename: `${lastFilename}.pdf`,
           image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, backgroundColor: "#0b1220", useCORS: true, allowTaint: false, imageTimeout: 15000 },
+          html2canvas: { scale: 2, backgroundColor: "#0b1220" },
           jsPDF: { unit: "px", format: [1280, 720], orientation: "landscape" },
           pagebreak: { mode: ["css", "avoid-all"], before: ".slide + .slide" }
         };
