@@ -62,7 +62,11 @@ ${schema}
 3) "slides" must have exactly ${slideCount} items.
 4) Each slide must have 1-3 "paragraphs" (40-90 words each), unless it's a title slide (then paragraphs can be []).
 5) Each slide can have 0-6 bullets; keep bullets short (<= 12 words each) and concrete.
-6) Each slide can have 0-2 "imageUrls" that are direct http(s) image URLs that an <img src="..."> can load (for example images.unsplash.com or links ending in .jpg/.png/.webp). No data: URLs.
+6) Each slide can have 0-2 "imageUrls" that are direct http(s) image URLs that an <img src="..."> can load.
+   Prefer reliable sources like:
+   - https://images.unsplash.com/...
+   - https://source.unsplash.com/featured/?<keywords> (this is a direct image redirect)
+   Avoid Google Images result pages or sites that require login. No data: URLs.
 7) Avoid repeating the same bullet or paragraph idea across slides.
 8) Use safe plain text only. Do not include links inside paragraphs/bullets. Put images only in "imageUrls".`;
 

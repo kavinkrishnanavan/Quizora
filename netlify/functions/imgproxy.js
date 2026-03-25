@@ -23,6 +23,8 @@ exports.handler = async (event) => {
         // Many CDNs require a UA; keep it simple.
         "User-Agent": "Quiz-Wiz-ImgProxy/1.0",
         Accept: "image/*,*/*;q=0.8",
+        // Some hosts block requests with no referer; sending the same origin is usually acceptable.
+        Referer: "https://quiz-wiz.local/",
       },
     });
 
@@ -73,4 +75,3 @@ exports.handler = async (event) => {
     };
   }
 };
-

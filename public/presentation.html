@@ -340,8 +340,13 @@
                       linear-gradient(180deg, #0b1220, #0f172a);
           color: #e2e8f0;
           border-bottom: 1px solid rgba(148, 163, 184, 0.08);
-          page-break-after: always;
           position: relative;
+          break-inside: avoid-page;
+          page-break-inside: avoid;
+        }
+        .deck .slide + .slide {
+          break-before: page;
+          page-break-before: always;
         }
         .deck .slide-inner { height: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
         .deck .middle { flex: 1; overflow: hidden; }
@@ -360,7 +365,9 @@
         .deck .img-wrap { display: grid; gap: 10px; }
         .deck .slide-img {
           width: 100%;
-          height: 240px;
+          height: auto;
+          aspect-ratio: 16 / 9;
+          max-height: 280px;
           object-fit: cover;
           border-radius: 16px;
           border: 1px solid rgba(148, 163, 184, 0.22);
@@ -496,7 +503,7 @@
           image: { type: "jpeg", quality: 0.98 },
           html2canvas: { scale: 2, backgroundColor: "#0b1220", useCORS: true, allowTaint: false, imageTimeout: 15000 },
           jsPDF: { unit: "px", format: [1280, 720], orientation: "landscape" },
-          pagebreak: { mode: ["css", "legacy"] }
+          pagebreak: { mode: ["css", "avoid-all"], before: ".slide + .slide" }
         };
 
         await html2pdf().set(opt).from(deckEl).save();
