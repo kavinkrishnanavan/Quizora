@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz-Wiz</title>
+  <link rel="icon" type="image/png" href="favicon_2.png">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --primary: #2563eb;
+      --bg: #0b1220;
+      --card: #0f172a;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #263145;
+      --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+      --status-bg: rgba(37, 99, 235, 0.18);
+      --status-text: #93c5fd;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #1e293b;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --status-bg: #eff6ff;
+        --status-text: #2563eb;
+      }
+    }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      background-image: url("background.png");
+    }
+
+    a { color: var(--primary); }
+
+    .topbar { position: sticky; top: 0; z-index: 10003; background: rgba(15, 23, 42, 0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
+    @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
+    .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
+    .brand img { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(127,127,127,0.2); }
+    .global-search { flex: 1; min-width: 180px; max-width: 560px; }
+    .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
+    .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+    .topnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .topnav-link { text-decoration: none; padding: 9px 12px; border: 1px solid transparent; border-radius: 999px; color: inherit; font-weight: 800; background: transparent; }
+    .topnav-link:hover { background: rgba(127,127,127,0.08); border-color: rgba(127,127,127,0.18); }
+    .topnav-link.active { background: rgba(37, 99, 235, 0.14); border-color: rgba(37, 99, 235, 0.35); }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .topbar-btn { padding: 9px 12px; margin-top: 0; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; font-weight: 800; cursor: pointer; }
+    .topbar-btn:hover { background: rgba(127,127,127,0.12); }
+    .icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 999px; }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 22px 16px 80px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; margin-top: 18px; }
+    .title { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .title h1 { margin: 0; font-size: 1.6rem; }
+    .subtitle { color: var(--muted); margin-top: 6px; }
+    .pill-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 999px; border: 1px solid var(--border); text-decoration: none; color: inherit; background: rgba(127,127,127,0.06); font-weight: 800; }
+    .pill:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.10); }
+    h2 { margin: 0 0 8px 0; font-size: 1.2rem; }
+    h3 { margin: 16px 0 8px 0; font-size: 1.05rem; }
+    ul { margin: 10px 0 0 18px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.95em; }
+    .note { margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--status-bg); color: var(--status-text); }
+
+    .account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
+    .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+    .account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    label { color: var(--muted); font-weight: 700; font-size: 0.92rem; }
+    input { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; }
+    button { background: var(--primary); color: white; padding: 12px 14px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
+        <img src="favicon_2.png" alt="Quiz-Wiz">
+        <span>Quiz-Wiz</span>
+      </a>
+      <div class="global-search">
+        <input id="globalSearch" type="search" placeholder="Search pages…" autocomplete="off">
+      </div>
+      <nav class="topnav" aria-label="Primary navigation">
+        <a class="topnav-link" href="index.html">Personalized</a>
+        <a class="topnav-link" href="baseline.html">Baseline</a>
+        <a class="topnav-link" href="image.html">Marker</a>
+        <a class="topnav-link" href="presentation.html">Notes</a>
+        <a class="topnav-link active" href="documentation.html">Docs</a>
+      </nav>
+      <div class="topbar-actions">
+        <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
+        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account">⚙️</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <div class="title">
+        <h1>Quiz-Wiz Documentation</h1>
+      </div>
+      <div class="subtitle">Quick instructions for teachers to generate worksheets, host quizzes, mark worksheets, and create notes.</div>
+      <div class="pill-row">
+        <a class="pill" href="#personalized">Personalized</a>
+        <a class="pill" href="#baseline">Baseline</a>
+        <a class="pill" href="#marker">Marker</a>
+        <a class="pill" href="#notes">Notes</a>
+        <a class="pill" href="#account">Account</a>
+        <a class="pill" href="#troubleshooting">Troubleshooting</a>
+      </div>
+      <div class="note">
+        Tip: Click the tabs in the top bar (like Hugging Face) to switch between features.
+      </div>
+    </section>
+
+    <section class="card" id="personalized">
+      <h2>Personalized Tests</h2>
+      <div class="subtitle">Generate individualized worksheets for each student from a CSV/Excel list.</div>
+      <h3>Steps</h3>
+      <ul>
+        <li>Open <a href="index.html">Personalized</a>.</li>
+        <li>Fill in <b>Subject</b>, <b>Topic</b>, <b>Grade</b>, <b>Curriculum</b>, and the total marks.</li>
+        <li>Choose <b>Questions per student</b> and <b>Question style</b> (Blank lines or MCQ).</li>
+        <li>Upload a student list using the CSV/Excel upload.</li>
+        <li>Click <b>Generate Worksheets</b>.</li>
+      </ul>
+      <h3>Hosting (optional)</h3>
+      <ul>
+        <li>Sign in (⚙️) to enable hosted quizzes.</li>
+        <li>After generation, use <b>Host Quiz for All</b> to create links/codes for students.</li>
+        <li>Students open the provided link (it loads <code>quiz.html</code>) and submit answers.</li>
+      </ul>
+    </section>
+
+    <section class="card" id="baseline">
+      <h2>Baseline Test</h2>
+      <div class="subtitle">Create a baseline assessment where students enter their name and answer on their own.</div>
+      <h3>Steps</h3>
+      <ul>
+        <li>Open <a href="baseline.html">Baseline</a>.</li>
+        <li>Set the topic/grade/curriculum and total marks.</li>
+        <li>Click <b>Generate Baseline</b> (or the main generate button on that page).</li>
+        <li>Sign in to host and track results.</li>
+      </ul>
+    </section>
+
+    <section class="card" id="marker">
+      <h2>Worksheet Marker</h2>
+      <div class="subtitle">Upload one or more worksheet images and generate marks/feedback.</div>
+      <h3>Steps</h3>
+      <ul>
+        <li>Open <a href="image.html">Marker</a>.</li>
+        <li>Enter the test name, student name, and marks out of.</li>
+        <li>Upload worksheet images (multiple images supported).</li>
+        <li>Use zoom controls to inspect the image.</li>
+        <li>Click <b>Mark Worksheet</b> to generate results.</li>
+      </ul>
+    </section>
+
+    <section class="card" id="notes">
+      <h2>Notes Maker</h2>
+      <div class="subtitle">Generate structured notes/slides for a topic and export as PDF.</div>
+      <h3>Steps</h3>
+      <ul>
+        <li>Open <a href="presentation.html">Notes</a>.</li>
+        <li>Set the topic, audience, slide count, and tone.</li>
+        <li>Click <b>Generate Presentation</b>.</li>
+        <li>Use <b>Download PDF</b> once it’s ready.</li>
+      </ul>
+    </section>
+
+    <section class="card" id="account">
+      <h2>Account, History, and Sign Out</h2>
+      <ul>
+        <li>Click ⚙️ in the top bar to sign in/sign up.</li>
+        <li>When signed in, features like history and hosting become available on supported pages.</li>
+        <li>Use <b>Sign Out</b> in the top bar to log out everywhere (universal logout).</li>
+      </ul>
+    </section>
+
+    <section class="card" id="troubleshooting">
+      <h2>Troubleshooting</h2>
+      <ul>
+        <li><b>Sign in says “Firebase config missing”</b>: ensure the Netlify env var <code>FIREBASE_WEB_CONFIG_JSON</code> is set.</li>
+        <li><b>History doesn’t load</b>: sign in first, then refresh the page and open the history sidebar.</li>
+        <li><b>Student link not working</b>: confirm the hosted link includes <code>quizId</code> and <code>code</code> query parameters.</li>
+      </ul>
+    </section>
+  </main>
+
+  <div id="accountModal" class="account-modal">
+    <div class="account-backdrop" id="accountBackdrop"></div>
+    <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+      <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <div id="accountTitle" style="font-weight: 900; font-size: 1.1rem;">Account</div>
+          <div style="color: var(--muted); font-size: 0.9rem;" id="authStatus">Enter email and password to sign in.</div>
+        </div>
+        <button type="button" id="accountClose" class="topbar-btn" aria-label="Close" style="width:auto; padding: 8px 10px;">X</button>
+      </div>
+
+      <div id="accountSignedOut" style="display:none;">
+        <div class="field">
+          <label>Email</label>
+          <input id="authEmail" type="email" placeholder="teacher@school.edu">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+        </div>
+        <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+          <button type="button" id="signUpBtn">Create Account</button>
+          <button type="button" id="signInBtn">Sign In</button>
+        </div>
+      </div>
+
+      <div id="accountSignedIn" style="display:none;">
+        <div style="color: var(--muted); font-size: 0.9rem;">Signed in as</div>
+        <div id="accountEmailDisplay" style="font-weight: 900; margin-bottom: 12px;"></div>
+        <button type="button" id="signOutBtn" class="topbar-btn" style="background: transparent; color: inherit;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="login.js"></script>
+
+  <script>
+    (function () {
+      var input = document.getElementById("globalSearch");
+      if (!input) return;
+      input.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter") return;
+        var q = String(input.value || "").trim().toLowerCase();
+        if (!q) return;
+        var map = [
+          { k: ["personal", "personalized", "worksheet", "worksheets", "test"], url: "index.html" },
+          { k: ["baseline", "base"], url: "baseline.html" },
+          { k: ["marker", "mark", "image", "worksheet marker"], url: "image.html" },
+          { k: ["notes", "presentation", "slides"], url: "presentation.html" },
+          { k: ["docs", "documentation", "help"], url: "documentation.html" }
+        ];
+        for (var i = 0; i < map.length; i++) {
+          for (var j = 0; j < map[i].k.length; j++) {
+            if (q.includes(map[i].k[j])) {
+              window.location.href = map[i].url;
+              return;
+            }
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
+
