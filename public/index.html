@@ -465,6 +465,8 @@
     </div>
 </div>
 
+<script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
@@ -1048,7 +1050,7 @@ if (isMobile()) {
         const blooketBtn = document.createElement("button");
         blooketBtn.type = "button";
         blooketBtn.className = "download-link";
-        blooketBtn.innerText = "Export To Blooket";
+        blooketBtn.innerHTML = "<i class='fa-solid fa-file-csv'></i>Export To Blooket";
         blooketBtn.onclick = () => {
             const csv = buildBlooketCsv(quiz, meta);
             const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
@@ -1127,16 +1129,7 @@ if (isMobile()) {
                 }
             };
 
-            const blooketBtn = document.createElement("button");
-            blooketBtn.type = "button";
-            blooketBtn.className = "quiz-link secondary";
-            blooketBtn.style.marginTop = "0";
-            blooketBtn.innerText = "Export To Blooket";
-            blooketBtn.onclick = () => {
-                const csv = buildBlooketCsv(quiz, meta);
-                const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
-                downloadCsv(csv, `${sanitizeFilename(label)} - Blooket.csv`);
-            };
+            
 
             row.appendChild(openBtn);
             row.appendChild(copyBtn);
