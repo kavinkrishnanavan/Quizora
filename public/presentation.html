@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="login.js"></script>
   <style>
     :root {
       color-scheme: light dark;
@@ -83,6 +84,13 @@
     .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
     .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
     .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
+    button.tab { font-family: inherit; }
+    .tab-button { cursor: pointer; }
+
+    header.page-header { display: grid; gap: 10px; margin-bottom: 10px; }
+    .page-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .header-icon-btn { padding: 8px 10px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
 
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
     .field { display: flex; flex-direction: column; gap: 8px; }
@@ -153,7 +161,6 @@
           <div class="sidebar-subtitle">Reload previous notes.</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button id="accountBtn" type="button" class="history-delete" title="Account">⚙️</button>
           <button id="clearHistoryBtn" type="button" class="history-delete" title="Clear selection" style="display:none;"></button>
         </div>
       </div>
@@ -161,23 +168,31 @@
     </aside>
 
     <div class="container">
-      <div style="display: flex; align-items: center; gap: 10px;">
-            <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
-            <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
+      <header class="page-header">
+        <div class="page-header-top">
+          <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
+                <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
+            </div>
+            <div class="header-actions">
+              <button type="button" id="accountBtn" class="header-icon-btn" title="Account">⚙️</button>
+            </div>
         </div>
-         <h1 id="mobile1">Quiz-Wiz</h1>
-         <h3 id="mobile2">Worksheets Empowered</h3>
+        <h1 id="mobile1">Quiz-Wiz</h1>
+        <h3 id="mobile2">Worksheets Empowered</h3>
         <div style="text-align: right;">
-            <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
-            <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
-        </div>
+                <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
+                <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+            </div>
 
-      <div class="tabs">
-        <a class="tab" href="index.html">Personalized Tests</a>
-        <a class="tab" href="baseline.html">Baseline Test</a>
-        <a class="tab" href="image.html">Worksheet Marker</a>
-        <a class="tab active" href="presentation.html">Notes Maker</a>
-      </div>
+        <nav class="tabs" aria-label="Primary navigation">
+          <a class="tab" href="index.html">Personalized Tests</a>
+          <a class="tab" href="baseline.html">Baseline Test</a>
+          <a class="tab" href="image.html">Worksheet Marker</a>
+          <a class="tab active" href="presentation.html">Notes Maker</a>
+          <button type="button" id="navSignOutBtn" class="tab tab-button" hidden>Sign Out</button>
+        </nav>
+      </header>
       <hr>
 
       <div class="form-grid">
@@ -266,16 +281,16 @@ function isMobile() {
 
 if (isMobile()) {
     const banner = document.getElementById("bottom-bar");
-    banner.remove();
+    if (banner) banner.remove();
     const logo = document.getElementById("title");
-    logo.remove();
+    if (logo) logo.remove();
   console.log("User is on mobile");
 
 } else {
     const mobile1 = document.getElementById("mobile1");
     const mobile2 = document.getElementById("mobile2");
-    mobile1.remove();
-    mobile2.remove();
+    if (mobile1) mobile1.remove();
+    if (mobile2) mobile2.remove();
   console.log("User is on desktop");
 }
 </script>
@@ -380,36 +395,41 @@ if (isMobile()) {
     }
 
     async function initFirebase() {
-      if (!window.firebase || !firebase?.initializeApp) return;
-      try {
-        const res = await fetch("/.netlify/functions/firebase-config");
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.config) throw new Error(data?.error || "Missing Firebase config");
-        firebase.initializeApp(data.config);
-        firebaseReady = true;
-        firebase.auth().onAuthStateChanged(async (user) => {
-          updateAuthUi(user);
-          if (user) {
-            await loadHistory();
-            if (pendingLoadId) {
-              const id = pendingLoadId;
-              pendingLoadId = "";
-              loadHistoryItem(id, { autoPdf: true });
-            }
-          } else {
-            renderHistoryList([]);
-          }
-        });
-      } catch (err) {
+      if (!window.QuizWizAuth) {
         firebaseReady = false;
         updateAuthUi(null);
         renderHistoryList([]);
+        return;
       }
+
+      try {
+        await QuizWizAuth.init();
+        firebaseReady = true;
+      } catch (_) {
+        firebaseReady = false;
+        updateAuthUi(null);
+        renderHistoryList([]);
+        return;
+      }
+
+      QuizWizAuth.onChange(async (user) => {
+        updateAuthUi(user);
+        if (user) {
+          await loadHistory();
+          if (pendingLoadId) {
+            const id = pendingLoadId;
+            pendingLoadId = "";
+            loadHistoryItem(id, { autoPdf: true });
+          }
+        } else {
+          renderHistoryList([]);
+        }
+      });
     }
 
     async function getAuthToken() {
-      if (!firebaseReady || !firebase.auth().currentUser) return "";
-      return firebase.auth().currentUser.getIdToken();
+      if (!window.QuizWizAuth) return "";
+      return QuizWizAuth.getAuthToken();
     }
 
     async function signUp() {
@@ -785,12 +805,7 @@ if (isMobile()) {
       statusEl.textContent = "Cleared selection.";
     });
 
-    accountBtn?.addEventListener("click", openAccountModal);
-    accountBackdrop?.addEventListener("click", closeAccountModal);
-    accountClose?.addEventListener("click", closeAccountModal);
-    signUpBtn?.addEventListener("click", () => signUp().catch((e) => alert(e?.message || "Sign up failed.")));
-    signInBtn?.addEventListener("click", () => signIn().catch((e) => alert(e?.message || "Sign in failed.")));
-    signOutBtn?.addEventListener("click", () => signOut().catch((e) => alert(e?.message || "Sign out failed.")));
+    
 
     updateAuthUi(null);
     initFirebase();

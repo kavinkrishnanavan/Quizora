@@ -79,6 +79,13 @@
         .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
         .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
         .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
+        button.tab { font-family: inherit; }
+        .tab-button { cursor: pointer; }
+
+        header.page-header { display: grid; gap: 10px; margin-bottom: 10px; }
+        .page-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .header-actions { display: flex; align-items: center; gap: 10px; }
+        .header-icon-btn { padding: 8px 10px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
 
         #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
         .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
@@ -229,32 +236,37 @@
                 <div class="sidebar-title">Worksheet Generations</div>
                 <div class="sidebar-subtitle">Reload previous personalized tests.</div>
             </div>
-            <div class="portal-row">
-                <button type="button" id="accountBtn" style="padding: 8px 10px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">⚙️</button>
-            </div>
         </div>
         <div class="portal-meta" id="historyStatus"></div>
         <div id="historyList" class="history-list"></div>
     </aside>
 
     <div class="container">
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="favicon.png" class="zoom" style="width: 200px;" id="logo-bar">
-        <h1 id="title">Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
-    </div>
-    <h1 id="mobile1">Quiz-Wiz</h1>
-    <h3 id="mobile2">Worksheets Empowered</h3>
-    <div style="text-align: right;">
-    <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
-    <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
-</div>
+    <header class="page-header">
+        <div class="page-header-top">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="favicon.png" class="zoom" style="width: 200px;" id="logo-bar">
+                <h1 id="title">Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
+            </div>
+            <div class="header-actions">
+                <button type="button" id="accountBtn" class="header-icon-btn" title="Account">⚙️</button>
+            </div>
+        </div>
+        <h1 id="mobile1">Quiz-Wiz</h1>
+        <h3 id="mobile2">Worksheets Empowered</h3>
+        <div style="text-align: right;">
+            <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
+            <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+        </div>
 
-    <div class="tabs">
-        <a class="tab active" href="index.html">Personalized Tests</a>
-        <a class="tab" href="baseline.html">Baseline Test</a>
-        <a class="tab" href="image.html">Worksheet Marker</a>
-        <a class="tab" href="presentation.html">Notes Maker</a>
-    </div>
+        <nav class="tabs" aria-label="Primary navigation">
+            <a class="tab active" href="index.html">Personalized Tests</a>
+            <a class="tab" href="baseline.html">Baseline Test</a>
+            <a class="tab" href="image.html">Worksheet Marker</a>
+            <a class="tab" href="presentation.html">Notes Maker</a>
+            <button type="button" id="navSignOutBtn" class="tab tab-button" hidden>Sign Out</button>
+        </nav>
+    </header>
     <hr>
     <br>
     
@@ -287,7 +299,7 @@
             <select id="curriculum" style="color: grey;">
                 <option>KSSR</option><option selected>KSSM</option>
                 <option>IGCSE</option><option>IB</option><option>AP</option>
-                <option>ICSE</option><option>CBSE</option>
+                <option>ICSE</option><option>CBSE</option><option>Samacheer Kalvi</option>
             </select>
         </div>
         
@@ -471,6 +483,7 @@
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+<script src="login.js"></script>
 <script>
 
 function isMobile() {
@@ -607,27 +620,21 @@ if (isMobile()) {
     }
 
     async function initFirebase() {
-        if (!window.firebase || !firebase?.initializeApp) {
-            setAuthStatus("Firebase SDK not loaded.");
+        if (!window.QuizWizAuth) {
+            setAuthStatus("Login not loaded.");
             return;
         }
 
         try {
-            const res = await fetch("/.netlify/functions/firebase-config");
-            const data = await res.json().catch(() => null);
-            if (!res.ok || !data?.config) {
-                throw new Error(data?.error || "Missing Firebase config.");
-            }
-            FIREBASE_CONFIG = data.config;
+            await QuizWizAuth.init();
+            firebaseReady = true;
         } catch (err) {
-            setAuthStatus("Firebase config missing. Set FIREBASE_WEB_CONFIG_JSON.");
+            firebaseReady = false;
+            setAuthStatus(err?.message || "Firebase config missing. Set FIREBASE_WEB_CONFIG_JSON.");
             return;
         }
 
-        firebase.initializeApp(FIREBASE_CONFIG);
-        firebaseReady = true;
-
-        firebase.auth().onAuthStateChanged((user) => {
+        QuizWizAuth.onChange((user) => {
             currentUser = user || null;
             historyAutoLoaded = false;
             authChecked = true;
@@ -669,8 +676,8 @@ if (isMobile()) {
     }
 
     async function getAuthToken() {
-        if (!firebaseReady || !firebase.auth().currentUser) return "";
-        return firebase.auth().currentUser.getIdToken();
+        if (!window.QuizWizAuth) return "";
+        return QuizWizAuth.getAuthToken();
     }
 
     function buildHostedQuizLink(session, mode) {
@@ -1050,7 +1057,7 @@ if (isMobile()) {
         const blooketBtn = document.createElement("button");
         blooketBtn.type = "button";
         blooketBtn.className = "download-link";
-        blooketBtn.innerHTML = "<i class='fa-solid fa-file-csv'></i>Export To Blooket";
+        blooketBtn.innerHTML = "<i class='fa-solid fa-file-csv'></i> Export To Blooket";
         blooketBtn.onclick = () => {
             const csv = buildBlooketCsv(quiz, meta);
             const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
@@ -1401,14 +1408,8 @@ if (isMobile()) {
         await loadHistory();
     }
 
-    document.getElementById("signUpBtn")?.addEventListener("click", signUp);
-    document.getElementById("signInBtn")?.addEventListener("click", signIn);
-    document.getElementById("signOutBtn")?.addEventListener("click", signOut);
     document.getElementById("historyLoadBtn")?.addEventListener("click", loadHistory);
-    document.getElementById("accountBtn")?.addEventListener("click", openAccountModal);
     document.getElementById("hostAllBtn")?.addEventListener("click", hostQuizForAll);
-    document.getElementById("accountBackdrop")?.addEventListener("click", closeAccountModal);
-    document.getElementById("accountClose")?.addEventListener("click", closeAccountModal);
     document.getElementById("responsesClose")?.addEventListener("click", closeResponsesModal);
     document.getElementById("responsesBackdrop")?.addEventListener("click", closeResponsesModal);
     updateAuthUi(null);
