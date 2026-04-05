@@ -1,0 +1,16 @@
+button { 
+    background: var(--primary); 
+    color: white; 
+    padding: 16px; 
+    border: none; 
+    border-radius: 10px; 
+    font-weight: 700; 
+    cursor: pointer; 
+    margin-top: 10px; 
+}
+        
+button:disabled { 
+    background: #94a3b8; 
+    cursor: not-allowed; 
+}
+
