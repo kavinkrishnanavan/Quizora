@@ -303,26 +303,10 @@
     </div>
   </div>
 
-  <script>
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-}
+<footer class="bottombar">
+    <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
+</footer>
 
-if (isMobile()) {
-    const banner = document.getElementById("bottom-bar");
-    if (banner) banner.remove();
-    const logo = document.getElementById("title");
-    if (logo) logo.remove();
-  console.log("User is on mobile");
-
-} else {
-    const mobile1 = document.getElementById("mobile1");
-    const mobile2 = document.getElementById("mobile2");
-    if (mobile1) mobile1.remove();
-    if (mobile2) mobile2.remove();
-  console.log("User is on desktop");
-}
-</script>
 
 <script>
 

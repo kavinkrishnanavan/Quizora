@@ -102,16 +102,7 @@
         .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
 
         body { background: url("background.png"); padding-bottom: 7%; }
-        #bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--card);
-            border-top: 1px solid var(--border);
-            padding: 0px;
-            text-align: center;
-        }
+        
 
         .zoom {
             width: 200px;
@@ -180,9 +171,7 @@
             </div>
         </div>
     </header>
-    <div id="bottom-bar">
-        <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
-    </div>
+    
 
     <div class="app-shell">
     <aside class="sidebar" id="historyCard">
@@ -304,24 +293,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
     <script src="login.js"></script>
 
-    <script>
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-}
-        if (isMobile()) {
-    const banner = document.getElementById("bottom-bar");
-    banner.remove();
-    const logo = document.getElementById("title");
-    logo.remove();
-  console.log("User is on mobile");
+    <footer class="bottombar">
+    <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
+</footer>
 
-} else {
-  console.log("User is on desktop");
-  const mobile1 = document.getElementById("mobile1");
-    const mobile2 = document.getElementById("mobile2");
-    mobile1.remove();
-    mobile2.remove();
-}
+    <script>
         const imageInput = document.getElementById("imageInput");
         const previewSection = document.getElementById("previewSection");
         const previewImg = document.getElementById("previewImg");

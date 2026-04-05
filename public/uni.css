@@ -27,12 +27,17 @@
 
 * { box-sizing: border-box; }
 
+html, body { height: 100%; }
+
 body {
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background-color: var(--bg);
   color: var(--text);
   margin: 0;
   line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   transition: background-color 0.2s ease, color 0.2s ease;
   background-image: url("background.png");
 }
@@ -98,7 +103,8 @@ button.tab { font-family: inherit; }
 .tab-button { cursor: pointer; }
 
 .topbar {
-  position: sticky;
+ 
+  position: relative;
   top: 0;
   z-index: 10003;
   background: rgba(15, 23, 42, 0.65);
@@ -154,3 +160,24 @@ input:focus, select:focus, textarea:focus { border-color: var(--primary); outlin
 .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
 .account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
 
+.bottombar {
+ 
+  position: relative;
+  
+  z-index: 10003;
+  background: rgba(15, 23, 42, 0.65);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 12px 16px;
+}
+
+@media (prefers-color-scheme: light) {
+  .bottombar { background: rgba(255, 255, 255, 0.82); }
+}

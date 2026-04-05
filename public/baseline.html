@@ -103,16 +103,7 @@
         pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); }
 
         body { background: url("background.png"); padding-bottom: 7%;}
-        #bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--card);
-            border-top: 1px solid var(--border);
-            padding: 0px;
-            text-align: center;
-        }
+        
 
         .zoom {
             width: 200px;
@@ -185,9 +176,7 @@
         </div>
     </header>
     
-    <div id="bottom-bar">
-        <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
-    </div>
+    
 <div class="app-shell">
     <aside class="sidebar" id="historySidebar" style="display:none;">
         <div class="sidebar-header">
@@ -350,6 +339,7 @@
         </div>
 </div>
 </div>
+</div><!-- /.app-shell -->
 
 <div id="accountModal" class="account-modal">
     <div class="account-backdrop" id="accountBackdrop"></div>
@@ -399,30 +389,15 @@
     </div>
 </div>
 
+<footer class="bottombar">
+    <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
+</footer>
+
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 <script src="login.js"></script>
 <script>
-
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-}
-    if (isMobile()) {
-    const banner = document.getElementById("bottom-bar");
-    banner.remove();
-    const logo = document.getElementById("title");
-    logo.remove();
-  console.log("User is on mobile");
-
-} else {
-  console.log("User is on desktop");
-  const mobile1 = document.getElementById("mobile1");
-    const mobile2 = document.getElementById("mobile2");
-    mobile1.remove();
-    mobile2.remove();
-}
-
     let FIREBASE_CONFIG = null;
     let firebaseReady = false;
     let currentUser = null;
