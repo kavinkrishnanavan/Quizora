@@ -48,7 +48,7 @@
     @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
     .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
     .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
-    .brand img { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(127,127,127,0.2); }
+    .brand img { width: 34px; height: 34px;}
     .global-search { flex: 1; min-width: 180px; max-width: 560px; }
     .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
     .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
@@ -104,7 +104,7 @@
       </nav>
       <div class="topbar-actions">
         <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
-        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account">⚙️</button>
+        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
       </div>
     </div>
   </header>
@@ -123,9 +123,7 @@
         <a class="pill" href="#account">Account</a>
         <a class="pill" href="#troubleshooting">Troubleshooting</a>
       </div>
-      <div class="note">
-        Tip: Click the tabs in the top bar (like Hugging Face) to switch between features.
-      </div>
+      
     </section>
 
     <section class="card" id="personalized">
@@ -134,16 +132,18 @@
       <h3>Steps</h3>
       <ul>
         <li>Open <a href="index.html">Personalized</a>.</li>
-        <li>Fill in <b>Subject</b>, <b>Topic</b>, <b>Grade</b>, <b>Curriculum</b>, and the total marks.</li>
-        <li>Choose <b>Questions per student</b> and <b>Question style</b> (Blank lines or MCQ).</li>
+        <li>Fill in all parameters.</li>
+        
         <li>Upload a student list using the CSV/Excel upload.</li>
+        <li>Upload learning materials (optional).</li>
+        <li>Make special requests (optional).</li>
         <li>Click <b>Generate Worksheets</b>.</li>
       </ul>
       <h3>Hosting (optional)</h3>
       <ul>
-        <li>Sign in (⚙️) to enable hosted quizzes.</li>
+        <li>Sign in (<i class="fa-solid fa-circle-user"></i>) to enable hosted quizzes.</li>
         <li>After generation, use <b>Host Quiz for All</b> to create links/codes for students.</li>
-        <li>Students open the provided link (it loads <code>quiz.html</code>) and submit answers.</li>
+        <li>Students open the provided link and submit answers.</li>
       </ul>
     </section>
 
@@ -153,9 +153,17 @@
       <h3>Steps</h3>
       <ul>
         <li>Open <a href="baseline.html">Baseline</a>.</li>
-        <li>Set the topic/grade/curriculum and total marks.</li>
-        <li>Click <b>Generate Baseline</b> (or the main generate button on that page).</li>
-        <li>Sign in to host and track results.</li>
+        <li>Fill in all parameters.</li>
+        <li>Upload learning materials (optional).</li>
+        <li>Make special requests (optional).</li>
+        <li>Click <b>Generate Worksheet</b>.</li>
+        
+      </ul>
+      <h3>Hosting (optional)</h3>
+      <ul>
+        <li>Sign in (<i class="fa-solid fa-circle-user"></i>) to enable hosted quizzes.</li>
+        <li>After generation, use <b>Host Quiz for All</b> to create links/codes for students.</li>
+        <li>Students open the provided link and submit answers.</li>
       </ul>
     </section>
 
@@ -178,27 +186,27 @@
       <h3>Steps</h3>
       <ul>
         <li>Open <a href="presentation.html">Notes</a>.</li>
-        <li>Set the topic, audience, slide count, and tone.</li>
+        <li>Fill in all parameters.</li>
         <li>Click <b>Generate Presentation</b>.</li>
-        <li>Use <b>Download PDF</b> once it’s ready.</li>
+        <li>Use <b>Download PDF</b> once it's ready.</li>
       </ul>
     </section>
 
     <section class="card" id="account">
       <h2>Account, History, and Sign Out</h2>
       <ul>
-        <li>Click ⚙️ in the top bar to sign in/sign up.</li>
+        <li>Click <i class="fa-solid fa-circle-user"></i> in the top bar to sign in/sign up.</li>
         <li>When signed in, features like history and hosting become available on supported pages.</li>
-        <li>Use <b>Sign Out</b> in the top bar to log out everywhere (universal logout).</li>
+        <li>Use <b>Sign Out</b> in the top bar to log out everywhere.</li>
       </ul>
     </section>
 
     <section class="card" id="troubleshooting">
       <h2>Troubleshooting</h2>
       <ul>
-        <li><b>Sign in says “Firebase config missing”</b>: ensure the Netlify env var <code>FIREBASE_WEB_CONFIG_JSON</code> is set.</li>
-        <li><b>History doesn’t load</b>: sign in first, then refresh the page and open the history sidebar.</li>
-        <li><b>Student link not working</b>: confirm the hosted link includes <code>quizId</code> and <code>code</code> query parameters.</li>
+        
+        <li><b>History doesn't load</b>: sign in first, then refresh the page and open the history sidebar.</li>
+        <li><b>Student link not working</b>: confirm the hosted link is corret.</li>
       </ul>
     </section>
   </main>
@@ -211,7 +219,7 @@
           <div id="accountTitle" style="font-weight: 900; font-size: 1.1rem;">Account</div>
           <div style="color: var(--muted); font-size: 0.9rem;" id="authStatus">Enter email and password to sign in.</div>
         </div>
-        <button type="button" id="accountClose" class="topbar-btn" aria-label="Close" style="width:auto; padding: 8px 10px;">X</button>
+        <button type="button" id="accountClose" class="topbar-btn" aria-label="Close" style="width:auto; padding: 8px 10px;"><i class="fa-solid fa-circle-xmark"></i></button>
       </div>
 
       <div id="accountSignedOut" style="display:none;">
@@ -240,33 +248,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="login.js"></script>
+  <script src="global-search.js"></script>
+  <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
 
-  <script>
-    (function () {
-      var input = document.getElementById("globalSearch");
-      if (!input) return;
-      input.addEventListener("keydown", function (e) {
-        if (e.key !== "Enter") return;
-        var q = String(input.value || "").trim().toLowerCase();
-        if (!q) return;
-        var map = [
-          { k: ["personal", "personalized", "worksheet", "worksheets", "test"], url: "index.html" },
-          { k: ["baseline", "base"], url: "baseline.html" },
-          { k: ["marker", "mark", "image", "worksheet marker"], url: "image.html" },
-          { k: ["notes", "presentation", "slides"], url: "presentation.html" },
-          { k: ["docs", "documentation", "help"], url: "documentation.html" }
-        ];
-        for (var i = 0; i < map.length; i++) {
-          for (var j = 0; j < map[i].k.length; j++) {
-            if (q.includes(map[i].k[j])) {
-              window.location.href = map[i].url;
-              return;
-            }
-          }
-        }
-      });
-    })();
-  </script>
 </body>
 </html>
-

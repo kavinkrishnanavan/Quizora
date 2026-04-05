@@ -72,7 +72,25 @@
         state.listeners[i](state.user);
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.error(err);
+        if (err == "Firebase: Password should be at least 6 characters (auth/weak-password).") {
+
+          console.error("Password should be at least 6 characters.")
+
+        }
+        else if (err == "Firebase: The supplied auth credential is incorrect, malformed or has expired. (auth/invalid-credential).") {
+          console.log("Incorrect Credentials.")
+
+        }
+        
+        else {
+
+          console.log("Unexpected Error");
+
+          console.log(err);
+
+
+        }
+        
       }
     }
   }

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quiz-Wiz</title>
   <link rel="icon" type="image/png" href="favicon_2.png" />
+  <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
@@ -73,6 +74,7 @@
       padding: 18px;
       position: sticky;
       top: 20px;
+      z-index: -1; 
     }
 
     @media (max-width: 1100px) {
@@ -87,11 +89,11 @@
     button.tab { font-family: inherit; }
     .tab-button { cursor: pointer; }
 
-    .topbar { position: sticky; top: 0; z-index: 10003; background: rgba(15, 23, 42, 0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
+    .topbar { top: 0; z-index: 10003; background: rgba(15, 23, 42, 0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
     @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
     .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
     .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
-    .brand img { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(127,127,127,0.2); }
+    .brand img { width: 34px; height: 34px;}
     .global-search { flex: 1; min-width: 180px; max-width: 560px; }
     .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
     .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
@@ -126,11 +128,11 @@
       color: inherit;
       font-weight: 800;
       cursor: pointer;
-      transition: 0.2s;
+      
     }
     button.primary { background: var(--primary); border-color: transparent; color: white; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button:hover:not(:disabled) { transform: translateY(-1px); }
+    
 
     .status {
       margin-top: 14px;
@@ -145,7 +147,7 @@
     .preview-wrap { margin-top: 18px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
     iframe { width: 100%; height: 720px; border: 0; background: white; }
     .hint { color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
-
+    hr { border-color: var(--border); }
     /* Sidebar history */
     .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
     .sidebar-title { font-weight: 800; font-size: 1.05rem; }
@@ -165,7 +167,7 @@
   </style>
 </head>
 <body style="background-image: url(background.png);">
-  <header class="topbar">
+  <header class="topbar" style="border-radius: 10px;">
     <div class="topbar-inner">
       <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
         <img src="favicon_2.png" alt="Quiz-Wiz">
@@ -183,7 +185,7 @@
       </nav>
       <div class="topbar-actions">
         <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
-        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account">⚙️</button>
+        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
       </div>
     </div>
   </header>
@@ -206,12 +208,12 @@
         <div class="page-header-top">
           <div style="display: flex; align-items: center; gap: 10px;">
                 <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
-                <h1>Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
+                <h1>Quiz-Wiz : Learning Empowered </h1>
             </div>
             
         </div>
         <h1 id="mobile1">Quiz-Wiz</h1>
-        <h3 id="mobile2">Worksheets Empowered</h3>
+        <h3 id="mobile2">Learning Empowered</h3>
         <div style="text-align: right;">
                 <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
                 <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
@@ -220,6 +222,7 @@
         
       </header>
       <hr>
+      <br>
 
       <div class="form-grid">
         <div class="field">
@@ -227,24 +230,32 @@
           <input id="topic" placeholder="e.g. Linear Equations" value="Linear Equations" />
         </div>
         <div class="field">
-          <label>Audience</label>
-          <input id="audience" placeholder="e.g. Grade 9 (KSSM)" value="Grade 9 (KSSM)" />
+          <label>Grade</label>
+          <select id="audience">
+            
+            <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
+                <option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>
+                <option>Grade 7</option><option>Grade 8</option><option selected>Grade 9</option>
+                <option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>
+            
+          </select>
+          
         </div>
         <div class="field">
           <label>Slides</label>
-          <input id="slideCount" type="number" min="3" max="20" value="8" />
+          <input  id="slideCount" type="number" min="3" max="20" value="8" />
         </div>
         <div class="field">
           <label>Tone</label>
           <select id="tone">
-            <option selected>Clear, student-friendly</option>
-            <option>Exam-focused</option>
-            <option>Fun and engaging</option>
-            <option>Concise and formal</option>
+            <option style="background-color: #8b1d97;"  selected>Clear, student-friendly</option>
+            <option style="background-color: #8b1d97;" >Exam-focused</option>
+            <option style="background-color: #8b1d97;" >Fun and engaging</option>
+            <option style="background-color: #8b1d97;" >Concise and formal</option>
           </select>
         </div>
         <div class="field" style="grid-column: 1 / -1;">
-          <label>Extra instructions (optional)</label>
+          <label>Special Requests (optional)</label>
           <textarea id="extra" placeholder="e.g. Include 1 real-world example and 1 common mistake slide."></textarea>
         </div>
       </div>
@@ -274,7 +285,7 @@
           <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
           <div style="color: var(--muted); font-size: 0.9rem;" id="authStatus">Enter email and password to sign in.</div>
         </div>
-        <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">X</button>
+        <button type="button" id="accountClose" style="background: transparent;"><i class="fa-solid fa-circle-xmark"></i></button>
       </div>
 
       <div id="accountSignedOut" style="display:none;">
@@ -715,7 +726,7 @@ if (isMobile()) {
     async function generate() {
       genBtn.disabled = true;
       downloadPdfBtn.disabled = true;
-      statusEl.textContent = "Generating with Groq…";
+      statusEl.textContent = "Generating…";
 
       try {
         const topic = document.getElementById("topic").value.trim();
@@ -836,5 +847,6 @@ if (isMobile()) {
     updateAuthUi(null);
     initFirebase();
   </script>
+  <script src="global-search.js"></script>
 </body>
 </html>

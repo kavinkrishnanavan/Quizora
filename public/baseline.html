@@ -36,7 +36,7 @@
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 0; line-height: 1.6; transition: background-color 0.2s ease, color 0.2s ease; }
         .app-shell { max-width: 1400px; margin: 0 auto; display: flex; gap: 24px; padding: 20px; align-items: flex-start; }
         .container { flex: 1; max-width: 980px; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
-        .sidebar { width: 300px; min-width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; position: sticky; top: 20px; }
+        .sidebar { z-index: -1;  width: 300px; min-width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; position: sticky; top: 20px; }
         .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
         .sidebar-title { font-weight: 800; font-size: 1.05rem; }
         .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
@@ -73,7 +73,7 @@
         @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
         .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
         .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
-        .brand img { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(127,127,127,0.2); }
+        .brand img { width: 34px; height: 34px;}
         .global-search { flex: 1; min-width: 180px; max-width: 560px; }
         .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
         .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
@@ -97,8 +97,8 @@
         input, select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: transparent; color: inherit; }
         input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
 
-        button { background: var(--primary); color: white; padding: 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button { background: var(--primary); color: white; padding: 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        
         button:disabled { background: #94a3b8; cursor: not-allowed; }
 
         #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
@@ -182,7 +182,7 @@
             </nav>
             <div class="topbar-actions">
                 <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
-                <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account">⚙️</button>
+                <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
             </div>
         </div>
     </header>
@@ -207,12 +207,12 @@
         <div class="page-header-top">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <img src="favicon.png" class="zoom" style="width: 200px;">
-                <h1 id="title">Quiz-Wiz : Worksheets Empowered 📃🖥️🏫</h1>
+                <h1 id="title">Quiz-Wiz : Learning Empowered </h1>
             </div>
             
         </div>
         <h1 id="mobile1">Quiz-Wiz</h1>
-        <h3 id="mobile2">Worksheets Empowered</h3>
+        <h3 id="mobile2">Learning Empowered</h3>
         <div style="text-align: right;">
             <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
             <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
@@ -317,7 +317,7 @@
                     <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs, DOCX, and/or PowerPoint files (PPT/PPTX), or paste notes. Then analyze to personalize quizzes.
 </div>
                 </div>
-                <button type="button" id="materialsModalClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">X</button>
+                <button type="button" id="materialsModalClose" style="background: transparent;"><i class="fa-solid fa-circle-xmark"></i></button>
             </div>
 
             <div style="padding: 16px 18px; display: grid; gap: 12px; flex: 1; overflow: auto; min-height: 0;">
@@ -361,7 +361,7 @@
                 <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
                 <div class="portal-meta" id="authStatus">Enter email and password to sign in.</div>
             </div>
-            <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">X</button>
+            <button type="button" id="accountClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;"></button>
         </div>
 
         <div id="accountSignedOut" style="display:none;">
@@ -395,7 +395,7 @@
                 <div id="responsesTitle" style="font-weight: 800; font-size: 1.1rem;">Quiz Responses</div>
                 <div class="portal-meta" id="responsesSubtitle"></div>
             </div>
-            <button type="button" id="responsesClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;">X</button>
+            <button type="button" id="responsesClose" style="background: transparent; color: inherit; border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px;"><i class="fa-solid fa-circle-xmark"></i></button>
         </div>
         <div id="responsesBody" class="response-list"></div>
     </div>
@@ -2175,5 +2175,7 @@ function isMobile() {
         }
     }
 </script>
+<script src="global-search.js"></script>
+<script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
 </body>
 </html>
