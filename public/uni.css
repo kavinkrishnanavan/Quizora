@@ -1,16 +1,156 @@
-button { 
-    background: var(--primary); 
-    color: white; 
-    padding: 16px; 
-    border: none; 
-    border-radius: 10px; 
-    font-weight: 700; 
-    cursor: pointer; 
-    margin-top: 10px; 
+:root {
+  color-scheme: light dark;
+
+  --primary: #2563eb;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --status-bg: #eff6ff;
+  --status-text: #2563eb;
 }
-        
-button:disabled { 
-    background: #94a3b8; 
-    cursor: not-allowed; 
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --card: #0f172a;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #263145;
+    --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+    --status-bg: rgba(37, 99, 235, 0.18);
+    --status-text: #93c5fd;
+  }
 }
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  margin: 0;
+  line-height: 1.6;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  background-image: url("background.png");
+}
+
+a { color: var(--primary); }
+hr { border-color: var(--border); }
+
+button {
+  background: var(--primary);
+  color: #ffffff;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+button:hover { opacity: 0.92; transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  opacity: 1;
+  transform: none;
+}
+
+button.primary { background: var(--primary); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover { opacity: 1; border-color: rgba(37, 99, 235, 0.55); background: rgba(37, 99, 235, 0.08); }
+
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #ffffff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.download-link:hover { opacity: 0.9; transform: translateY(-1px); }
+.download-link.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
+
+.tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
+.tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 800; }
+.tab:hover { background: rgba(127,127,127,0.08); }
+.tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
+button.tab { font-family: inherit; }
+.tab-button { cursor: pointer; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10003;
+  background: rgba(15, 23, 42, 0.65);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+@media (prefers-color-scheme: light) {
+  .topbar { background: rgba(255, 255, 255, 0.82); }
+}
+
+.topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
+.brand img { width: 34px; height: 34px; }
+.global-search { flex: 1; min-width: 180px; max-width: 560px; }
+.global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
+.global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+.topnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.topnav-link { text-decoration: none; padding: 9px 12px; border: 1px solid transparent; border-radius: 999px; color: inherit; font-weight: 800; background: transparent; }
+.topnav-link:hover { background: rgba(127,127,127,0.08); border-color: rgba(127,127,127,0.18); }
+.topnav-link.active { background: rgba(37, 99, 235, 0.14); border-color: rgba(37, 99, 235, 0.35); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+.topbar-btn {
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(127,127,127,0.06);
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  margin: 0;
+}
+
+.topbar-btn:hover { background: rgba(127,127,127,0.12); opacity: 1; transform: none; }
+.icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 999px; }
+
+label { font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; color: var(--muted); }
+input, select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; transition: all 0.2s; background: transparent; color: inherit; }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+
+.app-shell { max-width: 1400px; margin: 0 auto; display: flex; gap: 24px; padding: 20px; align-items: flex-start; }
+.app-shell .container { flex: 1; max-width: 980px; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+.app-shell .sidebar { width: 300px; min-width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; position: sticky; top: 20px; }
+
+@media (max-width: 1100px) {
+  .app-shell { flex-direction: column; }
+  .app-shell .sidebar { width: 100%; position: static; }
+  .app-shell .container { max-width: 100%; }
+}
+
+.account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
+.account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+.account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
 
