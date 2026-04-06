@@ -256,7 +256,7 @@
         <button id="downloadPdfBtn" type="button" disabled>Download PDF</button>
       </div>
 
-      <div id="status" class="status"></div>
+      <div id="status" class="status" style="display: none;"></div>
      
 
       <div class="preview-wrap" style="display: none;">
@@ -700,6 +700,7 @@
 
     async function generate() {
       genBtn.disabled = true;
+      statusEl.style.display = "block";
       downloadPdfBtn.disabled = true;
       statusEl.textContent = "Generating…";
 
