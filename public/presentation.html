@@ -533,7 +533,7 @@
       const listItems = Array.isArray(items) ? items : [];
       historyListEl.innerHTML = "";
       if (!firebaseReady || !currentUser) {
-        historyListEl.innerHTML = "<div class=\"history-entry-meta\">Sign in to load/save history.</div>";
+        historyListEl.innerHTML = "<div class=\"history-entry-meta\"> .</div>";
         return;
       }
       if (!listItems.length) {

@@ -178,7 +178,8 @@
         <div class="portal-row" style="justify-content: space-between;">
             <div class="sidebar-title">Evaluations</div>
         </div>
-        <div class="sidebar-subtitle">Click an evaluation to view saved marks.</div>
+        <div class="sidebar-subtitle" id="historySubtitle">Click an evaluation to view saved marks.</div>
+        <div class="portal-meta" id="historyStatus"></div>
         <div id="historyList" class="history-list"></div>
     </aside>
     <div class="container">
@@ -316,11 +317,55 @@
         const redirectBtn = document.getElementById("redirectBtn");
         const selectedInfo = document.getElementById("selectedInfo");
         const historyList = document.getElementById("historyList");
+        const historyStatus = document.getElementById("historyStatus");
+        const historySubtitle = document.getElementById("historySubtitle");
 
-        const HISTORY_KEY = "quizwiz_image_history_v1";
+        const HISTORY_TYPE = "marker";
         let lastGradedBlockIds = [];
+        let lastGradedFileNames = [];
         let historyItems = [];
         let activeHistoryId = null;
+
+        let firebaseReady = false;
+        let currentUser = null;
+
+        function setHistoryStatus(text) {
+            if (!historyStatus) return;
+            historyStatus.innerText = text || "";
+        }
+
+        async function initFirebase() {
+            if (!window.QuizWizAuth) {
+                firebaseReady = false;
+                setHistoryStatus("Auth unavailable.");
+                return;
+            }
+
+            try {
+                await QuizWizAuth.init();
+                firebaseReady = true;
+            } catch (_) {
+                firebaseReady = false;
+                setHistoryStatus("Auth unavailable.");
+            }
+
+            QuizWizAuth.onChange((user) => {
+                currentUser = user || null;
+                if (!currentUser) {
+                    historyItems = [];
+                    renderHistory();
+                    setHistoryStatus("Please sign in to see history.");
+                    return;
+                }
+                setHistoryStatus("");
+                loadHistory();
+            });
+        }
+
+        async function getAuthToken() {
+            if (!window.QuizWizAuth) return "";
+            return QuizWizAuth.getAuthToken();
+        }
 
         function setStatus(message) {
             status.style.display = "block";
@@ -431,8 +476,9 @@
 
                 results.innerHTML = html || "<div class='muted'>No results returned. Try a clearer photo or re-upload.</div>";
                 lastGradedBlockIds = files.map((_, i) => "img_" + i);
+                lastGradedFileNames = files.map((f, i) => (f && f.name ? f.name : `Paper ${i + 1}`));
                 for (const id of lastGradedBlockIds) updateScore(id);
-                saveMarksToHistory();
+                await saveMarksToHistory();
                 clearStatus();
             } catch (err) {
                 setStatus("Error: " + (err && err.message ? err.message : "Unable to grade worksheet"));
@@ -451,19 +497,41 @@
                 .replaceAll("'", "&#039;");
         }
 
-        function loadHistory() {
-            try {
-                const raw = localStorage.getItem(HISTORY_KEY);
-                historyItems = raw ? JSON.parse(raw) : [];
-            } catch (_) {
+        async function loadHistory() {
+            if (!firebaseReady || !currentUser) {
                 historyItems = [];
+                renderHistory();
+                return;
             }
-        }
 
-        function saveHistoryItems() {
+            setHistoryStatus("Loading history...");
             try {
-                localStorage.setItem(HISTORY_KEY, JSON.stringify(historyItems));
-            } catch (_) {}
+                const token = await getAuthToken();
+                const res = await fetch("/.netlify/functions/history?limit=50", {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Failed to load history.");
+
+                const items = Array.isArray(data?.items) ? data.items : [];
+                const parsed = items.map((item) => {
+                    if (!item || !item.id) return null;
+                    try {
+                        const payload = JSON.parse(item.payloadJson || "{}");
+                        if (!payload || payload.type !== HISTORY_TYPE) return null;
+                        return { id: item.id, createdAt: item.createdAt || null, payload };
+                    } catch (_) {
+                        return null;
+                    }
+                }).filter(Boolean);
+
+                historyItems = parsed;
+                renderHistory();
+                setHistoryStatus(historyItems.length ? "" : "No saved evaluations yet.");
+            } catch (err) {
+                setHistoryStatus("Could not load history.");
+                alert(err?.message || "Failed to load history.");
+            }
         }
 
         function setActiveHistory(id) {
@@ -478,12 +546,21 @@
         function renderHistory() {
             if (!historyList) return;
             historyList.innerHTML = "";
+
+            if (!currentUser) {
+                historyList.innerHTML = "<div class=\"portal-meta\">Please sign in to see history.</div>";
+                if (historySubtitle) historySubtitle.innerText = "Sign in to load saved evaluations.";
+                return;
+            }
+
+            if (historySubtitle) historySubtitle.innerText = "Click an evaluation to view saved marks.";
             if (!historyItems.length) {
-                historyList.innerHTML = "<div class=\"portal-meta\"></div>";
+                historyList.innerHTML = "<div class=\"portal-meta\">No saved evaluations yet.</div>";
                 return;
             }
 
             historyItems.forEach((item) => {
+                const payload = item?.payload || {};
                 const entry = document.createElement("div");
                 entry.className = "history-entry";
                 entry.dataset.historyId = item.id;
@@ -495,7 +572,7 @@
 
                 const title = document.createElement("div");
                 title.className = "history-entry-title";
-                title.innerText = item.generationName || "Generation";
+                title.innerText = payload.generationName || payload.title || "Evaluation";
                 row.appendChild(title);
 
                 const delBtn = document.createElement("button");
@@ -511,12 +588,12 @@
 
                 const meta = document.createElement("div");
                 meta.className = "history-entry-meta";
-                meta.innerText = item.summary || "Marks saved.";
+                meta.innerText = payload.summary || "Marks saved.";
                 entry.appendChild(meta);
 
                 const when = document.createElement("div");
                 when.className = "history-entry-meta";
-                when.innerText = item.createdAt ? new Date(item.createdAt).toLocaleString() : "";
+                when.innerText = (item.createdAt || payload.createdAt) ? new Date(item.createdAt || payload.createdAt).toLocaleString() : "";
                 entry.appendChild(when);
 
                 entry.addEventListener("click", () => showHistoryEntry(item));
@@ -536,23 +613,33 @@
             if (!item) return;
             setActiveHistory(item.id);
             results.style.display = "block";
+            const payload = item?.payload || {};
             results.innerHTML = `
-                <div style="font-weight: 800; margin-bottom: 8px;">${escapeHtml(item.generationName || "Generation")}</div>
-                <div>${escapeHtml(item.summary || "Marks saved.")}</div>
-                <div class="portal-meta" style="margin-top: 8px;">Saved ${escapeHtml(item.createdAt ? new Date(item.createdAt).toLocaleString() : "")}</div>
+                <div style="font-weight: 800; margin-bottom: 8px;">${escapeHtml(payload.generationName || payload.title || "Evaluation")}</div>
+                <div>${escapeHtml(payload.summary || "Marks saved.")}</div>
+                <div class="portal-meta" style="margin-top: 8px;">Saved ${escapeHtml((item.createdAt || payload.createdAt) ? new Date(item.createdAt || payload.createdAt).toLocaleString() : "")}</div>
             `;
         }
 
-        function deleteHistoryEntry(id) {
+        async function deleteHistoryEntry(id) {
             const safeId = String(id || "").trim();
             if (!safeId) return;
+            if (!firebaseReady || !currentUser) return alert("Sign in to delete history.");
             const ok = confirm("Delete this saved mark?");
             if (!ok) return;
-            historyItems = historyItems.filter((item) => item.id !== safeId);
-            saveHistoryItems();
-            renderHistory();
-            if (activeHistoryId === safeId) {
-                activeHistoryId = null;
+
+            try {
+                const token = await getAuthToken();
+                const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Failed to delete history.");
+                if (activeHistoryId === safeId) activeHistoryId = null;
+                await loadHistory();
+            } catch (err) {
+                alert(err?.message || "Failed to delete history.");
             }
         }
 
@@ -648,31 +735,71 @@
             const parts = lastGradedBlockIds.map((id, idx) => {
                 const data = getBlockScoreData(id);
                 if (!data) return null;
-                if (!data.outOf) return `Paper ${idx + 1}: ${data.score} / ${data.total}`;
-                return `Paper ${idx + 1}: ${data.scaled} / ${data.outOf}`;
+                const label = lastGradedFileNames[idx] ? String(lastGradedFileNames[idx]) : `Paper ${idx + 1}`;
+                if (!data.outOf) return `${label}: ${data.score} / ${data.total}`;
+                return `${label}: ${data.scaled} / ${data.outOf}`;
             }).filter(Boolean);
             return parts.join(" | ") || "No marks saved.";
         }
 
-        function saveMarksToHistory() {
+        async function saveHistory(payload) {
+            if (!firebaseReady || !currentUser) return null;
+            const token = await getAuthToken();
+            const res = await fetch("/.netlify/functions/history", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ payload })
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data?.error || "Failed to save history.");
+            return data?.id ? String(data.id) : null;
+        }
+
+        async function saveMarksToHistory() {
             const generationName = String(generationNameInput?.value || "").trim() || "Generation";
             const studentName = String(studentNameInput?.value || "").trim() || "Student";
             const summary = buildMarksSummary();
-            const entry = {
-                id: "img_" + Date.now(),
+
+            if (!currentUser) {
+                setHistoryStatus("Sign in to save evaluations to history.");
+                return;
+            }
+
+            const outOfRaw = outOfInput && outOfInput.value ? Number(outOfInput.value) : NaN;
+            const outOf = Number.isFinite(outOfRaw) && outOfRaw > 0 ? outOfRaw : null;
+            const papers = lastGradedBlockIds.map((id, idx) => {
+                const data = getBlockScoreData(id);
+                return {
+                    index: idx + 1,
+                    fileName: lastGradedFileNames[idx] || `Paper ${idx + 1}`,
+                    ...(data || {}),
+                };
+            });
+
+            const payload = {
+                type: HISTORY_TYPE,
+                title: `${generationName} - ${studentName}`,
+                createdAt: new Date().toISOString(),
+                summary,
                 generationName,
                 studentName,
-                summary,
-                createdAt: new Date().toISOString()
+                outOf,
+                papers,
             };
-            historyItems.unshift(entry);
-            saveHistoryItems();
-            renderHistory();
-            setActiveHistory(entry.id);
+
+            try {
+                const savedId = await saveHistory(payload);
+                await loadHistory();
+                if (savedId) {
+                    setActiveHistory(savedId);
+                }
+            } catch (err) {
+                alert(err?.message || "Failed to save evaluation.");
+            }
         }
 
-        loadHistory();
         renderHistory();
+        initFirebase();
 
         imageInput.addEventListener("change", () => showPreview(getPreviewFile()));
         markBtn.addEventListener("click", upload);
