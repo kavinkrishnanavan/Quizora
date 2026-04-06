@@ -354,7 +354,7 @@
                 if (!currentUser) {
                     historyItems = [];
                     renderHistory();
-                    setHistoryStatus("Please sign in to see history.");
+                    setHistoryStatus("");
                     return;
                 }
                 setHistoryStatus("");
@@ -527,7 +527,7 @@
 
                 historyItems = parsed;
                 renderHistory();
-                setHistoryStatus(historyItems.length ? "" : "No saved evaluations yet.");
+                setHistoryStatus(historyItems.length ? "" : "");
             } catch (err) {
                 setHistoryStatus("Could not load history.");
                 alert(err?.message || "Failed to load history.");

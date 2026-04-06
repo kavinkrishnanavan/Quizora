@@ -257,7 +257,7 @@
         <button id="downloadPdfBtn" type="button" disabled>Download PDF</button>
       </div>
 
-      <div id="status" class="status">Ready.</div>
+      <div id="status" class="status"></div>
      
 
       <div class="preview-wrap" style="display: none;">
@@ -533,7 +533,7 @@
       const listItems = Array.isArray(items) ? items : [];
       historyListEl.innerHTML = "";
       if (!firebaseReady || !currentUser) {
-        historyListEl.innerHTML = "<div class=\"history-entry-meta\"> .</div>";
+        historyListEl.innerHTML = "<div class=\"history-entry-meta\">Please sign in to see history.</div>";
         return;
       }
       if (!listItems.length) {
