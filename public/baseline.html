@@ -95,7 +95,7 @@
         .field { display: flex; flex-direction: column; }
         label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
         input, select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: transparent; color: inherit; }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+       
 
 
         #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
@@ -167,7 +167,7 @@
                 <a class="topnav-link active" href="baseline.html">Baseline</a>
                 <a class="topnav-link" href="image.html">Marker</a>
                 <a class="topnav-link" href="presentation.html">Notes</a>
-                <a class="topnav-link" href="documentation.html">Docs</a>
+                <a class="topnav-link" href="documentation.html">Guide</a>
             </nav>
             <div class="topbar-actions">
                 <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
@@ -225,7 +225,7 @@
         
         <div class="field">
             <label>Grade Level</label>
-            <select id="grade" style="color: grey;">
+            <select id="grade">
                 <option>Grade 1</option>
                 <option>Grade 2</option>
                 <option>Grade 3</option>
@@ -242,7 +242,7 @@
         </div>
         <div class="field">
             <label>Curriculum</label>
-            <select id="curriculum" style="color: grey;">
+            <select id="curriculum">
                 <option>KSSR</option><option selected>KSSM</option>
                 <option>IGCSE</option><option>IB</option><option>AP</option>
                 <option>ICSE</option><option>CBSE</option><option>Samacheer Kalvi</option>
@@ -262,7 +262,7 @@
         </div>
         <div class="field">
             <label>Question Style</label>
-            <select id="answerFormat" style="color: grey;">
+            <select id="answerFormat">
                 <option value="blank" selected>Blank lines</option>
                 <option value="mcq">Multiple choice (A-D)</option>
             </select>

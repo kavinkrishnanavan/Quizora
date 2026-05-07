@@ -169,7 +169,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--primary); outlin
   border-top: 1px solid var(--border);
   backdrop-filter: blur(12px);
   
-  margin-top: auto;
+  margin-top: 10%;
+  height: 50px;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -180,4 +181,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--primary); outlin
 
 @media (prefers-color-scheme: light) {
   .bottombar { background: rgba(255, 255, 255, 0.82); }
+}
+
+select option {
+
+  background-color: rgb(204, 42, 204);
+
 }
