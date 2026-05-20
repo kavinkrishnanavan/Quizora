@@ -199,4 +199,14 @@ body {
   line-height: 1.6; 
   transition: 0.2s ease; 
 
+  background-repeat: repeat;
+  background-size: cover;
+  background-attachment: fixed;
+  
+}
+
+nav a i{
+
+  margin-right: 10px;
+
 }
