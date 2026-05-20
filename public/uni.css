@@ -192,4 +192,12 @@ select option {
 body {
   background: url("images/background.jpeg");
   padding-bottom: 7%;
+  font-family: 'Nunito', sans-serif;
+
+  background: var(--bg); 
+  color: var(--text); 
+  padding: 0; 
+  line-height: 1.6; 
+  transition: 0.2s ease; 
+
 }
