@@ -7,7 +7,7 @@
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0">
 
-<title>AI Presentation Generator</title>
+<title>Quiz-Wiz AI Presentation Generator</title>
 
 <link rel="preconnect"
 href="https://fonts.googleapis.com">
@@ -93,48 +93,9 @@ body{
 
 .brand{
 
-  font-size:1.3rem;
+  font-size:1.4rem;
 
-  font-weight:800;
-
-}
-
-.controls{
-
-  display:flex;
-
-  gap:14px;
-
-  flex-wrap:wrap;
-
-}
-
-input,
-textarea,
-select{
-
-  background:rgba(255,255,255,0.05);
-
-  border:1px solid rgba(255,255,255,0.08);
-
-  color:white;
-
-  padding:14px 16px;
-
-  border-radius:16px;
-
-  outline:none;
-
-  font-family:inherit;
-
-}
-
-textarea{
-
-  width:100%;
-  min-height:120px;
-
-  resize:vertical;
+  font-weight:900;
 
 }
 
@@ -150,7 +111,7 @@ button{
 
   color:white;
 
-  padding:14px 22px;
+  padding:14px 24px;
 
   border-radius:18px;
 
@@ -187,8 +148,6 @@ button:hover{
 
   gap:18px;
 
-  margin-bottom:20px;
-
 }
 
 .field{
@@ -204,6 +163,55 @@ button:hover{
 label{
 
   color:#94a3b8;
+
+  font-weight:700;
+
+}
+
+input,
+textarea,
+select{
+
+  background:rgba(255,255,255,0.05);
+
+  border:1px solid rgba(255,255,255,0.08);
+
+  color:white;
+
+  padding:14px 16px;
+
+  border-radius:16px;
+
+  outline:none;
+
+  font-family:inherit;
+
+}
+
+textarea{
+
+  width:100%;
+  min-height:120px;
+
+  resize:vertical;
+
+}
+
+.actions{
+
+  display:flex;
+
+  gap:14px;
+
+  margin-top:24px;
+
+}
+
+.status{
+
+  margin-top:20px;
+
+  color:#60a5fa;
 
   font-weight:700;
 
@@ -235,16 +243,6 @@ iframe{
 
 }
 
-.status{
-
-  margin-top:20px;
-
-  color:#60a5fa;
-
-  font-weight:700;
-
-}
-
 </style>
 
 </head>
@@ -257,14 +255,6 @@ iframe{
 
     <div class="brand">
       Quiz-Wiz AI
-    </div>
-
-    <div class="controls">
-
-      <button id="downloadBtn">
-        Download PDF
-      </button>
-
     </div>
 
   </div>
@@ -347,7 +337,8 @@ iframe{
 
   </div>
 
-  <div class="field">
+  <div class="field"
+  style="margin-top:20px;">
 
     <label>Special Requests</label>
 
@@ -355,12 +346,14 @@ iframe{
 
   </div>
 
-  <div style="margin-top:24px;">
+  <div class="actions">
 
     <button id="generateBtn">
-
       Generate Presentation
+    </button>
 
+    <button id="downloadBtn">
+      Download PDF
     </button>
 
   </div>
@@ -389,16 +382,6 @@ const statusEl =
 document.getElementById("status");
 
 let currentHtml = "";
-
-function escapeHtml(str){
-
-  return String(str || "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;");
-
-}
 
 function buildPresentation(deck){
 
@@ -434,7 +417,7 @@ rel="stylesheet">
 
 body{
 
-  font-family:"Inter",sans-serif;
+  font-family:Inter,sans-serif;
 
   background:#050816;
 
@@ -458,27 +441,7 @@ section{
 
   position:relative;
 
-}
-
-.ai-slide{
-
-  width:100%;
-
-}
-
-.card{
-
-  background:
-    rgba(255,255,255,0.05);
-
-  border:
-    1px solid rgba(255,255,255,0.08);
-
-  border-radius:30px;
-
-  padding:40px;
-
-  backdrop-filter:blur(14px);
+  overflow:hidden;
 
 }
 
@@ -488,13 +451,69 @@ section{
 
 <body>
 
-${slides.map(slide => `
-<section class="ai-slide">
+${slides.map((slide,index)=>{
 
-${slide.html || ""}
+  if(slide.html){
 
-</section>
-`).join("")}
+    return `
+      <section>
+
+        ${slide.html}
+
+      </section>
+    `;
+
+  }
+
+  return `
+    <section>
+
+      <div style="
+        max-width:1200px;
+        margin:auto;
+      ">
+
+        <div style="
+          color:#60a5fa;
+          margin-bottom:20px;
+          font-weight:700;
+          letter-spacing:0.2em;
+        ">
+
+          SLIDE ${index+1}
+
+        </div>
+
+        <h1 style="
+          font-size:4rem;
+          margin-bottom:30px;
+        ">
+
+          ${slide.heading || "Untitled"}
+
+        </h1>
+
+        ${(slide.paragraphs || []).map(p=>`
+
+          <p style="
+            font-size:1.3rem;
+            line-height:1.8;
+            margin-bottom:20px;
+            color:#dbeafe;
+          ">
+
+            ${p}
+
+          </p>
+
+        `).join("")}
+
+      </div>
+
+    </section>
+  `;
+
+}).join("")}
 
 </body>
 </html>
@@ -505,75 +524,24 @@ ${slide.html || ""}
 async function generatePresentation(){
 
   statusEl.innerText =
-  "Generating...";
-
-  const topic =
-  document.getElementById("topic").value;
-
-  const grade =
-  document.getElementById("grade").value;
-
-  const slideCount =
-  document.getElementById("slides").value;
-
-  const tone =
-  document.getElementById("tone").value;
-
-  const extra =
-  document.getElementById("extra").value;
-
-  const prompt = `
-Generate a beautiful modern HTML presentation.
-
-Topic:
-${topic}
-
-Grade:
-${grade}
-
-Slides:
-${slideCount}
-
-Tone:
-${tone}
-
-Extra:
-${extra}
-
-IMPORTANT:
-
-Return ONLY JSON.
-
-Format:
-
-{
-  "title":"",
-  "slides":[
-    {
-      "html":"FULL HTML OF SLIDE"
-    }
-  ]
-}
-
-Rules:
-
-- Use inline styles
-- Make slides visually different
-- Use gradients
-- Use modern layouts
-- Use cards
-- Use big typography
-- Use split layouts
-- Use hero sections
-- Use comparison tables
-- Use timeline designs
-- Use infographic style
-- Use glowing effects
-- Use dark futuristic design
-- No markdown
-`;
+  "Generating presentation...";
 
   try{
+
+    const topic =
+    document.getElementById("topic").value;
+
+    const grade =
+    document.getElementById("grade").value;
+
+    const slides =
+    document.getElementById("slides").value;
+
+    const tone =
+    document.getElementById("tone").value;
+
+    const extra =
+    document.getElementById("extra").value;
 
     const response =
     await fetch(
@@ -586,7 +554,15 @@ Rules:
         },
 
         body:JSON.stringify({
-          prompt
+
+          topic,
+          grade,
+          slides,
+          tone,
+          extra,
+
+          mode:"html"
+
         })
       }
     );
@@ -594,10 +570,22 @@ Rules:
     const data =
     await response.json();
 
+    console.log(data);
+
     if(!data?.deck){
 
       throw new Error(
-        "No deck returned"
+        "Deck missing"
+      );
+
+    }
+
+    if(
+      !Array.isArray(data.deck.slides)
+    ){
+
+      throw new Error(
+        "Slides missing"
       );
 
     }
@@ -609,14 +597,14 @@ Rules:
     currentHtml;
 
     statusEl.innerText =
-    "Presentation generated";
+    "Presentation generated successfully";
 
   }catch(err){
 
     console.error(err);
 
     statusEl.innerText =
-    "Generation failed";
+    err.message;
 
   }
 
