@@ -85,7 +85,7 @@
       loading.style.display = "block";
 
       try {
-        const res = await fetch("/.netlify/functions/generate", {
+        const res = await fetch("/.netlify/functions/presentation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ topic })
