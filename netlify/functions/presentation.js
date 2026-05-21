@@ -33,7 +33,6 @@ Generate a COMPLETE HTML DOCUMENT for a presentation.
 STRICT RULES:
 - Output ONLY raw HTML (no markdown, no explanation)
 - Must include <html>, <head>, <style>, <body>
-- Must be a slideshow-style presentation
 - Must include next/previous navigation buttons
 - Must be about: ${topic}
 - Must fit full screen
@@ -42,6 +41,7 @@ STRICT RULES:
 - Must NOT include any text outside HTML
 - !important! Every slide must be creative and colorful !important!
 - !important! Every slide must be in a different format and must be visually attractive instead of a boring same format !important!
+- !important! Information must be clearly visible !important!
 
 FEATURES REQUIRED:
 - Fullscreen slides
