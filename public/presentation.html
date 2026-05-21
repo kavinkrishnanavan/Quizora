@@ -135,6 +135,7 @@ const response = await fetch('/.netlify/functions/generate', {
         let data = null;
         try {
             data = await response.json();
+            console.log(data)
             document.getElementById("presentation").srcdoc = data;
         } catch (_) {
             data = null;
