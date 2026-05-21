@@ -50,6 +50,7 @@ FEATURES REQUIRED:
 - Smooth design
 `;
 
+
     const completion = await groq.chat.completions.create({
       model: "openai/gpt-oss-20b",
       messages: [
