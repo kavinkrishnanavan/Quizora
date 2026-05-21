@@ -1,159 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
-    
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz-Wiz</title>
-  <link rel="icon" type="image/png" href="favicon_2.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz-Wiz Presentation</title>
+
   <style>
-    :root {
-      color-scheme: light dark;
-      --primary: #2563eb;
-      --bg: #0b1220;
-      --card: #0f172a;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --border: #263145;
-      --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
-      --status-bg: rgba(37, 99, 235, 0.18);
-      --status-text: #93c5fd;
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0b1220;
+      color: white;
     }
 
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f8fafc;
-        --card: #ffffff;
-        --text: #1e293b;
-        --muted: #64748b;
-        --border: #e2e8f0;
-        --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        --status-bg: #eff6ff;
-        --status-text: #2563eb;
-      }
+    .controls {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
     }
 
- 
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
 
-    a { color: var(--primary); }
+    input {
+      width: 200px;
+    }
 
-    .topbar { position: sticky; top: 0; z-index: 10003; background: rgba(15, 23, 42, 0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
-    @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
-    .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
-    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
-    .brand img { width: 34px; height: 34px;}
-    .global-search { flex: 1; min-width: 180px; max-width: 560px; }
-    .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
-    .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
-    .topnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .topnav-link { text-decoration: none; padding: 9px 12px; border: 1px solid transparent; border-radius: 999px; color: inherit; font-weight: 800; background: transparent; }
-    .topnav-link:hover { background: rgba(127,127,127,0.08); border-color: rgba(127,127,127,0.18); }
-    .topnav-link.active { background: rgba(37, 99, 235, 0.14); border-color: rgba(37, 99, 235, 0.35); }
-    .topbar-actions { display: flex; align-items: center; gap: 10px; }
-    .topbar-btn { padding: 9px 12px; margin-top: 0; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; font-weight: 800; cursor: pointer; }
-    .topbar-btn:hover { background: rgba(127,127,127,0.12); }
-    .icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 999px; }
+    button {
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+    }
 
-    .wrap { max-width: 980px; margin: 0 auto; padding: 22px 16px 80px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; margin-top: 18px; }
-    .title { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-    .title h1 { margin: 0; font-size: 1.6rem; }
-    .subtitle { color: var(--muted); margin-top: 6px; }
-    .pill-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 999px; border: 1px solid var(--border); text-decoration: none; color: inherit; background: rgba(127,127,127,0.06); font-weight: 800; }
-    .pill:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.10); }
-    h2 { margin: 0 0 8px 0; font-size: 1.2rem; }
-    h3 { margin: 16px 0 8px 0; font-size: 1.05rem; }
-    ul { margin: 10px 0 0 18px; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.95em; }
-    .note { margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--status-bg); color: var(--status-text); }
+    button:hover {
+      background: #1d4ed8;
+    }
 
-    .account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
-    .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
-    .account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
-    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-    label { color: var(--muted); font-weight: 700; font-size: 0.92rem; }
-    input { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; }
-    
+    iframe {
+      width: 100%;
+      height: 100vh;
+      border: none;
+    }
+
+    .loading {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: none;
+    }
   </style>
-  <link rel="stylesheet" href="uni.css">
 </head>
-<body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
-        <img src="favicon_2.png" alt="Quiz-Wiz">
-        <span>Quiz-Wiz</span>
-      </a>
-      <div class="global-search">
-        <input id="globalSearch" type="search" placeholder="Search pages…" autocomplete="off">
-      </div>
-      <nav class="topnav" aria-label="Primary navigation">
-                <a class="topnav-link" href="index.html"><i class="fa-solid fa-users" style="color: --var;"></i> Personalized</a>
-                <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school" style="color: --var;"></i>Baseline</a>
-                <a class="topnav-link" href="image.html"><i class="fa-solid fa-check" style="color: --var;"></i>Marker</a>
-                <a class="topnav-link active" href="presentation.html"><i class="fa-regular fa-note-sticky" style="color: --var;"></i>Notes</a>
-                <a class="topnav-link" href="documentation.html"><i class="fa-solid fa-book" style="color: --var;"></i>Guide</a>
-      </nav>
-      <div class="topbar-actions">
-        <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
-        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
-      </div>
-    </div>
-  </header>
 
- <main>
+<body>
+
+  <div class="controls">
+    <input id="topic" placeholder="Enter topic (e.g. Life, Space)">
+    <button onclick="generate()">Generate</button>
+  </div>
+
+  <div class="loading" id="loading">Generating presentation...</div>
 
   <iframe id="presentation"></iframe>
 
- </main>
-  
+  <script>
+    const iframe = document.getElementById("presentation");
+    const loading = document.getElementById("loading");
 
-<footer class="bottombar">
-    <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
-</footer>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-  <script src="login.js"></script>
-  <script src="global-search.js"></script>
-  <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+    function buildSlides(deck) {
+      return `
+      <html>
+      <head>
+        <style>
+          body {
+            margin: 0;
+            font-family: Arial;
+            background: #0b1220;
+            color: white;
+          }
 
+          .slide {
+            display: none;
+            padding: 60px;
+            height: 100vh;
+            box-sizing: border-box;
+          }
 
-<script>
-(async () => {
-  try {
-    const response = await fetch('/.netlify/functions/presentation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: "You are a professional presentation maker. Make HTML only about life. Return only HTML."
-      })
-    });
+          .slide.active {
+            display: block;
+          }
 
-    if (!response.ok) {
-      throw new Error("Network response failed");
+          h1 {
+            font-size: 42px;
+            margin-bottom: 20px;
+          }
+
+          p, li {
+            font-size: 18px;
+            line-height: 1.6;
+          }
+
+          ul {
+            margin-top: 10px;
+          }
+
+          .nav {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+          }
+
+          button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+          }
+
+          button:hover {
+            background: #1d4ed8;
+          }
+        </style>
+      </head>
+
+      <body>
+
+        ${deck.slides.map((s, i) => `
+          <div class="slide ${i === 0 ? "active" : ""}">
+            <h1>${s.heading}</h1>
+            ${s.paragraphs.map(p => `<p>${p}</p>`).join("")}
+            <ul>${s.bullets.map(b => `<li>${b}</li>`).join("")}</ul>
+          </div>
+        `).join("")}
+
+        <div class="nav">
+          <button onclick="prev()">Prev</button>
+          <button onclick="next()">Next</button>
+        </div>
+
+        <script>
+          let index = 0;
+          const slides = document.querySelectorAll(".slide");
+
+          function show(i) {
+            slides.forEach(s => s.classList.remove("active"));
+            slides[i].classList.add("active");
+          }
+
+          function next() {
+            index = (index + 1) % slides.length;
+            show(index);
+          }
+
+          function prev() {
+            index = (index - 1 + slides.length) % slides.length;
+            show(index);
+          }
+        <\/script>
+
+      </body>
+      </html>
+      `;
     }
 
-    const html = await response.text(); // IMPORTANT: treat as HTML, not JSON
+    async function generate() {
+      const topic = document.getElementById("topic").value.trim();
+      if (!topic) return alert("Enter a topic");
 
-    document.getElementById("presentation").srcdoc = html;
+      loading.style.display = "block";
 
-  } catch (err) {
-    console.error(err);
+      try {
+        const res = await fetch("/.netlify/functions/presentation", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            topic,
+            slideCount: 8,
+            audience: "Students",
+            tone: "Simple and clear"
+          })
+        });
 
-    document.getElementById("presentation").srcdoc = `
-      <html>
-        <body style="font-family: sans-serif; padding: 20px;">
-          <h2>Failed to load presentation</h2>
-          <p>Check backend function or network.</p>
-        </body>
-      </html>
-    `;
-  }
-})();
-</script>
+        const json = await res.json();
+
+        if (!json.deck) {
+          throw new Error(json.error || "No deck returned");
+        }
+
+        iframe.srcdoc = buildSlides(json.deck);
+
+      } catch (err) {
+        console.error(err);
+
+        iframe.srcdoc = `
+          <html>
+            <body style="font-family: Arial; padding: 20px;">
+              <h2>Failed to generate presentation</h2>
+              <p>${err.message}</p>
+            </body>
+          </html>
+        `;
+      }
+
+      loading.style.display = "none";
+    }
+  </script>
+
 </body>
 </html>
