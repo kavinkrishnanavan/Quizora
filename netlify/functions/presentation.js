@@ -1,7 +1,9 @@
 const Groq = require("groq-sdk");
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
 
   try {
     if (!process.env.GROQ_API_KEY) {
@@ -9,207 +11,159 @@ exports.handler = async (event) => {
         statusCode: 500,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          error: "Missing GROQ_API_KEY. Set it in your Netlify site environment variables.",
+          error: "Missing GROQ_API_KEY in environment variables",
         }),
       };
     }
 
-    const data = JSON.parse(event.body || "{}");
-    const topic = typeof data?.topic === "string" ? data.topic.trim() : "";
-    const audience = typeof data?.audience === "string" ? data.audience.trim() : "";
-    const tone = typeof data?.tone === "string" ? data.tone.trim() : "Clear, student-friendly";
-    const extra = typeof data?.extra === "string" ? data.extra.trim() : "";
-    const slideCountRaw = Number.parseInt(data?.slideCount ?? 8, 10);
-    const slideCount = Math.max(3, Math.min(20, Number.isFinite(slideCountRaw) ? slideCountRaw : 8));
+    const body = JSON.parse(event.body || "{}");
+
+    const topic = body.topic?.trim();
+    const audience = body.audience?.trim() || "General audience";
+    const tone = body.tone?.trim() || "Clear and student-friendly";
+    const extra = body.extra?.trim() || "";
+    const slideCount = Math.max(
+      3,
+      Math.min(20, parseInt(body.slideCount || 8, 10))
+    );
 
     if (!topic) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing topic." }),
+        body: JSON.stringify({ error: "Missing topic" }),
       };
     }
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    const schema = `{
-  "title": "string",
-  "subtitle": "string",
-  "slides": [
-    {
-      "heading": "string",
-      "paragraphs": ["string"],
-      "bullets": ["string"],
-      "speakerNotes": "string",
-      "visualHint": "string"
-    }
-  ]
-}`;
+    const schema = {
+      title: "string",
+      subtitle: "string",
+      slides: [
+        {
+          heading: "string",
+          paragraphs: ["string"],
+          bullets: ["string"],
+          speakerNotes: "string",
+          visualHint: "string",
+        },
+      ],
+    };
 
-    const prompt = `Create a slide deck outline for the topic below.
+    const prompt = `
+Create a presentation JSON ONLY.
 
 Topic: ${topic}
-Audience: ${audience || "(not provided)"}
+Audience: ${audience}
 Tone: ${tone}
-Slides: exactly ${slideCount} slides
-Extra instructions: ${extra || "(none)"}
+Slides: ${slideCount}
+Extra: ${extra}
 
-Strict requirements:
-1) Output ONLY valid JSON (no markdown fences, no extra text).
-2) The JSON must match this schema exactly:
-${schema}
-3) "slides" must have exactly ${slideCount} items.
-4) Each slide must have 1-3 "paragraphs" (40-90 words each), unless it's a title slide (then paragraphs can be []).
-5) Each slide can have 0-6 bullets; keep bullets short (<= 12 words each) and concrete.
-6) Avoid repeating the same bullet or paragraph idea across slides.
-7) Use safe plain text only (no links, no code blocks).`;
+RULES:
+- Output ONLY valid JSON
+- Must match this structure:
+${JSON.stringify(schema, null, 2)}
+- Exactly ${slideCount} slides
+- No markdown, no explanation, no extra text
+- No trailing commas
+`;
 
-    const extractJsonCandidate = (raw) => {
-      let s = String(raw || "").trim();
-      s = s.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
-      const start = s.indexOf("{");
-      const end = s.lastIndexOf("}");
-      if (start >= 0 && end > start) s = s.slice(start, end + 1);
-      return s.trim();
-    };
-
-    const normalizeJsonText = (raw) => {
-      let s = extractJsonCandidate(raw);
-      s = s
-        .replaceAll("\u201c", '"')
-        .replaceAll("\u201d", '"')
-        .replaceAll("\u2018", "'")
-        .replaceAll("\u2019", "'")
-        .replaceAll("\u00a0", " ");
-      // Remove trailing commas before ] or }
-      s = s.replace(/,\s*([}\]])/g, "$1");
-      return s;
-    };
-
-    const parseJsonLoose = (raw) => {
-      const s1 = extractJsonCandidate(raw);
-      try {
-        return JSON.parse(s1);
-      } catch (_) {
-        const s2 = normalizeJsonText(raw);
-        return JSON.parse(s2);
-      }
-    };
-
-    const getCompletionText = async (messages) => {
-      const completion = await groq.chat.completions.create({
-        model: "openai/gpt-oss-120B",
-        messages,
-      });
-      return String(completion?.choices?.[0]?.message?.content || "").trim();
-    };
-
-    let text = "";
-    let deck = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      text = await getCompletionText([
-        {
-          role: "system",
-          content:
-            "You are an expert teacher and presentation designer. Follow the schema precisely and return strictly valid JSON.",
-        },
-        { role: "user", content: prompt },
-      ]);
-      if (!text) continue;
-      try {
-        deck = parseJsonLoose(text);
-        break;
-      } catch (err) {
-        // Ask Groq to repair its own output into strict JSON.
-        const repairPrompt = `Your previous output was NOT valid JSON.
-Fix it and output ONLY valid JSON that matches this schema exactly:
-${schema}
-
-Rules:
-- Do not add any extra keys.
-- Ensure all arrays/strings are valid JSON (double quotes, escaped characters).
-- Keep exactly ${slideCount} slides.
-
-INVALID_OUTPUT:
-${text}`;
-
-        const repaired = await getCompletionText([
+    const getResponse = async () => {
+      const res = await groq.chat.completions.create({
+        model: "openai/gpt-oss-120b",
+        messages: [
           {
             role: "system",
             content:
-              "You repair invalid JSON into valid JSON. Output strictly valid JSON only.",
+              "You are a strict JSON generator. Output ONLY valid JSON.",
           },
-          { role: "user", content: repairPrompt },
-        ]);
-        if (!repaired) continue;
-        try {
-          deck = parseJsonLoose(repaired);
-          text = repaired;
-          break;
-        } catch (_) {
-          // loop and try again
-        }
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.7,
+      });
+
+      return res?.choices?.[0]?.message?.content?.trim();
+    };
+
+    const cleanJSON = (text) => {
+      if (!text) return null;
+
+      // remove markdown fences if any
+      let cleaned = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      // extract JSON block
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) return null;
+
+      cleaned = cleaned.slice(start, end + 1);
+
+      return JSON.parse(cleaned);
+    };
+
+    let deck = null;
+    let raw = "";
+
+    for (let i = 0; i < 3; i++) {
+      raw = await getResponse();
+
+      try {
+        deck = cleanJSON(raw);
+        if (deck) break;
+      } catch (e) {
+        deck = null;
       }
     }
 
     if (!deck) {
-      throw new Error(
-        "Groq returned invalid JSON for the deck. Please click Generate again."
-      );
+      return {
+        statusCode: 500,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          error: "Failed to generate valid presentation JSON",
+        }),
+      };
     }
 
-    if (!deck || typeof deck !== "object") throw new Error("Invalid deck JSON.");
-    if (!deck.title || typeof deck.title !== "string") throw new Error("Missing title.");
-    if (!Array.isArray(deck.slides) || deck.slides.length !== slideCount) {
-      throw new Error(`Expected exactly ${slideCount} slides.`);
+    // Validation + cleanup
+    if (!Array.isArray(deck.slides)) {
+      throw new Error("Invalid slides format");
     }
 
-    deck.slides = deck.slides.map((s, i) => {
-      const slide = s && typeof s === "object" ? s : {};
+    deck.slides = deck.slides.slice(0, slideCount).map((s) => ({
+      heading: s.heading || "Untitled",
+      paragraphs: Array.isArray(s.paragraphs) ? s.paragraphs : [],
+      bullets: Array.isArray(s.bullets) ? s.bullets : [],
+      speakerNotes: s.speakerNotes || "",
+      visualHint: s.visualHint || "",
+    }));
 
-      if (!Array.isArray(slide.paragraphs)) slide.paragraphs = [];
-      if (!Array.isArray(slide.bullets)) slide.bullets = [];
-      if (typeof slide.speakerNotes !== "string") slide.speakerNotes = "";
-      if (typeof slide.visualHint !== "string") slide.visualHint = "";
-
-      slide.paragraphs = slide.paragraphs
-        .filter((p) => typeof p === "string" && p.trim())
-        .map((p) => p.trim())
-        .slice(0, 4);
-
-      slide.bullets = slide.bullets
-        .filter((b) => typeof b === "string" && b.trim())
-        .map((b) => b.trim())
-        .slice(0, 8);
-
-      return slide;
-    });
-
-    for (const slide of deck.slides) {
-      if (!slide || typeof slide !== "object") throw new Error("Invalid slide format.");
-      if (!slide.heading || typeof slide.heading !== "string") throw new Error("Slide missing heading.");
-    }
+    deck.slides = deck.slides.map((s) => ({
+      ...s,
+      paragraphs: s.paragraphs.slice(0, 3),
+      bullets: s.bullets.slice(0, 6),
+    }));
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+      },
       body: JSON.stringify({ deck }),
     };
-  } catch (error) {
-    const requestId =
-      event.headers?.["x-nf-request-id"] ||
-      event.headers?.["x-request-id"] ||
-      event.headers?.["x-amzn-trace-id"] ||
-      "";
-
-    console.error("presentation error", { requestId, message: error?.message, stack: error?.stack });
+  } catch (err) {
+    console.error("Generate error:", err);
 
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        error: error?.message || "Unknown error",
-        requestId,
+        error: err.message || "Unknown error",
       }),
     };
   }
