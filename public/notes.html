@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz-Wiz Notes</title>
+    <link rel="icon" type="image/png" href="images/favicon_2.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="uni.css">
+    <style>
+        .frame-wrap { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); background: rgba(127,127,127,0.05); }
+        iframe { width: 100%; height: 78vh; border: 0; background: white; }
+        .status { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--status-bg); color: var(--status-text); margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
+                <img src="images/favicon_2.png" alt="Quiz-Wiz">
+                <span>Quiz-Wiz</span>
+            </a>
+            <div class="global-search">
+                <input id="globalSearch" type="search" placeholder="Search pages..." autocomplete="off">
+            </div>
+            <nav class="topnav" aria-label="Primary navigation">
+                <a class="topnav-link" href="index.html"><i class="fa-solid fa-users"></i> Personalized</a>
+                <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school"></i> Baseline</a>
+                <a class="topnav-link" href="image.html"><i class="fa-solid fa-check"></i> Marker</a>
+                <a class="topnav-link active" href="presentation.html"><i class="fa-regular fa-note-sticky"></i> Notes</a>
+                <a class="topnav-link" href="documentation.html"><i class="fa-solid fa-book"></i> Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <a class="download-link secondary" href="presentation.html">Create new</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-shell">
+        <div class="container">
+            <div id="status" class="status">Loading notes...</div>
+            <div class="frame-wrap">
+                <iframe id="frame" title="Hosted notes"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bottombar">
+        <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
+    </footer>
+
+    <script src="global-search.js"></script>
+    <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+    <script>
+        const statusEl = document.getElementById("status");
+        const frame = document.getElementById("frame");
+        const params = new URLSearchParams(location.search);
+        const notesId = params.get("notesId");
+        const code = params.get("code");
+
+        function setStatus(text, kind) {
+            statusEl.innerText = text || "";
+            if (kind === "error") {
+                statusEl.style.background = "rgba(239, 68, 68, 0.12)";
+                statusEl.style.color = "#ef4444";
+                statusEl.style.borderColor = "rgba(239, 68, 68, 0.35)";
+            }
+        }
+
+        async function init() {
+            if (!notesId || !code) {
+                setStatus("Missing notes link. Please ask your teacher for the correct link.", "error");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/.netlify/functions/notes-host?notesId=${encodeURIComponent(notesId)}&code=${encodeURIComponent(code)}`);
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Failed to load notes.");
+                if (!data?.html) throw new Error("Notes are empty.");
+                frame.srcdoc = String(data.html);
+                const topic = String(data?.meta?.topic || "").trim();
+                setStatus(topic ? `Topic: ${topic}` : "Notes loaded.");
+            } catch (err) {
+                setStatus(String(err?.message || "Failed to load notes."), "error");
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
+

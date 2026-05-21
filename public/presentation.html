@@ -1,119 +1,320 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Presentation Generator</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Quiz-Wiz</title>
+    <link rel="icon" type="image/png" href="images/favicon_2.png">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #0b1220;
-      color: white;
-    }
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
 
-    .topbar {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-      z-index: 1000;
-    }
+    <link rel="stylesheet" href="uni.css">
 
-    input {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      width: 250px;
-    }
-
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100vh;
-      border: none;
-    }
-
-    .loading {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
-      padding: 10px 20px;
-      border-radius: 8px;
-      display: none;
-    }
-  </style>
+    <style>
+        .notes-layout { display: grid; gap: 18px; }
+        .notes-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+        .notes-actions .field { min-width: 240px; }
+        .notes-actions .field input { width: 100%; }
+        .notes-actions button { margin-top: 0; }
+        .status { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--status-bg); color: var(--status-text); display: none; }
+        .frame-wrap { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); background: rgba(127,127,127,0.05); }
+        iframe { width: 100%; height: 72vh; border: 0; background: white; }
+        .host-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .host-row input { max-width: 520px; }
+    </style>
 </head>
 
 <body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
+                <img src="images/favicon_2.png" alt="Quiz-Wiz">
+                <span>Quiz-Wiz</span>
+            </a>
+            <div class="global-search">
+                <input id="globalSearch" type="search" placeholder="Search pages..." autocomplete="off">
+            </div>
+            <nav class="topnav" aria-label="Primary navigation">
+                <a class="topnav-link" href="index.html"><i class="fa-solid fa-users"></i> Personalized</a>
+                <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school"></i> Baseline</a>
+                <a class="topnav-link" href="image.html"><i class="fa-solid fa-check"></i> Marker</a>
+                <a class="topnav-link active" href="presentation.html"><i class="fa-regular fa-note-sticky"></i> Notes</a>
+                <a class="topnav-link" href="documentation.html"><i class="fa-solid fa-book"></i> Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
+                <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
+            </div>
+        </div>
+    </header>
 
-  <div class="topbar">
-    <input id="topic" placeholder="Enter topic (e.g. Space, Life)">
-    <button onclick="generate()">Generate</button>
-  </div>
+    <div class="app-shell">
+        <div class="container">
+            <header class="page-header">
+                <div class="page-header-top">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="images/favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
+                        <h1 id="title">Quiz-Wiz : Learning Empowered</h1>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin: 0; color: #3995ff;">By Kavin</h3>
+                    <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer">Please Give Feedback ⭐ !</a>
+                </div>
+            </header>
 
-  <div class="loading" id="loading">Generating AI presentation...</div>
+            <hr>
+            <div class="notes-layout">
+                <div class="notes-actions">
+                    <div class="field">
+                        <label>Topic</label>
+                        <input id="topic" placeholder="e.g. Photosynthesis, World War 2, Fractions">
+                    </div>
+                    <button type="button" id="generateBtn">Generate Notes</button>
+                    <button type="button" id="useMaterialsBtn" class="btn-secondary" disabled>Use as Learning Material</button>
+                    <button type="button" id="hostBtn" class="btn-secondary" disabled>Host Notes</button>
+                    <a class="tab" href="index.html" title="Open personalized quiz generator">Personalized tests</a>
+                    <a class="tab" href="baseline.html" title="Open baseline test generator">Baseline tests</a>
+                </div>
 
-  <iframe id="frame"></iframe>
+                <div id="status" class="status"></div>
 
-  <script>
-    const frame = document.getElementById("frame");
-    const loading = document.getElementById("loading");
+                <div id="hostPanel" style="display:none;">
+                    <div class="host-row">
+                        <div class="field" style="flex: 1;">
+                            <label>Hosted link (share with students)</label>
+                            <input id="hostLink" readonly>
+                        </div>
+                        <button type="button" id="copyHostLinkBtn" class="btn-secondary">Copy</button>
+                        <a class="download-link secondary" id="openHostLinkBtn" href="#" target="_blank" rel="noopener noreferrer">Open</a>
+                    </div>
+                </div>
 
-    async function generate() {
-      const topic = document.getElementById("topic").value.trim();
-      if (!topic) return alert("Enter a topic");
+                <div class="frame-wrap">
+                    <iframe id="frame" title="Generated notes preview"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
 
-      loading.style.display = "block";
+    <div id="accountModal" class="account-modal">
+        <div class="account-backdrop" id="accountBackdrop"></div>
+        <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+            <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <div id="accountTitle" style="font-weight: 900; font-size: 1.1rem;">Account</div>
+                    <div style="color: var(--muted); font-size: 0.9rem;" id="authStatus">Enter email and password to sign in.</div>
+                </div>
+                <button type="button" id="accountClose" class="topbar-btn" aria-label="Close" style="width:auto; padding: 8px 10px;"><i class="fa-solid fa-circle-xmark"></i></button>
+            </div>
 
-      try {
-        const res = await fetch("/.netlify/functions/presentation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic })
-        });
+            <div id="accountSignedOut" style="display:none;">
+                <div class="field">
+                    <label>Email</label>
+                    <input id="authEmail" type="email" placeholder="teacher@school.edu">
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+                </div>
+                <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                    <button type="button" id="signUpBtn">Create Account</button>
+                    <button type="button" id="signInBtn">Sign In</button>
+                </div>
+            </div>
 
-        const data = await res.json();
+            <div id="accountSignedIn" style="display:none;">
+                <div style="color: var(--muted); font-size: 0.9rem;">Signed in as</div>
+                <div id="accountEmailDisplay" style="font-weight: 900; margin-bottom: 12px;"></div>
+                <button type="button" id="signOutBtn" class="topbar-btn" style="background: transparent; color: inherit;">Sign Out</button>
+            </div>
+        </div>
+    </div>
 
-        if (!data.html) {
-          throw new Error(data.error || "No HTML returned");
+    <footer class="bottombar">
+        <h3 style="letter-spacing: 15px;">Built by Students, inspired by Teachers. ♥️</h3>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+    <script src="login.js"></script>
+    <script src="global-search.js"></script>
+    <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+
+    <script>
+        const MATERIALS_STORAGE_KEY = "quizwiz_materials_v1";
+
+        const frame = document.getElementById("frame");
+        const statusEl = document.getElementById("status");
+        const topicEl = document.getElementById("topic");
+        const generateBtn = document.getElementById("generateBtn");
+        const useMaterialsBtn = document.getElementById("useMaterialsBtn");
+        const hostBtn = document.getElementById("hostBtn");
+        const hostPanel = document.getElementById("hostPanel");
+        const hostLinkEl = document.getElementById("hostLink");
+        const copyHostLinkBtn = document.getElementById("copyHostLinkBtn");
+        const openHostLinkBtn = document.getElementById("openHostLinkBtn");
+
+        let lastHtml = "";
+        let lastTopic = "";
+
+        function setStatus(text, kind) {
+            if (!statusEl) return;
+            statusEl.innerText = text || "";
+            statusEl.style.display = text ? "block" : "none";
+            if (kind === "error") {
+                statusEl.style.background = "rgba(239, 68, 68, 0.12)";
+                statusEl.style.color = "#ef4444";
+                statusEl.style.borderColor = "rgba(239, 68, 68, 0.35)";
+            } else {
+                statusEl.style.background = "";
+                statusEl.style.color = "";
+                statusEl.style.borderColor = "";
+            }
         }
 
-        // DIRECT RENDER AI HTML
-        frame.srcdoc = data.html;
+        function getMaterialsStore() {
+            const raw = localStorage.getItem(MATERIALS_STORAGE_KEY);
+            if (!raw) return { learnedContext: "", presets: [] };
+            try {
+                const parsed = JSON.parse(raw);
+                const presets = Array.isArray(parsed?.presets) ? parsed.presets : [];
+                const learnedContext = typeof parsed?.learnedContext === "string" ? parsed.learnedContext : "";
+                return { learnedContext, presets };
+            } catch (_) {
+                return { learnedContext: "", presets: [] };
+            }
+        }
 
-      } catch (err) {
-        frame.srcdoc = `
-          <html>
-            <body style="font-family: Arial; padding: 20px;">
-              <h2>Generation Failed</h2>
-              <p>${err.message}</p>
-            </body>
-          </html>
-        `;
-      }
+        function setMaterialsStore(next) {
+            localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(next || { learnedContext: "", presets: [] }));
+        }
 
-      loading.style.display = "none";
-    }
-  </script>
+        function htmlToText(html) {
+            try {
+                const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+                const text = String(doc?.body?.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
+                return text;
+            } catch (_) {
+                return "";
+            }
+        }
 
+        async function generate() {
+            const topic = String(topicEl?.value || "").trim();
+            if (!topic) return alert("Enter a topic");
+
+            hostPanel.style.display = "none";
+            lastHtml = "";
+            lastTopic = topic;
+            useMaterialsBtn.disabled = true;
+            hostBtn.disabled = true;
+
+            generateBtn.disabled = true;
+            setStatus("Generating notes...");
+            try {
+                const res = await fetch("/.netlify/functions/presentation", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic })
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Generation failed.");
+                if (!data?.html) throw new Error("No HTML returned.");
+
+                lastHtml = String(data.html);
+                frame.srcdoc = lastHtml;
+                useMaterialsBtn.disabled = false;
+                hostBtn.disabled = false;
+                setStatus("Notes ready. You can use them as learning material or host them for students.");
+            } catch (err) {
+                frame.srcdoc = `
+                    <html><body style="font-family: Arial; padding: 20px;">
+                        <h2>Generation Failed</h2>
+                        <p>${String(err?.message || "Unknown error")}</p>
+                    </body></html>
+                `;
+                setStatus(String(err?.message || "Generation failed."), "error");
+            } finally {
+                generateBtn.disabled = false;
+            }
+        }
+
+        async function useAsLearningMaterial() {
+            if (!lastHtml) return;
+            const text = htmlToText(lastHtml);
+            if (!text) return alert("Could not extract text from the generated notes.");
+
+            const store = getMaterialsStore();
+            setMaterialsStore({ ...store, learnedContext: text });
+            setStatus("Saved as learning material. Open Personalized/Baseline to generate tests using it.");
+        }
+
+        async function hostNotes() {
+            if (!lastHtml) return;
+
+            const token = window.QuizWizAuth ? await QuizWizAuth.getAuthToken() : "";
+            if (!token) {
+                setStatus("Sign in to host notes for students.", "error");
+                if (window.QuizWizAuth) QuizWizAuth.openAccountModal();
+                return;
+            }
+
+            hostBtn.disabled = true;
+            setStatus("Hosting notes...");
+            try {
+                const res = await fetch("/.netlify/functions/notes-host", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        html: lastHtml,
+                        meta: { topic: lastTopic || "" }
+                    })
+                });
+
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Failed to host notes.");
+                const notesId = String(data?.notesId || "").trim();
+                const accessCode = String(data?.accessCode || "").trim();
+                if (!notesId || !accessCode) throw new Error("Invalid host response.");
+
+                const url = `${location.origin}/notes.html?notesId=${encodeURIComponent(notesId)}&code=${encodeURIComponent(accessCode)}`;
+                hostLinkEl.value = url;
+                openHostLinkBtn.href = url;
+                hostPanel.style.display = "block";
+                setStatus("Hosted! Share the link with students.");
+            } catch (err) {
+                setStatus(String(err?.message || "Failed to host notes."), "error");
+            } finally {
+                hostBtn.disabled = false;
+            }
+        }
+
+        async function copyHostLink() {
+            const value = String(hostLinkEl?.value || "").trim();
+            if (!value) return;
+            try {
+                await navigator.clipboard.writeText(value);
+                setStatus("Copied hosted link.");
+            } catch (_) {
+                hostLinkEl.select();
+                document.execCommand("copy");
+                setStatus("Copied hosted link.");
+            }
+        }
+
+        generateBtn?.addEventListener("click", generate);
+        topicEl?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") generate();
+        });
+        useMaterialsBtn?.addEventListener("click", useAsLearningMaterial);
+        hostBtn?.addEventListener("click", hostNotes);
+        copyHostLinkBtn?.addEventListener("click", copyHostLink);
+    </script>
 </body>
 </html>
