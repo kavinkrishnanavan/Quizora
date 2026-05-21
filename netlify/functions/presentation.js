@@ -41,6 +41,7 @@ STRICT RULES:
 - Must NOT include JSON
 - Must NOT include backticks
 - Must NOT include any text outside HTML
+- !important! Every slide must be creative and colorful !important!
 
 FEATURES REQUIRED:
 - Fullscreen slides
