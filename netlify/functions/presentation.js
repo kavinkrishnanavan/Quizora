@@ -35,13 +35,13 @@ STRICT RULES:
 - Must include <html>, <head>, <style>, <body>
 - Must be a slideshow-style presentation
 - Must include next/previous navigation buttons
-- Must be visually modern and clean
 - Must be about: ${topic}
 - Must fit full screen
 - Must NOT include JSON
 - Must NOT include backticks
 - Must NOT include any text outside HTML
 - !important! Every slide must be creative and colorful !important!
+- !important! Every slide must be in a different format and must be visually attractive instead of a boring same format !important!
 
 FEATURES REQUIRED:
 - Fullscreen slides
