@@ -129,7 +129,7 @@
 const response = await fetch('/.netlify/functions/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: "You are a proffessional presentation maker. Make a html (strictly the output must be nothing else than html) about life."
         });
 
         let data = null;
