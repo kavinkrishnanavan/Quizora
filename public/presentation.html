@@ -1,832 +1,725 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
-    
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz-Wiz</title>
-  <link rel="icon" type="image/png" href="favicon_2.png" />
-  <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-  <script src="login.js"></script>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --primary: #2563eb;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #1e293b;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      --status-bg: #eff6ff;
-      --status-text: #2563eb;
-    }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0b1220;
-        --card: #0f172a;
-        --text: #e2e8f0;
-        --muted: #94a3b8;
-        --border: #263145;
-        --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
-        --status-bg: rgba(37, 99, 235, 0.18);
-        --status-text: #93c5fd;
-      }
-    }
+<meta charset="UTF-8">
 
-    body {
-      
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      line-height: 1.5;
-    }
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
 
-    .app-shell {
-      max-width: 1400px;
-      margin: 0 auto;
-      display: flex;
-      gap: 24px;
-      padding: 20px;
-      align-items: flex-start;
-    }
+<title>AI Presentation Generator</title>
 
-    .container {
-      flex: 1;
-      max-width: 980px;
-      background: var(--card);
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-    }
+<link rel="preconnect"
+href="https://fonts.googleapis.com">
 
-    .sidebar {
-      width: 320px;
-      min-width: 260px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 18px;
-      position: sticky;
-      top: 20px;
-      z-index: -1; 
-    }
+<link rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
 
-    @media (max-width: 1100px) {
-      .app-shell { flex-direction: column; }
-      .container { max-width: 100%; }
-      .sidebar { width: 100%; position: static; }
-    }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+rel="stylesheet">
 
-    .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
-    .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
-    .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
-    button.tab { font-family: inherit; }
-    .tab-button { cursor: pointer; }
+<style>
 
-    .topbar { top: 0; z-index: 10003; background: rgba(15, 23, 42, 0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
-    @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
-    .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
-    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
-    .brand img { width: 34px; height: 34px;}
-    .global-search { flex: 1; min-width: 180px; max-width: 560px; }
-    .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
-    .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
-    .topnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .topnav-link { text-decoration: none; padding: 9px 12px; border: 1px solid transparent; border-radius: 999px; color: inherit; font-weight: 800; background: transparent; }
-    .topnav-link:hover { background: rgba(127,127,127,0.08); border-color: rgba(127,127,127,0.18); }
-    .topnav-link.active { background: rgba(37, 99, 235, 0.14); border-color: rgba(37, 99, 235, 0.35); }
-    .topbar-actions { display: flex; align-items: center; gap: 10px; }
-    .topbar-btn { padding: 9px 12px; margin-top: 0; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; font-weight: 800; cursor: pointer; }
-    .topbar-btn:hover { background: rgba(127,127,127,0.12); }
-    .icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 999px; }
+:root{
 
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
-    .field { display: flex; flex-direction: column; gap: 8px; }
-    label { color: var(--muted); font-weight: 700; font-size: 0.92rem; }
-    input, select, textarea {
-      padding: 12px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: inherit;
-      outline: none;
-    }
-    textarea { resize: vertical; min-height: 110px; }
+  --bg:#050816;
+  --card:#0f172a;
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --primary:#3b82f6;
+  --border:rgba(255,255,255,0.08);
 
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
-    
-    
-    
-    
+}
 
-    .status {
-      margin-top: 14px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: var(--status-bg);
-      color: var(--status-text);
-      border: 1px solid rgba(37, 99, 235, 0.22);
-      font-weight: 700;
-    }
+*{
 
-    .preview-wrap { margin-top: 18px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-    iframe { width: 100%; height: 720px; border: 0; background: white; }
-    .hint { color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
-    hr { border-color: var(--border); }
-    /* Sidebar history */
-    .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-    .sidebar-title { font-weight: 800; font-size: 1.05rem; }
-    .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
-    .history-list { display: grid; gap: 10px; margin-top: 12px; max-height: 560px; overflow: auto; padding-right: 4px; }
-    .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
-    .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
-    .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
-    .history-entry-title { font-weight: 800; font-size: 0.98rem; }
-    .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
-    .history-entry-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .history-delete { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 0.75rem; font-weight: 800; cursor: pointer; }
-    .history-delete:hover { border-color: rgba(239, 68, 68, 0.55); color: #ef4444; }
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
 
-    /* Hidden host used for PDF rendering */
-    #pdfHost { position: fixed; left: -99999px; top: 0; width: 1280px; }
-  </style>
-  <link rel="stylesheet" href="uni.css">
+}
+
+body{
+
+  font-family:"Inter",sans-serif;
+
+  background:
+    radial-gradient(circle at top left,
+      rgba(59,130,246,0.2),
+      transparent 30%),
+
+    radial-gradient(circle at bottom right,
+      rgba(6,182,212,0.18),
+      transparent 35%),
+
+    var(--bg);
+
+  color:var(--text);
+
+  overflow-x:hidden;
+
+}
+
+.topbar{
+
+  position:sticky;
+  top:0;
+  z-index:1000;
+
+  background:rgba(5,8,22,0.7);
+
+  backdrop-filter:blur(20px);
+
+  border-bottom:1px solid rgba(255,255,255,0.06);
+
+}
+
+.topbar-inner{
+
+  max-width:1500px;
+
+  margin:auto;
+
+  padding:18px 24px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+}
+
+.brand{
+
+  font-size:1.3rem;
+
+  font-weight:800;
+
+}
+
+.controls{
+
+  display:flex;
+
+  gap:14px;
+
+  flex-wrap:wrap;
+
+}
+
+input,
+textarea,
+select{
+
+  background:rgba(255,255,255,0.05);
+
+  border:1px solid rgba(255,255,255,0.08);
+
+  color:white;
+
+  padding:14px 16px;
+
+  border-radius:16px;
+
+  outline:none;
+
+  font-family:inherit;
+
+}
+
+textarea{
+
+  width:100%;
+  min-height:120px;
+
+  resize:vertical;
+
+}
+
+button{
+
+  background:linear-gradient(
+    135deg,
+    #2563eb,
+    #06b6d4
+  );
+
+  border:none;
+
+  color:white;
+
+  padding:14px 22px;
+
+  border-radius:18px;
+
+  font-weight:700;
+
+  cursor:pointer;
+
+  transition:0.3s;
+
+}
+
+button:hover{
+
+  transform:translateY(-2px);
+
+}
+
+.main{
+
+  max-width:1500px;
+
+  margin:auto;
+
+  padding:40px 24px;
+
+}
+
+.form-grid{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(auto-fit,minmax(240px,1fr));
+
+  gap:18px;
+
+  margin-bottom:20px;
+
+}
+
+.field{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:10px;
+
+}
+
+label{
+
+  color:#94a3b8;
+
+  font-weight:700;
+
+}
+
+.preview{
+
+  margin-top:40px;
+
+  border-radius:30px;
+
+  overflow:hidden;
+
+  border:1px solid rgba(255,255,255,0.06);
+
+  background:black;
+
+}
+
+iframe{
+
+  width:100%;
+
+  height:900px;
+
+  border:none;
+
+  background:black;
+
+}
+
+.status{
+
+  margin-top:20px;
+
+  color:#60a5fa;
+
+  font-weight:700;
+
+}
+
+</style>
+
 </head>
+
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
-        <img src="favicon_2.png" alt="Quiz-Wiz">
-        <span>Quiz-Wiz</span>
-      </a>
-      <div class="global-search">
-        <input id="globalSearch" type="search" placeholder="Search pages…" autocomplete="off">
-      </div>
-      <nav class="topnav" aria-label="Primary navigation">
-        <a class="topnav-link" href="index.html">Personalized</a>
-        <a class="topnav-link" href="baseline.html">Baseline</a>
-        <a class="topnav-link" href="image.html">Marker</a>
-        <a class="topnav-link active" href="presentation.html">Notes</a>
-        <a class="topnav-link" href="documentation.html">Guide</a>
-      </nav>
-      <div class="topbar-actions">
-        <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
-        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
-      </div>
+
+<header class="topbar">
+
+  <div class="topbar-inner">
+
+    <div class="brand">
+      Quiz-Wiz AI
     </div>
-  </header>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div>
-          <div class="sidebar-title">Notes</div>
-          <div class="sidebar-subtitle">Reload previous notes.</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button id="clearHistoryBtn" type="button" class="history-delete" title="Clear selection" style="display:none;"></button>
-        </div>
-      </div>
-      <div id="historyList" class="history-list"></div>
-    </aside>
 
-    <div class="container">
-      <header class="page-header">
-        <div class="page-header-top">
-          <div style="display: flex; align-items: center; gap: 10px;">
-                <img id="title" src="favicon.png" class="zoom" style="width: 200px;" alt="Quiz-Wiz">
-                <h1>Quiz-Wiz : Learning Empowered </h1>
-            </div>
-            
-        </div>
-        
-        <div style="text-align: right;">
-                <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
-                <a href="https://forms.gle/rX2LhHorafSnso4B9" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
-            </div>
+    <div class="controls">
 
-        
-      </header>
-      <hr>
-      <br>
+      <button id="downloadBtn">
+        Download PDF
+      </button>
 
-      <div class="form-grid">
-        <div class="field">
-          <label>Topic</label>
-          <input id="topic" placeholder="e.g. Linear Equations" value="Linear Equations" />
-        </div>
-        <div class="field">
-          <label>Grade</label>
-          <select id="audience">
-            
-            <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
-                <option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>
-                <option>Grade 7</option><option>Grade 8</option><option selected>Grade 9</option>
-                <option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>
-            
-          </select>
-          
-        </div>
-        <div class="field">
-          <label>Slides</label>
-          <input  id="slideCount" type="number" min="3" max="20" value="8" />
-        </div>
-        <div class="field">
-          <label>Tone</label>
-          <select id="tone">
-            <option selected>Clear, student-friendly</option>
-            <option>Exam-focused</option>
-            <option>Fun and engaging</option>
-            <option>Concise and formal</option>
-          </select>
-        </div>
-        <div class="field" style="grid-column: 1 / -1;">
-          <label>Special Requests (optional)</label>
-          <textarea id="extra" placeholder="e.g. Include 1 real-world example and 1 common mistake slide."></textarea>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="primary" id="genBtn" type="button">Generate Presentation</button>
-        <button id="downloadPdfBtn" type="button" disabled>Download PDF</button>
-      </div>
-
-      <div id="status" class="status" style="display: none;"></div>
-     
-
-      <div class="preview-wrap" style="display: none;">
-        <iframe id="previewFrame" title="Presentation preview"></iframe>
-      </div>
     </div>
+
   </div>
 
-  <div id="pdfHost" aria-hidden="true"></div>
-  <style id="pdfDeckStyle"></style>
+</header>
 
-  <div id="accountModal" class="account-modal" style="display:none; position: fixed; inset: 0; z-index: 10002;">
-    <div id="accountBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
-    <div role="dialog" aria-modal="true" aria-labelledby="accountTitle" style="position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px;">
-      <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
-        <div>
-          <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
-          <div style="color: var(--muted); font-size: 0.9rem;" id="authStatus">Enter email and password to sign in.</div>
-        </div>
-        <button type="button" id="accountClose" style="background: transparent;"><i class="fa-solid fa-circle-xmark"></i></button>
-      </div>
+<div class="main">
 
-      <div id="accountSignedOut" style="display:none;">
-        <div class="field">
-          <label>Email</label>
-          <input id="authEmail" type="email" placeholder="teacher@school.edu">
-        </div>
-        <div class="field">
-          <label>Password</label>
-          <input id="authPassword" type="password" placeholder="Minimum 6 characters">
-        </div>
-        <div class="actions" style="margin-top: 12px;">
-          <button type="button" id="signUpBtn">Create Account</button>
-          <button type="button" id="signInBtn">Sign In</button>
-        </div>
-      </div>
+  <div class="form-grid">
 
-      <div id="accountSignedIn" style="display:none;">
-        <div style="color: var(--muted); font-size: 0.9rem;">Signed in as</div>
-        <div id="accountEmailDisplay" style="font-weight: 800; margin-bottom: 12px;"></div>
-        <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
-      </div>
+    <div class="field">
+
+      <label>Topic</label>
+
+      <input
+      id="topic"
+      value="Linear Equations">
+
     </div>
+
+    <div class="field">
+
+      <label>Grade</label>
+
+      <select id="grade">
+
+        <option>Grade 1</option>
+        <option>Grade 2</option>
+        <option>Grade 3</option>
+        <option>Grade 4</option>
+        <option>Grade 5</option>
+        <option>Grade 6</option>
+        <option>Grade 7</option>
+        <option>Grade 8</option>
+        <option selected>Grade 9</option>
+        <option>Grade 10</option>
+        <option>Grade 11</option>
+        <option>Grade 12</option>
+
+      </select>
+
+    </div>
+
+    <div class="field">
+
+      <label>Slides</label>
+
+      <input
+      id="slides"
+      type="number"
+      value="8">
+
+    </div>
+
+    <div class="field">
+
+      <label>Tone</label>
+
+      <select id="tone">
+
+        <option selected>
+          Modern
+        </option>
+
+        <option>
+          Fun
+        </option>
+
+        <option>
+          Professional
+        </option>
+
+        <option>
+          Futuristic
+        </option>
+
+      </select>
+
+    </div>
+
   </div>
 
-<footer class="bottombar">
-    <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
-</footer>
+  <div class="field">
 
+    <label>Special Requests</label>
+
+    <textarea id="extra"></textarea>
+
+  </div>
+
+  <div style="margin-top:24px;">
+
+    <button id="generateBtn">
+
+      Generate Presentation
+
+    </button>
+
+  </div>
+
+  <div class="status"
+  id="status"></div>
+
+  <div class="preview">
+
+    <iframe id="preview"></iframe>
+
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 
+const preview =
+document.getElementById("preview");
 
-    const previewFrame = document.getElementById("previewFrame");
-    const statusEl = document.getElementById("status");
-    const genBtn = document.getElementById("genBtn");
-    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
-    const pdfHost = document.getElementById("pdfHost");
-    const pdfDeckStyle = document.getElementById("pdfDeckStyle");
-    const historyListEl = document.getElementById("historyList");
-    const clearHistoryBtn = document.getElementById("clearHistoryBtn");
-    const accountBtn = document.getElementById("accountBtn");
+const statusEl =
+document.getElementById("status");
 
-    const accountModal = document.getElementById("accountModal");
-    const accountBackdrop = document.getElementById("accountBackdrop");
-    const accountClose = document.getElementById("accountClose");
-    const authStatus = document.getElementById("authStatus");
-    const accountSignedOut = document.getElementById("accountSignedOut");
-    const accountSignedIn = document.getElementById("accountSignedIn");
-    const accountEmailDisplay = document.getElementById("accountEmailDisplay");
-    const authEmail = document.getElementById("authEmail");
-    const authPassword = document.getElementById("authPassword");
-    const signUpBtn = document.getElementById("signUpBtn");
-    const signInBtn = document.getElementById("signInBtn");
-    const signOutBtn = document.getElementById("signOutBtn");
+let currentHtml = "";
 
-    const HISTORY_TYPE = "presentation";
-    let firebaseReady = false;
-    let currentUser = null;
+function escapeHtml(str){
 
-    let historyItems = [];
-    let activeHistoryId = "";
-    let pendingLoadId = new URL(window.location.href).searchParams.get("id") || "";
+  return String(str || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
 
-    let lastDeck = null;
-    let lastHtml = "";
-    let lastFilename = "Presentation";
+}
 
-    function escapeHtml(str) {
-      return String(str || "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll("\"", "&quot;")
-        .replaceAll("'", "&#39;");
-    }
+function buildPresentation(deck){
 
-    function sanitizeFilename(name) {
-      return String(name || "Presentation")
-        .replace(/[\\/:*?"<>|]+/g, "-")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 120);
-    }
+  const slides =
+  Array.isArray(deck?.slides)
+  ? deck.slides
+  : [];
 
-    function updateUrlId(id) {
-      const url = new URL(window.location.href);
-      if (id) url.searchParams.set("id", id);
-      else url.searchParams.delete("id");
-      window.history.replaceState({}, "", url.toString());
-    }
-
-    function setActiveHistory(id) {
-      activeHistoryId = String(id || "");
-      const entries = document.querySelectorAll(".history-entry");
-      entries.forEach((entry) => {
-        if (entry.dataset?.id === activeHistoryId) entry.classList.add("active");
-        else entry.classList.remove("active");
-      });
-    }
-
-    function openAccountModal() {
-      if (!accountModal) return;
-      accountModal.style.display = "block";
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeAccountModal() {
-      if (!accountModal) return;
-      accountModal.style.display = "none";
-      document.body.style.overflow = "";
-    }
-
-    function updateAuthUi(user) {
-      currentUser = user || null;
-      if (!authStatus || !accountSignedOut || !accountSignedIn) return;
-      if (currentUser) {
-        authStatus.innerText = "Signed in. History is stored in Firebase.";
-        accountSignedOut.style.display = "none";
-        accountSignedIn.style.display = "block";
-        if (accountEmailDisplay) accountEmailDisplay.innerText = currentUser.email || "";
-      } else {
-        authStatus.innerText = firebaseReady ? "Sign in to save/load history." : "Firebase not configured yet.";
-        accountSignedOut.style.display = "block";
-        accountSignedIn.style.display = "none";
-        if (accountEmailDisplay) accountEmailDisplay.innerText = "";
-      }
-    }
-
-    async function initFirebase() {
-      if (!window.QuizWizAuth) {
-        firebaseReady = false;
-        updateAuthUi(null);
-        renderHistoryList([]);
-        return;
-      }
-
-      try {
-        await QuizWizAuth.init();
-        firebaseReady = true;
-      } catch (_) {
-        firebaseReady = false;
-        updateAuthUi(null);
-        renderHistoryList([]);
-        return;
-      }
-
-      QuizWizAuth.onChange(async (user) => {
-        updateAuthUi(user);
-        if (user) {
-          await loadHistory();
-          if (pendingLoadId) {
-            const id = pendingLoadId;
-            pendingLoadId = "";
-            loadHistoryItem(id, { autoPdf: true });
-          }
-        } else {
-          renderHistoryList([]);
-        }
-      });
-    }
-
-    async function getAuthToken() {
-      if (!window.QuizWizAuth) return "";
-      return QuizWizAuth.getAuthToken();
-    }
-
-    async function signUp() {
-      if (!firebaseReady) return alert("Firebase is not configured yet.");
-      const email = String(authEmail?.value || "").trim();
-      const password = String(authPassword?.value || "").trim();
-      if (!email || password.length < 6) return alert("Enter email + password (min 6 chars).");
-      await firebase.auth().createUserWithEmailAndPassword(email, password);
-    }
-
-    async function signIn() {
-      if (!firebaseReady) return alert("Firebase is not configured yet.");
-      const email = String(authEmail?.value || "").trim();
-      const password = String(authPassword?.value || "").trim();
-      if (!email || !password) return alert("Enter email + password.");
-      await firebase.auth().signInWithEmailAndPassword(email, password);
-    }
-
-    async function signOut() {
-      if (!firebaseReady) return;
-      await firebase.auth().signOut();
-    }
-
-    async function fetchHistoryItems() {
-      const token = await getAuthToken();
-      if (!token) return [];
-      const res = await fetch("/.netlify/functions/history?limit=50", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || "Failed to load history.");
-      const items = Array.isArray(data?.items) ? data.items : [];
-      return items.map((item) => {
-        let payload = null;
-        try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; }
-        return { ...item, payload };
-      }).filter((x) => x?.payload?.type === HISTORY_TYPE);
-    }
-
-    async function loadHistory() {
-      if (!firebaseReady || !currentUser) return;
-      statusEl.textContent = "Loading history…";
-      try {
-        historyItems = await fetchHistoryItems();
-        renderHistoryList(historyItems);
-        statusEl.textContent = "";
-      } catch (err) {
-        renderHistoryList([]);
-        statusEl.textContent = "History load failed.";
-      }
-    }
-
-    async function saveHistory(payload) {
-      const token = await getAuthToken();
-      if (!token) throw new Error("Sign in to save history.");
-      const res = await fetch("/.netlify/functions/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ payload })
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || "Failed to save history.");
-      return data?.id || "";
-    }
-
-    async function deleteHistoryEntry(id) {
-      const safeId = String(id || "").trim();
-      if (!safeId) return;
-      const ok = confirm("Delete this history entry?");
-      if (!ok) return;
-      const token = await getAuthToken();
-      if (!token) return alert("Sign in to delete history.");
-      const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) return alert(data?.error || "Failed to delete history.");
-      if (activeHistoryId === safeId) {
-        activeHistoryId = "";
-        updateUrlId("");
-      }
-      await loadHistory();
-    }
-
-    function renderHistoryList(items) {
-      if (!historyListEl) return;
-      const listItems = Array.isArray(items) ? items : [];
-      historyListEl.innerHTML = "";
-      if (!firebaseReady || !currentUser) {
-        historyListEl.innerHTML = "<div class=\"history-entry-meta\">Please sign in to see history.</div>";
-        return;
-      }
-      if (!listItems.length) {
-        historyListEl.innerHTML = "<div class=\"history-entry-meta\">No history found yet.</div>";
-        return;
-      }
-
-      listItems.forEach((item) => {
-        const entry = document.createElement("div");
-        entry.className = "history-entry";
-        entry.dataset.id = item.id;
-
-        const row = document.createElement("div");
-        row.className = "history-entry-row";
-
-        const title = document.createElement("div");
-        title.className = "history-entry-title";
-        title.innerText = item.payload?.title || "Presentation";
-        row.appendChild(title);
-
-        const delBtn = document.createElement("button");
-        delBtn.type = "button";
-        delBtn.className = "history-delete";
-        delBtn.innerText = "Delete";
-        delBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          deleteHistoryEntry(item.id);
-        });
-        row.appendChild(delBtn);
-        entry.appendChild(row);
-
-        const createdAt = item.payload?.createdAt || item.createdAt || "";
-        const meta = document.createElement("div");
-        meta.className = "history-entry-meta";
-        meta.innerText = createdAt ? new Date(createdAt).toLocaleString() : "Saved";
-        entry.appendChild(meta);
-
-        if (item.payload?.summary) {
-          const summary = document.createElement("div");
-          summary.className = "history-entry-meta";
-          summary.innerText = item.payload.summary;
-          entry.appendChild(summary);
-        }
-
-        entry.addEventListener("click", () => loadHistoryItem(item.id, { autoPdf: true }));
-        historyListEl.appendChild(entry);
-      });
-
-      if (activeHistoryId) setActiveHistory(activeHistoryId);
-    }
-
-    async function loadHistoryItem(id, { autoPdf } = {}) {
-      const safeId = String(id || "").trim();
-      if (!safeId) return;
-      const item = historyItems.find((x) => String(x?.id || "") === safeId);
-      if (!item?.payload) return alert("History entry missing data.");
-
-      setActiveHistory(safeId);
-      updateUrlId(safeId);
-
-      const inputs = item.payload?.inputs && typeof item.payload.inputs === "object" ? item.payload.inputs : {};
-      document.getElementById("topic").value = inputs.topic || "";
-      document.getElementById("audience").value = inputs.audience || "";
-      document.getElementById("slideCount").value = inputs.slideCount || 8;
-      document.getElementById("tone").value = inputs.tone || "Clear, student-friendly";
-      document.getElementById("extra").value = inputs.extra || "";
-
-      lastDeck = item.payload?.deck || null;
-      if (!lastDeck) return alert("This history entry is missing deck data.");
-
-      lastHtml = buildDeckHtml(lastDeck);
-      lastFilename = sanitizeFilename(lastDeck?.title || item.payload?.title || "Presentation");
-      previewFrame.srcdoc = lastHtml;
-      downloadPdfBtn.disabled = false;
-      statusEl.textContent = "History loaded.";
-
-      if (autoPdf) setTimeout(() => downloadPdf(), 150);
-    }
-
-    function buildDeckHtml(deck) {
-
-      const title = escapeHtml(deck?.title || "Presentation");
-      const subtitle = escapeHtml(deck?.subtitle || "");
-      const slides = Array.isArray(deck?.slides) ? deck.slides : [];
-
-      const slideEls = slides.map((slide, idx) => {
-        const heading = escapeHtml(slide?.heading || `Slide ${idx + 1}`);
-        const bullets = Array.isArray(slide?.bullets) ? slide.bullets : [];
-        const paragraphs = Array.isArray(slide?.paragraphs) ? slide.paragraphs : [];
-
-        const paragraphsHtml = paragraphs.length
-          ? paragraphs.slice(0, 3).map(p => `<p class="para">${escapeHtml(p)}</p>`).join("")
-          : "";
-        const bulletsHtml = bullets.length
-          ? `<ul class="bullets">${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`
-          : "";
-
-        const isTitle = idx === 0;
-        const titleBlock = isTitle
-          ? `<div class="title">
-              <div class="kicker">Quiz-Wiz Presentation</div>
-              <h1>${title}</h1>
-              ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
-            </div>`
-          : `<h2>${heading}</h2>`;
-
-        const middleHtml = isTitle
-          ? `<div class="title-body">${paragraphsHtml}${bulletsHtml}</div>`
-          : `<div class="content"><div class="text">${paragraphsHtml}${bulletsHtml}</div></div>`;
-
-        return `
-          <section class="slide ${isTitle ? "is-title" : ""}">
-            <div class="slide-inner">
-              <div class="top">
-                ${titleBlock}
-                ${!isTitle && subtitle ? `<div class="deck-subtitle">${subtitle}</div>` : ""}
-              </div>
-              <div class="middle">${middleHtml}</div>
-              <div class="bottom">
-                <div class="footer">
-                  <span class="page">${idx + 1} / ${slides.length}</span>
-                  <span class="topic">${title}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-        `;
-      }).join("");
-
-      const css = `
-        .deck { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; width: 1280px; background: #0b1220; }
-        .deck .slide {
-          width: 1280px; height: 720px; box-sizing: border-box; padding: 56px; margin: 0;
-          background: radial-gradient(1200px 720px at 10% 10%, rgba(37, 99, 235, 0.35), transparent 55%),
-                      radial-gradient(900px 600px at 90% 10%, rgba(16, 185, 129, 0.22), transparent 50%),
-                      linear-gradient(180deg, #0b1220, #0f172a);
-          color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.08); position: relative;
-        }
-        .deck .slide-inner { height: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
-        .deck .middle { flex: 1; overflow: hidden; }
-        .deck .kicker { font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; font-size: 12px; color: rgba(226, 232, 240, 0.72); }
-        .deck h1 { margin: 10px 0 6px; font-size: 56px; line-height: 1.05; }
-        .deck .subtitle { font-size: 22px; color: rgba(226, 232, 240, 0.8); font-weight: 700; }
-        .deck h2 { margin: 0; font-size: 42px; line-height: 1.1; }
-        .deck .deck-subtitle { margin-top: 10px; color: rgba(226, 232, 240, 0.7); font-weight: 700; }
-        .deck .para { margin: 0 0 14px; font-size: 22px; line-height: 1.28; color: rgba(226, 232, 240, 0.92); }
-        .deck .bullets { margin: 8px 0 0; padding-left: 28px; font-size: 26px; line-height: 1.2; }
-        .deck .bullets li { margin: 12px 0; }
-        .deck .footer { display: flex; justify-content: space-between; gap: 18px; font-weight: 800; font-size: 14px; color: rgba(226, 232, 240, 0.7); }
-      `.trim();
-
-      return `<!doctype html>
+  return `
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title}</title>
-  <style>${css}</style>
+
+<meta charset="UTF-8">
+
+<link rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+rel="stylesheet">
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+
+  font-family:"Inter",sans-serif;
+
+  background:#050816;
+
+  color:white;
+
+  overflow-x:hidden;
+
+}
+
+section{
+
+  min-height:100vh;
+
+  padding:80px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  position:relative;
+
+}
+
+.ai-slide{
+
+  width:100%;
+
+}
+
+.card{
+
+  background:
+    rgba(255,255,255,0.05);
+
+  border:
+    1px solid rgba(255,255,255,0.08);
+
+  border-radius:30px;
+
+  padding:40px;
+
+  backdrop-filter:blur(14px);
+
+}
+
+</style>
+
 </head>
+
 <body>
-  <div class="deck">${slideEls}</div>
+
+${slides.map(slide => `
+<section class="ai-slide">
+
+${slide.html || ""}
+
+</section>
+`).join("")}
+
 </body>
-</html>`;
+</html>
+`;
+
+}
+
+async function generatePresentation(){
+
+  statusEl.innerText =
+  "Generating...";
+
+  const topic =
+  document.getElementById("topic").value;
+
+  const grade =
+  document.getElementById("grade").value;
+
+  const slideCount =
+  document.getElementById("slides").value;
+
+  const tone =
+  document.getElementById("tone").value;
+
+  const extra =
+  document.getElementById("extra").value;
+
+  const prompt = `
+Generate a beautiful modern HTML presentation.
+
+Topic:
+${topic}
+
+Grade:
+${grade}
+
+Slides:
+${slideCount}
+
+Tone:
+${tone}
+
+Extra:
+${extra}
+
+IMPORTANT:
+
+Return ONLY JSON.
+
+Format:
+
+{
+  "title":"",
+  "slides":[
+    {
+      "html":"FULL HTML OF SLIDE"
     }
+  ]
+}
 
-    async function generate() {
-      genBtn.disabled = true;
-      statusEl.style.display = "block";
-      downloadPdfBtn.disabled = true;
-      statusEl.textContent = "Generating…";
+Rules:
 
-      try {
-        const topic = document.getElementById("topic").value.trim();
-        const audience = document.getElementById("audience").value.trim();
-        const slideCount = Number.parseInt(document.getElementById("slideCount").value, 10) || 8;
-        const tone = document.getElementById("tone").value.trim();
-        const extra = document.getElementById("extra").value.trim();
+- Use inline styles
+- Make slides visually different
+- Use gradients
+- Use modern layouts
+- Use cards
+- Use big typography
+- Use split layouts
+- Use hero sections
+- Use comparison tables
+- Use timeline designs
+- Use infographic style
+- Use glowing effects
+- Use dark futuristic design
+- No markdown
+`;
 
-        const res = await fetch("/.netlify/functions/presentation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic, audience, slideCount, tone, extra })
-        });
+  try{
 
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
-        if (!data?.deck) throw new Error("No deck returned.");
+    const response =
+    await fetch(
+      "/.netlify/functions/presentation",
+      {
+        method:"POST",
 
-        lastDeck = data.deck;
-        lastHtml = buildDeckHtml(lastDeck);
-        lastFilename = sanitizeFilename(lastDeck?.title || topic || "Presentation");
+        headers:{
+          "Content-Type":"application/json"
+        },
 
-        previewFrame.parentElement.style.display = "block";
-
-        previewFrame.srcdoc = lastHtml;
-        statusEl.textContent = `Done: ${lastDeck?.title || topic}`;
-        downloadPdfBtn.disabled = false;
-
-        const payload = {
-          type: HISTORY_TYPE,
-          title: lastDeck?.title || topic || "Presentation",
-          createdAt: new Date().toISOString(),
-          summary: `${audience || "Audience"} • ${slideCount} slides`,
-          deck: lastDeck,
-          inputs: { topic, audience, slideCount, tone, extra }
-        };
-
-        if (currentUser) {
-          const savedId = await saveHistory(payload);
-          await loadHistory();
-          if (savedId) {
-            setActiveHistory(savedId);
-            updateUrlId(savedId);
-          }
-        } else {
-          statusEl.textContent += " (Sign in to save history)";
-        }
-      } catch (err) {
-        statusEl.textContent = "Error: " + (err?.message || "Unable to generate");
-        previewFrame.srcdoc = "";
-      } finally {
-        genBtn.disabled = false;
+        body:JSON.stringify({
+          prompt
+        })
       }
+    );
+
+    const data =
+    await response.json();
+
+    if(!data?.deck){
+
+      throw new Error(
+        "No deck returned"
+      );
+
     }
 
-    async function downloadPdf() {
-      if (!lastHtml) return;
-      downloadPdfBtn.disabled = true;
-      statusEl.textContent = "Rendering PDF…";
+    currentHtml =
+    buildPresentation(data.deck);
 
-      try {
-        const hostDoc = new DOMParser().parseFromString(lastHtml, "text/html");
-        const styleText = hostDoc.querySelector("style")?.textContent || "";
-        const deckEl = hostDoc.querySelector(".deck");
-        if (!deckEl) throw new Error("Deck element not found.");
+    preview.srcdoc =
+    currentHtml;
 
-        pdfHost.innerHTML = "";
-        pdfDeckStyle.textContent = styleText;
-        pdfHost.appendChild(deckEl);
+    statusEl.innerText =
+    "Presentation generated";
 
-        const slides = Array.from(pdfHost.querySelectorAll(".slide"));
-        if (!slides.length) throw new Error("No slides found to export.");
+  }catch(err){
 
-        const html2canvasFn = window.html2canvas;
-        if (typeof html2canvasFn !== "function") throw new Error("html2canvas not available.");
+    console.error(err);
 
-        const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF || null;
-        if (typeof jsPDFCtor !== "function") throw new Error("jsPDF not available.");
+    statusEl.innerText =
+    "Generation failed";
 
-        const pageW = 1280;
-        const pageH = 720;
-        const pdf = new jsPDFCtor({ unit: "px", format: [pageW, pageH], orientation: "landscape" });
+  }
 
-        for (let i = 0; i < slides.length; i++) {
-          const canvas = await html2canvasFn(slides[i], { scale: 2, backgroundColor: "#0b1220" });
-          const imgData = canvas.toDataURL("image/jpeg", 0.98);
-          if (i > 0) pdf.addPage([pageW, pageH], "landscape");
-          pdf.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
-        }
+}
 
-        pdf.save(`${lastFilename}.pdf`);
-        statusEl.textContent = "PDF downloaded.";
-      } catch (err) {
-        statusEl.textContent = "PDF error: " + (err?.message || "Unable to export");
-      } finally {
-        pdfHost.innerHTML = "";
-        pdfDeckStyle.textContent = "";
-        downloadPdfBtn.disabled = false;
+async function downloadPDF(){
+
+  if(!currentHtml)
+    return;
+
+  statusEl.innerText =
+  "Rendering PDF...";
+
+  const temp =
+  document.createElement("iframe");
+
+  temp.style.position =
+  "fixed";
+
+  temp.style.left =
+  "-99999px";
+
+  document.body.appendChild(temp);
+
+  temp.srcdoc =
+  currentHtml;
+
+  await new Promise(r =>
+    setTimeout(r,2000)
+  );
+
+  const doc =
+  temp.contentDocument;
+
+  const slides =
+  doc.querySelectorAll("section");
+
+  const {
+    jsPDF
+  } = window.jspdf;
+
+  const pdf =
+  new jsPDF({
+    orientation:"landscape",
+    unit:"px",
+    format:[1280,720]
+  });
+
+  for(let i=0;i<slides.length;i++){
+
+    const canvas =
+    await html2canvas(
+      slides[i],
+      {
+        scale:2,
+        backgroundColor:"#050816"
       }
-    }
+    );
 
-    genBtn.addEventListener("click", generate);
-    downloadPdfBtn.addEventListener("click", downloadPdf);
+    const img =
+    canvas.toDataURL(
+      "image/jpeg",
+      1
+    );
 
-    clearHistoryBtn?.addEventListener("click", () => {
-      activeHistoryId = "";
-      updateUrlId("");
-      setActiveHistory("");
-      lastDeck = null;
-      lastHtml = "";
-      previewFrame.srcdoc = "";
-      downloadPdfBtn.disabled = true;
-      statusEl.textContent = "Cleared selection.";
-    });
+    if(i > 0)
+      pdf.addPage();
 
-    
+    pdf.addImage(
+      img,
+      "JPEG",
+      0,
+      0,
+      1280,
+      720
+    );
 
-    updateAuthUi(null);
-    initFirebase();
-  </script>
-  <script src="global-search.js"></script>
+  }
+
+  pdf.save("presentation.pdf");
+
+  temp.remove();
+
+  statusEl.innerText =
+  "PDF downloaded";
+
+}
+
+document
+.getElementById("generateBtn")
+.addEventListener(
+  "click",
+  generatePresentation
+);
+
+document
+.getElementById("downloadBtn")
+.addEventListener(
+  "click",
+  downloadPDF
+);
+
+</script>
+
 </body>
 </html>
