@@ -1,713 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>Quiz-Wiz AI Presentation Generator</title>
-
-<link rel="preconnect"
-href="https://fonts.googleapis.com">
-
-<link rel="preconnect"
-href="https://fonts.gstatic.com"
-crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-rel="stylesheet">
-
-<style>
-
-:root{
-
-  --bg:#050816;
-  --card:#0f172a;
-  --text:#f8fafc;
-  --muted:#94a3b8;
-  --primary:#3b82f6;
-  --border:rgba(255,255,255,0.08);
-
-}
-
-*{
-
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-
-}
-
-body{
-
-  font-family:"Inter",sans-serif;
-
-  background:
-    radial-gradient(circle at top left,
-      rgba(59,130,246,0.2),
-      transparent 30%),
-
-    radial-gradient(circle at bottom right,
-      rgba(6,182,212,0.18),
-      transparent 35%),
-
-    var(--bg);
-
-  color:var(--text);
-
-  overflow-x:hidden;
-
-}
-
-.topbar{
-
-  position:sticky;
-  top:0;
-  z-index:1000;
-
-  background:rgba(5,8,22,0.7);
-
-  backdrop-filter:blur(20px);
-
-  border-bottom:1px solid rgba(255,255,255,0.06);
-
-}
-
-.topbar-inner{
-
-  max-width:1500px;
-
-  margin:auto;
-
-  padding:18px 24px;
-
-  display:flex;
-
-  align-items:center;
-
-  justify-content:space-between;
-
-}
-
-.brand{
-
-  font-size:1.4rem;
-
-  font-weight:900;
-
-}
-
-button{
-
-  background:linear-gradient(
-    135deg,
-    #2563eb,
-    #06b6d4
-  );
-
-  border:none;
-
-  color:white;
-
-  padding:14px 24px;
-
-  border-radius:18px;
-
-  font-weight:700;
-
-  cursor:pointer;
-
-  transition:0.3s;
-
-}
-
-button:hover{
-
-  transform:translateY(-2px);
-
-}
-
-.main{
-
-  max-width:1500px;
-
-  margin:auto;
-
-  padding:40px 24px;
-
-}
-
-.form-grid{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(auto-fit,minmax(240px,1fr));
-
-  gap:18px;
-
-}
-
-.field{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:10px;
-
-}
-
-label{
-
-  color:#94a3b8;
-
-  font-weight:700;
-
-}
-
-input,
-textarea,
-select{
-
-  background:rgba(255,255,255,0.05);
-
-  border:1px solid rgba(255,255,255,0.08);
-
-  color:white;
-
-  padding:14px 16px;
-
-  border-radius:16px;
-
-  outline:none;
-
-  font-family:inherit;
-
-}
-
-textarea{
-
-  width:100%;
-  min-height:120px;
-
-  resize:vertical;
-
-}
-
-.actions{
-
-  display:flex;
-
-  gap:14px;
-
-  margin-top:24px;
-
-}
-
-.status{
-
-  margin-top:20px;
-
-  color:#60a5fa;
-
-  font-weight:700;
-
-}
-
-.preview{
-
-  margin-top:40px;
-
-  border-radius:30px;
-
-  overflow:hidden;
-
-  border:1px solid rgba(255,255,255,0.06);
-
-  background:black;
-
-}
-
-iframe{
-
-  width:100%;
-
-  height:900px;
-
-  border:none;
-
-  background:black;
-
-}
-
-</style>
-
+  <meta charset="UTF-8">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz-Wiz</title>
+  <link rel="icon" type="image/png" href="favicon_2.png">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --primary: #2563eb;
+      --bg: #0b1220;
+      --card: #0f172a;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #263145;
+      --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+      --status-bg: rgba(37, 99, 235, 0.18);
+      --status-text: #93c5fd;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #1e293b;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --status-bg: #eff6ff;
+        --status-text: #2563eb;
+      }
+    }
+
+ 
+
+    a { color: var(--primary); }
+
+    .topbar { position: sticky; top: 0; z-index: 10003; background: rgba(15, 23, 42, 0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
+    @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
+    .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
+    .brand img { width: 34px; height: 34px;}
+    .global-search { flex: 1; min-width: 180px; max-width: 560px; }
+    .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
+    .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+    .topnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .topnav-link { text-decoration: none; padding: 9px 12px; border: 1px solid transparent; border-radius: 999px; color: inherit; font-weight: 800; background: transparent; }
+    .topnav-link:hover { background: rgba(127,127,127,0.08); border-color: rgba(127,127,127,0.18); }
+    .topnav-link.active { background: rgba(37, 99, 235, 0.14); border-color: rgba(37, 99, 235, 0.35); }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .topbar-btn { padding: 9px 12px; margin-top: 0; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; font-weight: 800; cursor: pointer; }
+    .topbar-btn:hover { background: rgba(127,127,127,0.12); }
+    .icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 999px; }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 22px 16px 80px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; margin-top: 18px; }
+    .title { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .title h1 { margin: 0; font-size: 1.6rem; }
+    .subtitle { color: var(--muted); margin-top: 6px; }
+    .pill-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 999px; border: 1px solid var(--border); text-decoration: none; color: inherit; background: rgba(127,127,127,0.06); font-weight: 800; }
+    .pill:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.10); }
+    h2 { margin: 0 0 8px 0; font-size: 1.2rem; }
+    h3 { margin: 16px 0 8px 0; font-size: 1.05rem; }
+    ul { margin: 10px 0 0 18px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.95em; }
+    .note { margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--status-bg); color: var(--status-text); }
+
+    .account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
+    .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+    .account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    label { color: var(--muted); font-weight: 700; font-size: 0.92rem; }
+    input { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; }
+    
+  </style>
+  <link rel="stylesheet" href="uni.css">
 </head>
-
 <body>
-
-<header class="topbar">
-
-  <div class="topbar-inner">
-
-    <div class="brand">
-      Quiz-Wiz AI
-    </div>
-
-  </div>
-
-</header>
-
-<div class="main">
-
-  <div class="form-grid">
-
-    <div class="field">
-
-      <label>Topic</label>
-
-      <input
-      id="topic"
-      value="Linear Equations">
-
-    </div>
-
-    <div class="field">
-
-      <label>Grade</label>
-
-      <select id="grade">
-
-        <option>Grade 1</option>
-        <option>Grade 2</option>
-        <option>Grade 3</option>
-        <option>Grade 4</option>
-        <option>Grade 5</option>
-        <option>Grade 6</option>
-        <option>Grade 7</option>
-        <option>Grade 8</option>
-        <option selected>Grade 9</option>
-        <option>Grade 10</option>
-        <option>Grade 11</option>
-        <option>Grade 12</option>
-
-      </select>
-
-    </div>
-
-    <div class="field">
-
-      <label>Slides</label>
-
-      <input
-      id="slides"
-      type="number"
-      value="8">
-
-    </div>
-
-    <div class="field">
-
-      <label>Tone</label>
-
-      <select id="tone">
-
-        <option selected>
-          Modern
-        </option>
-
-        <option>
-          Fun
-        </option>
-
-        <option>
-          Professional
-        </option>
-
-        <option>
-          Futuristic
-        </option>
-
-      </select>
-
-    </div>
-
-  </div>
-
-  <div class="field"
-  style="margin-top:20px;">
-
-    <label>Special Requests</label>
-
-    <textarea id="extra"></textarea>
-
-  </div>
-
-  <div class="actions">
-
-    <button id="generateBtn">
-      Generate Presentation
-    </button>
-
-    <button id="downloadBtn">
-      Download PDF
-    </button>
-
-  </div>
-
-  <div class="status"
-  id="status"></div>
-
-  <div class="preview">
-
-    <iframe id="preview"></iframe>
-
-  </div>
-
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script>
-
-const preview =
-document.getElementById("preview");
-
-const statusEl =
-document.getElementById("status");
-
-let currentHtml = "";
-
-function buildPresentation(deck){
-
-  const slides =
-  Array.isArray(deck?.slides)
-  ? deck.slides
-  : [];
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-
-<meta charset="UTF-8">
-
-<link rel="preconnect"
-href="https://fonts.googleapis.com">
-
-<link rel="preconnect"
-href="https://fonts.gstatic.com"
-crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-rel="stylesheet">
-
-<style>
-
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-body{
-
-  font-family:Inter,sans-serif;
-
-  background:#050816;
-
-  color:white;
-
-  overflow-x:hidden;
-
-}
-
-section{
-
-  min-height:100vh;
-
-  padding:80px;
-
-  display:flex;
-
-  align-items:center;
-
-  justify-content:center;
-
-  position:relative;
-
-  overflow:hidden;
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-${slides.map((slide,index)=>{
-
-  if(slide.html){
-
-    return `
-      <section>
-
-        ${slide.html}
-
-      </section>
-    `;
-
-  }
-
-  return `
-    <section>
-
-      <div style="
-        max-width:1200px;
-        margin:auto;
-      ">
-
-        <div style="
-          color:#60a5fa;
-          margin-bottom:20px;
-          font-weight:700;
-          letter-spacing:0.2em;
-        ">
-
-          SLIDE ${index+1}
-
-        </div>
-
-        <h1 style="
-          font-size:4rem;
-          margin-bottom:30px;
-        ">
-
-          ${slide.heading || "Untitled"}
-
-        </h1>
-
-        ${(slide.paragraphs || []).map(p=>`
-
-          <p style="
-            font-size:1.3rem;
-            line-height:1.8;
-            margin-bottom:20px;
-            color:#dbeafe;
-          ">
-
-            ${p}
-
-          </p>
-
-        `).join("")}
-
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
+        <img src="favicon_2.png" alt="Quiz-Wiz">
+        <span>Quiz-Wiz</span>
+      </a>
+      <div class="global-search">
+        <input id="globalSearch" type="search" placeholder="Search pages…" autocomplete="off">
       </div>
+      <nav class="topnav" aria-label="Primary navigation">
+                <a class="topnav-link" href="index.html"><i class="fa-solid fa-users" style="color: --var;"></i> Personalized</a>
+                <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school" style="color: --var;"></i>Baseline</a>
+                <a class="topnav-link" href="image.html"><i class="fa-solid fa-check" style="color: --var;"></i>Marker</a>
+                <a class="topnav-link active" href="presentation.html"><i class="fa-regular fa-note-sticky" style="color: --var;"></i>Notes</a>
+                <a class="topnav-link" href="documentation.html"><i class="fa-solid fa-book" style="color: --var;"></i>Guide</a>
+      </nav>
+      <div class="topbar-actions">
+        <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
+        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
+      </div>
+    </div>
+  </header>
 
-    </section>
-  `;
+ <main>
 
-}).join("")}
+  <iframe id="presentation"></iframe>
 
-</body>
-</html>
-`;
+ </main>
+  
 
-}
+<footer class="bottombar">
+    <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
+</footer>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="login.js"></script>
+  <script src="global-search.js"></script>
+  <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
 
-async function generatePresentation(){
 
-  statusEl.innerText =
-  "Generating presentation...";
+  <script>
 
-  try{
 
-    const topic =
-    document.getElementById("topic").value;
 
-    const grade =
-    document.getElementById("grade").value;
+const response = await fetch('/.netlify/functions/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    const slides =
-    document.getElementById("slides").value;
+        let data = null;
+        try {
+            data = await response.json();
+            document.getElementById("presentation").srcdoc = data;
+        } catch (_) {
+            data = null;
 
-    const tone =
-    document.getElementById("tone").value;
+            document.getElementById("presentation").srcdoc = "example.com"
+        }
 
-    const extra =
-    document.getElementById("extra").value;
+        
 
-    const response =
-    await fetch(
-      "/.netlify/functions/presentation",
-      {
-        method:"POST",
-
-        headers:{
-          "Content-Type":"application/json"
-        },
-
-        body:JSON.stringify({
-
-          topic,
-          grade,
-          slides,
-          tone,
-          extra,
-
-          mode:"html"
-
-        })
-      }
-    );
-
-    const data =
-    await response.json();
-
-    console.log(data);
-
-    if(!data?.deck){
-
-      throw new Error(
-        "Deck missing"
-      );
-
-    }
-
-    if(
-      !Array.isArray(data.deck.slides)
-    ){
-
-      throw new Error(
-        "Slides missing"
-      );
-
-    }
-
-    currentHtml =
-    buildPresentation(data.deck);
-
-    preview.srcdoc =
-    currentHtml;
-
-    statusEl.innerText =
-    "Presentation generated successfully";
-
-  }catch(err){
-
-    console.error(err);
-
-    statusEl.innerText =
-    err.message;
-
-  }
-
-}
-
-async function downloadPDF(){
-
-  if(!currentHtml)
-    return;
-
-  statusEl.innerText =
-  "Rendering PDF...";
-
-  const temp =
-  document.createElement("iframe");
-
-  temp.style.position =
-  "fixed";
-
-  temp.style.left =
-  "-99999px";
-
-  document.body.appendChild(temp);
-
-  temp.srcdoc =
-  currentHtml;
-
-  await new Promise(r =>
-    setTimeout(r,2000)
-  );
-
-  const doc =
-  temp.contentDocument;
-
-  const slides =
-  doc.querySelectorAll("section");
-
-  const {
-    jsPDF
-  } = window.jspdf;
-
-  const pdf =
-  new jsPDF({
-    orientation:"landscape",
-    unit:"px",
-    format:[1280,720]
-  });
-
-  for(let i=0;i<slides.length;i++){
-
-    const canvas =
-    await html2canvas(
-      slides[i],
-      {
-        scale:2,
-        backgroundColor:"#050816"
-      }
-    );
-
-    const img =
-    canvas.toDataURL(
-      "image/jpeg",
-      1
-    );
-
-    if(i > 0)
-      pdf.addPage();
-
-    pdf.addImage(
-      img,
-      "JPEG",
-      0,
-      0,
-      1280,
-      720
-    );
-
-  }
-
-  pdf.save("presentation.pdf");
-
-  temp.remove();
-
-  statusEl.innerText =
-  "PDF downloaded";
-
-}
-
-document
-.getElementById("generateBtn")
-.addEventListener(
-  "click",
-  generatePresentation
-);
-
-document
-.getElementById("downloadBtn")
-.addEventListener(
-  "click",
-  downloadPDF
-);
-
-</script>
+  </script>
 
 </body>
 </html>
