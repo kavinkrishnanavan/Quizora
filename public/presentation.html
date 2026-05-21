@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz-Wiz Presentation</title>
+  <title>AI Presentation Generator</title>
 
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       background: #0b1220;
       color: white;
     }
 
-    .controls {
+    .topbar {
       position: fixed;
       top: 10px;
       left: 50%;
@@ -23,22 +23,21 @@
       z-index: 1000;
     }
 
-    input, button {
+    input {
       padding: 10px;
       border-radius: 8px;
       border: none;
-      font-size: 14px;
-    }
-
-    input {
-      width: 200px;
+      width: 250px;
     }
 
     button {
-      cursor: pointer;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
       background: #2563eb;
       color: white;
       font-weight: bold;
+      cursor: pointer;
     }
 
     button:hover {
@@ -56,7 +55,7 @@
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.7);
       padding: 10px 20px;
       border-radius: 8px;
       display: none;
@@ -66,118 +65,18 @@
 
 <body>
 
-  <div class="controls">
-    <input id="topic" placeholder="Enter topic (e.g. Life, Space)">
+  <div class="topbar">
+    <input id="topic" placeholder="Enter topic (e.g. Space, Life)">
     <button onclick="generate()">Generate</button>
   </div>
 
-  <div class="loading" id="loading">Generating presentation...</div>
+  <div class="loading" id="loading">Generating AI presentation...</div>
 
-  <iframe id="presentation"></iframe>
+  <iframe id="frame"></iframe>
 
   <script>
-    const iframe = document.getElementById("presentation");
+    const frame = document.getElementById("frame");
     const loading = document.getElementById("loading");
-
-    function buildSlides(deck) {
-      return `
-      <html>
-      <head>
-        <style>
-          body {
-            margin: 0;
-            font-family: Arial;
-            background: #0b1220;
-            color: white;
-          }
-
-          .slide {
-            display: none;
-            padding: 60px;
-            height: 100vh;
-            box-sizing: border-box;
-          }
-
-          .slide.active {
-            display: block;
-          }
-
-          h1 {
-            font-size: 42px;
-            margin-bottom: 20px;
-          }
-
-          p, li {
-            font-size: 18px;
-            line-height: 1.6;
-          }
-
-          ul {
-            margin-top: 10px;
-          }
-
-          .nav {
-            position: fixed;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-          }
-
-          button {
-            padding: 10px 20px;
-            margin: 5px;
-            border: none;
-            border-radius: 8px;
-            background: #2563eb;
-            color: white;
-            cursor: pointer;
-          }
-
-          button:hover {
-            background: #1d4ed8;
-          }
-        </style>
-      </head>
-
-      <body>
-
-        ${deck.slides.map((s, i) => `
-          <div class="slide ${i === 0 ? "active" : ""}">
-            <h1>${s.heading}</h1>
-            ${s.paragraphs.map(p => `<p>${p}</p>`).join("")}
-            <ul>${s.bullets.map(b => `<li>${b}</li>`).join("")}</ul>
-          </div>
-        `).join("")}
-
-        <div class="nav">
-          <button onclick="prev()">Prev</button>
-          <button onclick="next()">Next</button>
-        </div>
-
-        <script>
-          let index = 0;
-          const slides = document.querySelectorAll(".slide");
-
-          function show(i) {
-            slides.forEach(s => s.classList.remove("active"));
-            slides[i].classList.add("active");
-          }
-
-          function next() {
-            index = (index + 1) % slides.length;
-            show(index);
-          }
-
-          function prev() {
-            index = (index - 1 + slides.length) % slides.length;
-            show(index);
-          }
-        <\/script>
-
-      </body>
-      </html>
-      `;
-    }
 
     async function generate() {
       const topic = document.getElementById("topic").value.trim();
@@ -186,34 +85,26 @@
       loading.style.display = "block";
 
       try {
-        const res = await fetch("/.netlify/functions/presentation", {
+        const res = await fetch("/.netlify/functions/generate", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            topic,
-            slideCount: 8,
-            audience: "Students",
-            tone: "Simple and clear"
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic })
         });
 
-        const json = await res.json();
+        const data = await res.json();
 
-        if (!json.deck) {
-          throw new Error(json.error || "No deck returned");
+        if (!data.html) {
+          throw new Error(data.error || "No HTML returned");
         }
 
-        iframe.srcdoc = buildSlides(json.deck);
+        // DIRECT RENDER AI HTML
+        frame.srcdoc = data.html;
 
       } catch (err) {
-        console.error(err);
-
-        iframe.srcdoc = `
+        frame.srcdoc = `
           <html>
             <body style="font-family: Arial; padding: 20px;">
-              <h2>Failed to generate presentation</h2>
+              <h2>Generation Failed</h2>
               <p>${err.message}</p>
             </body>
           </html>
