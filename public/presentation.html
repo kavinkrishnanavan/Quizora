@@ -14,16 +14,17 @@
 
     <style>
         .notes-layout { display: grid; gap: 18px; }
-        .notes-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
-        .notes-actions .field { min-width: 240px; }
-        .notes-actions .field input { width: 100%; }
-        .notes-actions button { margin-top: 0; }
-        .status { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--status-bg); color: var(--status-text); display: none; }
-        .frame-wrap { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); background: rgba(127,127,127,0.05); }
-        iframe { width: 100%; height: 72vh; border: 0; background: white; }
-        .host-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        .host-row input { max-width: 520px; }
-    </style>
+        .notes-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; } 
+        .notes-actions .field { min-width: 240px; } 
+        .notes-actions .field input { width: 100%; } 
+        .notes-actions .field select { width: 100%; } 
+        .notes-actions button { margin-top: 0; } 
+        .status { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--status-bg); color: var(--status-text); display: none; } 
+        .frame-wrap { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); background: rgba(127,127,127,0.05); } 
+        iframe { width: 100%; height: 72vh; border: 0; background: white; } 
+        .host-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; } 
+        .host-row input { max-width: 520px; } 
+    </style> 
 </head>
 
 <body>
@@ -66,20 +67,26 @@
             </header>
 
             <hr>
-            <div class="notes-layout">
-                <div class="notes-actions">
-                    <div class="field">
-                        <label>Topic</label>
-                        <input id="topic" placeholder="e.g. Photosynthesis, World War 2, Fractions">
-                    </div>
-                    <button type="button" id="generateBtn">Generate Notes</button>
-                    <button type="button" id="useMaterialsBtn" class="btn-secondary" disabled>Use as Learning Material</button>
-                    <button type="button" id="hostBtn" class="btn-secondary" disabled>Host Notes</button>
-                    <a class="tab" href="index.html" title="Open personalized quiz generator">Personalized tests</a>
-                    <a class="tab" href="baseline.html" title="Open baseline test generator">Baseline tests</a>
-                </div>
-
-                <div id="status" class="status"></div>
+            <div class="notes-layout"> 
+                <div class="notes-actions"> 
+                    <div class="field"> 
+                        <label>Topic</label> 
+                        <input id="topic" placeholder="e.g. Photosynthesis, World War 2, Fractions"> 
+                    </div> 
+                    <div class="field"> 
+                        <label>Presentation History</label> 
+                        <select id="presentationHistorySelect"> 
+                            <option value="">(Load a previous presentation)</option> 
+                        </select> 
+                        <div style="color: var(--muted); font-size: 0.85rem;">Your generated presentations (sign in required).</div> 
+                    </div> 
+                    <button type="button" id="generateBtn">Generate Notes</button> 
+                    <button type="button" id="hostBtn" class="btn-secondary" disabled>Host Notes</button> 
+                    <button type="button" id="refreshHistoryBtn" class="btn-secondary">Refresh History</button> 
+ 
+                </div> 
+ 
+                <div id="status" class="status"></div> 
 
                 <div id="hostPanel" style="display:none;">
                     <div class="host-row">
@@ -153,17 +160,20 @@
         const useMaterialsBtn = document.getElementById("useMaterialsBtn");
         const hostBtn = document.getElementById("hostBtn");
         const hostPanel = document.getElementById("hostPanel");
-        const hostLinkEl = document.getElementById("hostLink");
-        const copyHostLinkBtn = document.getElementById("copyHostLinkBtn");
-        const openHostLinkBtn = document.getElementById("openHostLinkBtn");
-
-        let lastHtml = "";
-        let lastTopic = "";
-
-        function setStatus(text, kind) {
-            if (!statusEl) return;
-            statusEl.innerText = text || "";
-            statusEl.style.display = text ? "block" : "none";
+        const hostLinkEl = document.getElementById("hostLink"); 
+        const copyHostLinkBtn = document.getElementById("copyHostLinkBtn"); 
+        const openHostLinkBtn = document.getElementById("openHostLinkBtn"); 
+        const historySelect = document.getElementById("presentationHistorySelect"); 
+        const refreshHistoryBtn = document.getElementById("refreshHistoryBtn"); 
+ 
+        let lastHtml = ""; 
+        let lastTopic = ""; 
+        let presentationHistoryItems = []; 
+ 
+        function setStatus(text, kind) { 
+            if (!statusEl) return; 
+            statusEl.innerText = text || ""; 
+            statusEl.style.display = text ? "block" : "none"; 
             if (kind === "error") {
                 statusEl.style.background = "rgba(239, 68, 68, 0.12)";
                 statusEl.style.color = "#ef4444";
@@ -198,14 +208,117 @@
                 const text = String(doc?.body?.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
                 return text;
             } catch (_) {
-                return "";
-            }
-        }
-
-        async function generate() {
-            const topic = String(topicEl?.value || "").trim();
-            if (!topic) return alert("Enter a topic");
-
+                return ""; 
+            } 
+        } 
+ 
+        function formatHistoryLabel(item) { 
+            const payload = item?.payload || {}; 
+            const createdAt = payload?.createdAt || item?.createdAt || ""; 
+            const label = String(payload?.title || payload?.topic || "Presentation"); 
+            try { 
+                return createdAt ? `${label} (${new Date(createdAt).toLocaleDateString()})` : label; 
+            } catch (_) { 
+                return label; 
+            } 
+        } 
+ 
+        async function loadPresentationHistory() { 
+            if (!historySelect) return; 
+ 
+            historySelect.disabled = true; 
+            historySelect.innerHTML = "<option value=\"\">Loading presentations...</option>"; 
+            presentationHistoryItems = []; 
+ 
+            const token = window.QuizWizAuth ? await QuizWizAuth.getAuthToken() : ""; 
+            if (!token) { 
+                historySelect.innerHTML = "<option value=\"\">(Sign in to load history)</option>"; 
+                historySelect.disabled = false; 
+                return; 
+            } 
+ 
+            try { 
+                const res = await fetch("/.netlify/functions/history?limit=50", { 
+                    headers: { Authorization: `Bearer ${token}` } 
+                }); 
+                const data = await res.json().catch(() => null); 
+                if (!res.ok) throw new Error(data?.error || "Failed to load history."); 
+ 
+                const rawItems = Array.isArray(data?.items) ? data.items : []; 
+                const items = rawItems.map((item) => { 
+                    let payload = null; 
+                    try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; } 
+                    return { ...item, payload }; 
+                }).filter((x) => x?.payload?.type === "presentation" && x?.payload?.html); 
+ 
+                presentationHistoryItems = items; 
+ 
+                historySelect.innerHTML = "<option value=\"\">(Load a previous presentation)</option>"; 
+                for (const item of items) { 
+                    const opt = document.createElement("option"); 
+                    opt.value = item.id; 
+                    opt.innerText = formatHistoryLabel(item); 
+                    historySelect.appendChild(opt); 
+                } 
+            } catch (_) { 
+                historySelect.innerHTML = "<option value=\"\">(Could not load history)</option>"; 
+            } finally { 
+                historySelect.disabled = false; 
+            } 
+        } 
+ 
+        function onHistorySelected(historyId) { 
+            const id = String(historyId || "").trim(); 
+            if (!id) return; 
+            const item = presentationHistoryItems.find((x) => String(x?.id || "") === id); 
+            const html = String(item?.payload?.html || "").trim(); 
+            if (!html) return; 
+ 
+            const topic = String(item?.payload?.topic || item?.payload?.title || "").trim(); 
+            if (topicEl && topic) topicEl.value = topic; 
+            lastTopic = topic || lastTopic; 
+            lastHtml = html; 
+            frame.srcdoc = html; 
+            useMaterialsBtn.disabled = false; 
+            hostBtn.disabled = false; 
+            hostPanel.style.display = "none"; 
+            setStatus("Loaded from history."); 
+        } 
+ 
+        async function savePresentationToHistory() { 
+            const html = String(lastHtml || "").trim(); 
+            const topic = String(lastTopic || "").trim(); 
+            if (!html || !topic) return; 
+ 
+            const token = window.QuizWizAuth ? await QuizWizAuth.getAuthToken() : ""; 
+            if (!token) return; 
+ 
+            try { 
+                await fetch("/.netlify/functions/history", { 
+                    method: "POST", 
+                    headers: { 
+                        "Content-Type": "application/json", 
+                        "Authorization": `Bearer ${token}` 
+                    }, 
+                    body: JSON.stringify({ 
+                        payload: { 
+                            type: "presentation", 
+                            title: topic, 
+                            topic, 
+                            html, 
+                            createdAt: new Date().toISOString() 
+                        } 
+                    }) 
+                }); 
+            } catch (_) { 
+                // ignore history failures 
+            } 
+        } 
+ 
+        async function generate() { 
+            const topic = String(topicEl?.value || "").trim(); 
+            if (!topic) return alert("Enter a topic"); 
+ 
             hostPanel.style.display = "none";
             lastHtml = "";
             lastTopic = topic;
@@ -223,16 +336,17 @@
                 const data = await res.json().catch(() => null);
                 if (!res.ok) throw new Error(data?.error || "Generation failed.");
                 if (!data?.html) throw new Error("No HTML returned.");
-
-                lastHtml = String(data.html);
-                frame.srcdoc = lastHtml;
-                useMaterialsBtn.disabled = false;
-                hostBtn.disabled = false;
-                setStatus("Notes ready. You can use them as learning material or host them for students.");
-            } catch (err) {
-                frame.srcdoc = `
-                    <html><body style="font-family: Arial; padding: 20px;">
-                        <h2>Generation Failed</h2>
+ 
+                lastHtml = String(data.html); 
+                frame.srcdoc = lastHtml; 
+                useMaterialsBtn.disabled = false; 
+                hostBtn.disabled = false; 
+                setStatus("Notes ready. You can use them as learning material or host them for students."); 
+                savePresentationToHistory().finally(loadPresentationHistory); 
+            } catch (err) { 
+                frame.srcdoc = ` 
+                    <html><body style="font-family: Arial; padding: 20px;"> 
+                        <h2>Generation Failed</h2> 
                         <p>${String(err?.message || "Unknown error")}</p>
                     </body></html>
                 `;
@@ -308,13 +422,17 @@
             }
         }
 
-        generateBtn?.addEventListener("click", generate);
-        topicEl?.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") generate();
-        });
-        useMaterialsBtn?.addEventListener("click", useAsLearningMaterial);
-        hostBtn?.addEventListener("click", hostNotes);
-        copyHostLinkBtn?.addEventListener("click", copyHostLink);
-    </script>
-</body>
+        generateBtn?.addEventListener("click", generate); 
+        topicEl?.addEventListener("keydown", (e) => { 
+            if (e.key === "Enter") generate(); 
+        }); 
+        useMaterialsBtn?.addEventListener("click", useAsLearningMaterial); 
+        hostBtn?.addEventListener("click", hostNotes); 
+        copyHostLinkBtn?.addEventListener("click", copyHostLink); 
+        historySelect?.addEventListener("change", (e) => onHistorySelected(e.target.value)); 
+        refreshHistoryBtn?.addEventListener("click", loadPresentationHistory); 
+        if (window.QuizWizAuth) QuizWizAuth.onChange(loadPresentationHistory); 
+        loadPresentationHistory(); 
+    </script> 
+</body> 
 </html>

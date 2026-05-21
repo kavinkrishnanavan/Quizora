@@ -2685,13 +2685,22 @@
             }
         });
 
-        return lines.join("\n");
-    }
-
-    async function loadPresentationHistoryForMaterials() {
-        const select = document.getElementById("materialsPresentationSelect");
-        if (!select) return;
-
+        return lines.join("\n"); 
+    } 
+ 
+    function htmlToText(html) { 
+        try { 
+            const doc = new DOMParser().parseFromString(String(html || ""), "text/html"); 
+            return String(doc?.body?.innerText || "").replace(/\n{3,}/g, "\n\n").trim(); 
+        } catch (_) { 
+            return ""; 
+        } 
+    } 
+ 
+    async function loadPresentationHistoryForMaterials() { 
+        const select = document.getElementById("materialsPresentationSelect"); 
+        if (!select) return; 
+ 
         select.disabled = true;
         select.innerHTML = "<option value=\"\">Loading presentations…</option>";
         materialsPresentationItems = [];
@@ -2710,16 +2719,16 @@
             if (!res.ok) throw new Error(data?.error || "Failed to load history.");
 
             const rawItems = Array.isArray(data?.items) ? data.items : [];
-            const items = rawItems.map((item) => {
-                let payload = null;
-                try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; }
-                return { ...item, payload };
-            }).filter((x) => x?.payload?.type === "presentation" && x?.payload?.deck);
-
-            materialsPresentationItems = items;
-
-            select.innerHTML = "<option value=\"\">(Select a presentation to summarize)</option>";
-            for (const item of items) {
+            const items = rawItems.map((item) => { 
+                let payload = null; 
+                try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; } 
+                return { ...item, payload }; 
+            }).filter((x) => x?.payload?.type === "presentation" && (x?.payload?.deck || x?.payload?.html)); 
+ 
+            materialsPresentationItems = items; 
+ 
+            select.innerHTML = "<option value=\"\">(Select a presentation to summarize)</option>"; 
+            for (const item of items) { 
                 const opt = document.createElement("option");
                 opt.value = item.id;
                 const createdAt = item.payload?.createdAt || item.createdAt || "";
@@ -2734,19 +2743,19 @@
         }
     }
 
-    async function onMaterialsPresentationSelected(presentationId) {
-        const id = String(presentationId || "").trim();
-        if (!id) return;
-        const item = materialsPresentationItems.find((x) => String(x?.id || "") === id);
-        const deck = item?.payload?.deck;
-        if (!deck) return;
-
-        const text = buildPresentationText(deck);
-        const filesEl = document.getElementById("materialsFiles");
-        const textEl = document.getElementById("materialsText");
-        if (filesEl) filesEl.value = "";
-        if (textEl) textEl.value = text;
-
+    async function onMaterialsPresentationSelected(presentationId) { 
+        const id = String(presentationId || "").trim(); 
+        if (!id) return; 
+        const item = materialsPresentationItems.find((x) => String(x?.id || "") === id); 
+        const deck = item?.payload?.deck; 
+        const html = item?.payload?.html; 
+        const text = deck ? buildPresentationText(deck) : htmlToText(html); 
+        if (!text) return; 
+        const filesEl = document.getElementById("materialsFiles"); 
+        const textEl = document.getElementById("materialsText"); 
+        if (filesEl) filesEl.value = ""; 
+        if (textEl) textEl.value = text; 
+ 
         await analyzeMaterials();
     }
 
