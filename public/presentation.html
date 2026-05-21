@@ -122,30 +122,38 @@
   <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
 
 
-  <script>
+<script>
+(async () => {
+  try {
+    const response = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: "You are a professional presentation maker. Make HTML only about life. Return only HTML."
+      })
+    });
 
+    if (!response.ok) {
+      throw new Error("Network response failed");
+    }
 
+    const html = await response.text(); // IMPORTANT: treat as HTML, not JSON
 
-const response = await fetch('/.netlify/functions/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: "You are a proffessional presentation maker. Make a html (strictly the output must be nothing else than html) about life."
-        });
+    document.getElementById("presentation").srcdoc = html;
 
-        let data = null;
-        try {
-            data = await response.json();
-            console.log(data)
-            document.getElementById("presentation").srcdoc = data;
-        } catch (_) {
-            data = null;
+  } catch (err) {
+    console.error(err);
 
-            document.getElementById("presentation").srcdoc = "example.com"
-        }
-
-        
-
-  </script>
-
+    document.getElementById("presentation").srcdoc = `
+      <html>
+        <body style="font-family: sans-serif; padding: 20px;">
+          <h2>Failed to load presentation</h2>
+          <p>Check backend function or network.</p>
+        </body>
+      </html>
+    `;
+  }
+})();
+</script>
 </body>
 </html>
