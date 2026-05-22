@@ -112,6 +112,38 @@ button.tab { font-family: inherit; }
   backdrop-filter: blur(12px);
 }
 
+#csvModalClose {
+
+  background: transparent;
+
+  border: none;
+
+}
+ 
+#materialsModalClose {
+
+  background: transparent;
+
+  border: none;
+
+}
+
+#accountClose {
+
+  background: transparent;
+
+  border: none;
+
+}
+
+#responsesClose {
+
+  background: transparent;
+
+  border: none;
+
+}
+
 @media (prefers-color-scheme: light) {
   .topbar { background: rgba(255, 255, 255, 0.82); }
 }
