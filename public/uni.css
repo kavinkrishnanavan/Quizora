@@ -118,6 +118,8 @@ button.tab { font-family: inherit; }
 
   border: none;
 
+  transition: none;
+
 }
  
 #materialsModalClose {
@@ -125,6 +127,8 @@ button.tab { font-family: inherit; }
   background: transparent;
 
   border: none;
+
+  transition: none;
 
 }
 
@@ -134,6 +138,8 @@ button.tab { font-family: inherit; }
 
   border: none;
 
+  transition: none;
+
 }
 
 #responsesClose {
@@ -141,6 +147,8 @@ button.tab { font-family: inherit; }
   background: transparent;
 
   border: none;
+
+  transition: none;
 
 }
 

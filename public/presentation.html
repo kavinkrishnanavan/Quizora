@@ -69,7 +69,7 @@
         <aside class="sidebar" id="historyCard">
             <div class="portal-row">
                 <div class="sidebar-title">Presentations</div>
-
+                <button type="button" id="refreshHistoryBtn" class="btn-secondary">Refresh</button>
             </div>
             <div class="sidebar-subtitle" id="historySubtitle">Click a saved presentation to reload it.</div>
             <div class="portal-meta" id="historyStatus"></div>
@@ -94,9 +94,10 @@
                 <div class="notes-actions"> 
                     <div class="field"> 
                         <label>Topic</label> 
-                        <input id="topic" placeholder="e.g. Photosynthesis, World War 2, Fractions"> 
+                        <input id="topic" placeholder="e.g. Photosynthesis"> 
                     </div> 
                     <button type="button" id="generateBtn">Generate Notes</button> 
+                    <button type="button" id="useMaterialsBtn" class="btn-secondary" disabled>Use as Learning Material</button> 
                     <button type="button" id="hostBtn" class="btn-secondary" disabled>Host Notes</button> 
  
                 </div> 
@@ -132,20 +133,20 @@
                 <button type="button" id="accountClose" class="topbar-btn" aria-label="Close">❌</button>
             </div>
 
-            <div id="accountSignedOut" style="display:none;">
+            <form id="accountSignedOut" style="display:none;" onsubmit="return false;">
                 <div class="field">
                     <label>Email</label>
-                    <input id="authEmail" type="email" placeholder="teacher@school.edu">
+                    <input id="authEmail" type="email" placeholder="teacher@school.edu" autocomplete="email">
                 </div>
                 <div class="field">
                     <label>Password</label>
-                    <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+                    <input id="authPassword" type="password" placeholder="Minimum 6 characters" autocomplete="current-password">
                 </div>
                 <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
                     <button type="button" id="signUpBtn">Create Account</button>
                     <button type="button" id="signInBtn">Sign In</button>
                 </div>
-            </div>
+            </form>
 
             <div id="accountSignedIn" style="display:none;">
                 <div style="color: var(--muted); font-size: 0.9rem;">Signed in as</div>
