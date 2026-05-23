@@ -24,9 +24,19 @@
 
   function openAccountModal() {
     var modal = byId("accountModal");
-    if (!modal) return;
-    modal.style.display = "block";
-    document.body.style.overflow = "hidden";
+    if (modal) {
+      modal.style.display = "block";
+      document.body.style.overflow = "hidden";
+      return;
+    }
+
+    try {
+      var returnTo = window.location.pathname.split("/").pop() || "index.html";
+      var qs = window.location.search || "";
+      var hash = window.location.hash || "";
+      var full = returnTo + qs + hash;
+      window.location.href = "login.html?returnTo=" + encodeURIComponent(full);
+    } catch (_) {}
   }
 
   function closeAccountModal() {
@@ -152,6 +162,7 @@
     if (!email || !password) throw new Error("Enter an email and password.");
     await firebase.auth().createUserWithEmailAndPassword(email, password);
     closeAccountModal();
+    redirectAfterAuth();
   }
 
   async function signIn() {
@@ -161,12 +172,42 @@
     if (!email || !password) throw new Error("Enter an email and password.");
     await firebase.auth().signInWithEmailAndPassword(email, password);
     closeAccountModal();
+    redirectAfterAuth();
   }
 
   async function signOut() {
     await init();
     await firebase.auth().signOut();
     closeAccountModal();
+  }
+
+  function getReturnTo() {
+    try {
+      var params = new URLSearchParams(window.location.search || "");
+      var raw = String(params.get("returnTo") || "").trim();
+      if (!raw) return "";
+      if (/^https?:\/\//i.test(raw)) return "";
+      if (raw.indexOf("\n") >= 0 || raw.indexOf("\r") >= 0) return "";
+      return raw;
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function redirectAfterAuth() {
+    var returnTo = getReturnTo();
+    if (!returnTo) {
+      if (window.location.pathname.split("/").pop() === "login.html") {
+        window.location.href = "profile.html";
+      }
+      return;
+    }
+
+    try {
+      var url = new URL(returnTo, window.location.origin);
+      if (url.origin !== window.location.origin) return;
+      window.location.href = url.pathname.replace(/^\//, "") + url.search + url.hash;
+    } catch (_) {}
   }
 
   async function getAuthToken() {
@@ -257,4 +298,3 @@
     closeAccountModal: closeAccountModal,
   };
 })();
-

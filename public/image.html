@@ -161,7 +161,8 @@
                 <input id="globalSearch" type="search" placeholder="Search pages…" autocomplete="off">
             </div>
             <nav class="topnav" aria-label="Primary navigation">
-                <a class="topnav-link" href="index.html"><i class="fa-solid fa-users" style="color: --var;"></i> Personalized</a>
+                <a class="topnav-link" href="index.html"><i class="fa-solid fa-house" style="color: --var;"></i> Home</a>
+                <a class="topnav-link" href="personalized.html"><i class="fa-solid fa-users" style="color: --var;"></i> Personalized</a>
                 <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school" style="color: --var;"></i>Baseline</a>
                 <a class="topnav-link active" href="image.html"><i class="fa-solid fa-check" style="color: --var;"></i>Marker</a>
                 <a class="topnav-link" href="presentation.html"><i class="fa-regular fa-note-sticky" style="color: --var;"></i>Notes</a>
@@ -169,7 +170,8 @@
             </nav>
             <div class="topbar-actions">
                 <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
-                <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
+                <a id="loginLink" class="topbar-btn" href="login.html">Sign In</a>
+                <a id="profileLink" class="topbar-btn" href="profile.html" style="display:none;">Profile</a>
             </div>
         </div>
     </header>
@@ -256,7 +258,8 @@
     </div>
     </div>
 
-    <div id="accountModal" class="account-modal">
+    <!-- Account modal removed (use login.html) -->
+    <!-- <div id="accountModal" class="account-modal">
         <div class="account-backdrop" id="accountBackdrop"></div>
         <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
             <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
@@ -288,7 +291,7 @@
                 <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
             </div>
         </div>
-    </div>
+    </div> -->
     
 <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
@@ -352,6 +355,10 @@
 
             QuizWizAuth.onChange((user) => {
                 currentUser = user || null;
+                const loginLink = document.getElementById("loginLink");
+                const profileLink = document.getElementById("profileLink");
+                if (loginLink) loginLink.style.display = currentUser ? "none" : "inline-flex";
+                if (profileLink) profileLink.style.display = currentUser ? "inline-flex" : "none";
                 if (!currentUser) {
                     historyItems = [];
                     renderHistory();
@@ -823,7 +830,7 @@
         }, { passive: false });
 
         redirectBtn?.addEventListener("click", () => {
-            window.location.href = "index.html";
+            window.location.href = "personalized.html";
         });
     </script>
     <script src="global-search.js"></script>

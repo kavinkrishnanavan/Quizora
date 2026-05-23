@@ -92,7 +92,8 @@
         <input id="globalSearch" type="search" placeholder="Search pages…" autocomplete="off">
       </div>
       <nav class="topnav" aria-label="Primary navigation">
-                <a class="topnav-link" href="index.html"><i class="fa-solid fa-users" style="color: --var;"></i> Personalized</a>
+                <a class="topnav-link" href="index.html"><i class="fa-solid fa-house" style="color: --var;"></i> Home</a>
+                <a class="topnav-link" href="personalized.html"><i class="fa-solid fa-users" style="color: --var;"></i> Personalized</a>
                 <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school" style="color: --var;"></i>Baseline</a>
                 <a class="topnav-link" href="image.html"><i class="fa-solid fa-check" style="color: --var;"></i>Marker</a>
                 <a class="topnav-link" href="presentation.html"><i class="fa-regular fa-note-sticky" style="color: --var;"></i>Notes</a>
@@ -100,7 +101,8 @@
       </nav>
       <div class="topbar-actions">
         <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
-        <button type="button" id="accountBtn" class="topbar-btn icon-btn" title="Account" aria-label="Account"><i class="fa-solid fa-circle-user"></i></button>
+        <a id="loginLink" class="topbar-btn" href="login.html">Sign In</a>
+        <a id="profileLink" class="topbar-btn" href="profile.html" style="display:none;">Profile</a>
       </div>
     </div>
   </header>
@@ -134,7 +136,7 @@
       <div class="subtitle">Generate individualized worksheets for each student from a CSV/Excel list.</div>
       <h3>Steps</h3>
       <ul>
-        <li>Open <a href="index.html">Personalized</a>.</li>
+        <li>Open <a href="personalized.html">Personalized</a>.</li>
         <li>Fill in all parameters.</li>
         
         <li>Upload a student list using the CSV/Excel upload.</li>
@@ -214,7 +216,8 @@
     </section>
   </main>
 
-  <div id="accountModal" class="account-modal">
+  <!-- Account modal removed (use login.html) -->
+  <!-- <div id="accountModal" class="account-modal">
     <div class="account-backdrop" id="accountBackdrop"></div>
     <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
       <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
@@ -246,7 +249,7 @@
         <button type="button" id="signOutBtn" class="topbar-btn" style="background: transparent; color: inherit;">Sign Out</button>
       </div>
     </div>
-  </div>
+  </div> -->
 
 <footer class="bottombar">
     <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
@@ -258,6 +261,18 @@
   <script src="login.js"></script>
   <script src="global-search.js"></script>
   <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      const loginLink = document.getElementById("loginLink");
+      const profileLink = document.getElementById("profileLink");
+      if (!window.QuizWizAuth || !loginLink || !profileLink) return;
+      QuizWizAuth.onChange((user) => {
+        const isIn = !!user;
+        loginLink.style.display = isIn ? "none" : "inline-flex";
+        profileLink.style.display = isIn ? "inline-flex" : "none";
+      });
+    })();
+  </script>
 
 </body>
 </html>

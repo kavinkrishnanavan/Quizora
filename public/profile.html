@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz-Wiz | Profile</title>
+  <link rel="icon" type="image/png" href="images/favicon_2.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="uni.css">
+  <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+
+  <style>
+    .profile-shell { max-width: 1100px; margin: 0 auto; padding: 28px 16px 60px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; }
+    .card { background: rgba(255,255,255,0.72); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 22px; backdrop-filter: blur(10px); }
+    @media (prefers-color-scheme: dark) { .card { background: rgba(15, 23, 42, 0.72); } }
+    .title { font-weight: 950; margin: 0 0 6px 0; letter-spacing: -0.01em; }
+    .sub { margin: 0; color: var(--muted); }
+    .row { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .big-email { font-weight: 950; font-size: 1.1rem; margin-top: 8px; }
+    @media (max-width: 980px) { .profile-shell { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
+        <img src="images/favicon_2.png" alt="Quiz-Wiz">
+        <span>Quiz-Wiz</span>
+      </a>
+      <div class="global-search">
+        <input id="globalSearch" type="search" placeholder="Search pages..." autocomplete="off">
+      </div>
+      <nav class="topnav" aria-label="Primary navigation">
+        <a class="topnav-link" href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+        <a class="topnav-link" href="personalized.html"><i class="fa-solid fa-users"></i> Personalized</a>
+        <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school"></i> Baseline</a>
+        <a class="topnav-link" href="image.html"><i class="fa-solid fa-check"></i> Marker</a>
+        <a class="topnav-link" href="presentation.html"><i class="fa-regular fa-note-sticky"></i> Notes</a>
+        <a class="topnav-link" href="documentation.html"><i class="fa-solid fa-book"></i> Guide</a>
+      </nav>
+      <div class="topbar-actions">
+        <a id="loginLink" class="topbar-btn" href="login.html">Sign In</a>
+        <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="profile-shell">
+    <section class="card">
+      <h1 class="title">Profile</h1>
+      <p class="sub">Manage your account and jump back into the tools.</p>
+
+      <div id="signedOutPanel" style="display:none; margin-top: 14px;">
+        <div class="auth-status" style="padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(239, 68, 68, 0.10);">
+          You’re not signed in.
+        </div>
+        <div class="row">
+          <a class="download-link" href="login.html?returnTo=profile.html">Sign In</a>
+          <a class="download-link secondary" href="login.html?mode=signup&returnTo=profile.html">Create Account</a>
+        </div>
+      </div>
+
+      <div id="signedInPanel" style="display:none; margin-top: 14px;">
+        <div class="portal-meta">Signed in as</div>
+        <div id="accountEmailDisplay" class="big-email"></div>
+        <div class="row">
+          <a class="download-link" href="personalized.html">Open Personalized</a>
+          <a class="download-link secondary" href="presentation.html">Open Notes</a>
+          <button type="button" id="signOutBtn" class="btn-secondary">Sign Out</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin:0 0 10px 0;">Shortcuts</h2>
+      <div class="steps">
+        <div class="step">
+          <i class="fa-solid fa-users" aria-hidden="true"></i>
+          <div><b>Personalized</b><span>Generate and save worksheets to history.</span></div>
+        </div>
+        <div class="step">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          <div><b>Marker</b><span>Grade worksheets quickly from images.</span></div>
+        </div>
+        <div class="step">
+          <i class="fa-regular fa-note-sticky" aria-hidden="true"></i>
+          <div><b>Notes</b><span>Create notes and host them for students.</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bottombar">
+    <h3 style="letter-spacing: 6px; margin: 0;">Quiz-Wiz</h3>
+  </footer>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="login.js"></script>
+  <script src="global-search.js"></script>
+  <script>
+    (function () {
+      const loginLink = document.getElementById("loginLink");
+      const email = document.getElementById("accountEmailDisplay");
+      const signedOutPanel = document.getElementById("signedOutPanel");
+      const signedInPanel = document.getElementById("signedInPanel");
+      const signOutBtn = document.getElementById("signOutBtn");
+
+      if (!window.QuizWizAuth) return;
+
+      if (signOutBtn) {
+        signOutBtn.addEventListener("click", () => {
+          QuizWizAuth.signOut().catch((e) => alert(e?.message || "Sign out failed."));
+        });
+      }
+
+      QuizWizAuth.onChange((user) => {
+        const isIn = !!user;
+        if (loginLink) loginLink.style.display = isIn ? "none" : "inline-flex";
+        if (signedOutPanel) signedOutPanel.style.display = isIn ? "none" : "block";
+        if (signedInPanel) signedInPanel.style.display = isIn ? "block" : "none";
+        if (email) email.innerText = isIn ? (user.email || "") : "";
+      });
+    })();
+  </script>
+</body>
+</html>
+

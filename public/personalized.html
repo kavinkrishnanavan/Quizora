@@ -1,0 +1,3036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz-Wiz</title>
+    <link rel="icon" type="image/png" href="images/favicon_2.png">
+    <style>
+        :root {
+            color-scheme: light dark;
+
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --status-bg: #eff6ff;
+            --status-text: #2563eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b1220;
+                --card: #0f172a;
+                --text: #e2e8f0;
+                --muted: #94a3b8;
+                --border: #263145;
+                --shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.55);
+                --status-bg: rgba(37, 99, 235, 0.18);
+                --status-text: #93c5fd;
+            }
+        }
+
+      
+        .app-shell { max-width: 1400px; margin: 0 auto; display: flex; gap: 24px; padding: 20px; align-items: flex-start; }
+        .container { flex: 1; max-width: 980px; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: var(--shadow); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        .sidebar { width: 300px; min-width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 18px; position: sticky; top: 20px; z-index: -1; }
+        .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .sidebar-title { font-weight: 800; font-size: 1.05rem; }
+        .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
+        .history-list { display: grid; gap: 10px; margin-top: 12px; max-height: 420px; overflow: auto; padding-right: 4px; }
+        .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+        .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
+        .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
+        .history-entry-title { font-weight: 700; font-size: 0.98rem; }
+        .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
+        .history-entry-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .history-delete { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .history-delete:hover { border-color: rgba(239, 68, 68, 0.55); color: #ef4444; }
+        .download-link { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; transition: 0.2s; }
+        .download-link:hover { opacity: 0.9; transform: translateY(-1px); }
+        .download-link.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
+        .account-modal { display: none; position: fixed; inset: 0; z-index: 10002; }
+        .account-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+        .account-panel { position: relative; max-width: 520px; margin: 12vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
+        @media (max-width: 1100px) {
+            .app-shell { flex-direction: column; }
+            .sidebar { width: 100%; position: static; }
+            .container { max-width: 100%; }
+        }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
+        a { color: var(--primary); }
+        hr { border-color: var(--border); }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        
+        .field { display: flex; flex-direction: column; }
+        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+        input, select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: transparent; color: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+        
+        
+
+        .tabs { display: flex; gap: 10px; margin: 10px 0 20px; flex-wrap: wrap; }
+        .tab { text-decoration: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; background: transparent; font-weight: 700; }
+        .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
+        button.tab { font-family: inherit; }
+        .tab-button { cursor: pointer; }
+
+.topbar { position: sticky; top: 0; z-index: 10003; background: rgba(15, 23, 42, 0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
+    @media (prefers-color-scheme: light) { .topbar { background: rgba(255, 255, 255, 0.82); } }
+    .topbar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-weight: 900; white-space: nowrap; }
+    .brand img { width: 34px; height: 34px;}
+    .global-search { flex: 1; min-width: 180px; max-width: 560px; }
+    .global-search input { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.08); color: inherit; font-size: 0.95rem; }
+    .global-search input:focus { outline: none; border-color: rgba(37, 99, 235, 0.65); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+    .topnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .topnav-link { text-decoration: none; padding: 9px 12px; border: 1px solid transparent; border-radius: 999px; color: inherit; font-weight: 800; background: transparent; }
+    .topnav-link:hover { background: rgba(127,127,127,0.08); border-color: rgba(127,127,127,0.18); }
+    .topnav-link.active { background: rgba(37, 99, 235, 0.14); border-color: rgba(37, 99, 235, 0.35); }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .topbar-btn { padding: 9px 12px; margin-top: 0; border-radius: 999px; border: 1px solid var(--border); background: rgba(127,127,127,0.06); color: inherit; font-weight: 800; cursor: pointer; }
+    .topbar-btn:hover { background: rgba(127,127,127,0.12); }
+    .icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 999px; }
+
+        #status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; display: none; background: var(--status-bg); color: var(--status-text); border: 1px solid var(--border); }
+        .quiz-card { background: var(--card); border: 1px solid var(--border); padding: 25px; margin-top: 25px; border-radius: 12px; border-left: 6px solid var(--primary); }
+        .portal-card { background: var(--card); border: 1px solid var(--border); padding: 22px; margin-top: 22px; border-radius: 12px; box-shadow: var(--shadow); }
+        .portal-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .portal-meta { color: var(--muted); font-size: 0.9rem; }
+        .history-item { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: rgba(127,127,127,0.05); }
+        .history-item h4 { margin: 0 0 6px 0; font-size: 1rem; }
+        .history-item pre { margin: 8px 0 0 0; font-size: 0.95rem; }
+        pre { white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text); }
+        
+        .zoom {
+            width: 200px;
+            transition: transform 0.3s ease; /* smooth animation */
+        }
+
+        .zoom:hover {
+            transform: scale(1.2); /* increases size by 20% */
+        }
+
+        
+
+        .csv-equal-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 0.95rem;
+        }
+
+        .csv-equal-table th,
+        .csv-equal-table td {
+            padding: 10px 10px;
+            border: 1px solid var(--border);
+            vertical-align: top;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .csv-equal-table th {
+            position: sticky;
+            top: 0;
+            background: var(--card);
+            font-weight: 700;
+            z-index: 1;
+        }
+
+        .csv-equal-table.is-selecting {
+            user-select: none;
+            cursor: cell;
+        }
+
+        .csv-cell-selected {
+            background: rgba(37, 99, 235, 0.18);
+        }
+
+        .csv-cell-name {
+            border-color: rgba(16, 185, 129, 0.9) !important;
+            box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.55);
+        }
+
+        .csv-cell-marks {
+            border-color: rgba(245, 158, 11, 0.95) !important;
+            box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.55);
+        }
+
+        .view-toggle {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: transparent;
+            color: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .view-toggle.active {
+            background: rgba(37, 99, 235, 0.12);
+            border-color: rgba(37, 99, 235, 0.45);
+        }
+
+        .view-panel {
+            display: block;
+        }
+
+        .view-panel.hidden {
+            display: none;
+        }
+
+        .quiz-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+        }
+
+        .quiz-link.secondary {
+            background: transparent;
+            color: inherit;
+            border: 1px solid var(--border);
+        }
+
+        .response-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 12px;
+            max-height: 55vh;
+            overflow: auto;
+        }
+
+        .response-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(127,127,127,0.05);
+            display: grid;
+            gap: 6px;
+        }
+    </style>
+    <link rel="stylesheet" href="uni.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="index.html" aria-label="Quiz-Wiz home">
+                <img src="images/favicon_2.png" alt="Quiz-Wiz">
+                <span>Quiz-Wiz</span>
+            </a>
+            <div class="global-search">
+        <input id="globalSearch" type="search" placeholder="Search pages…" autocomplete="off">
+      </div>
+            
+            <nav class="topnav" aria-label="Primary navigation">
+                <a class="topnav-link" href="index.html"><i class="fa-solid fa-house" style="color: --var;"></i> Home</a>
+                <a class="topnav-link active" href="personalized.html"><i class="fa-solid fa-users" style="color: --var;"></i> Personalized</a>
+                <a class="topnav-link" href="baseline.html"><i class="fa-solid fa-school" style="color: --var;"></i>Baseline</a>
+                <a class="topnav-link" href="image.html"><i class="fa-solid fa-check" style="color: --var;"></i>Marker</a>
+                <a class="topnav-link" href="presentation.html"><i class="fa-regular fa-note-sticky" style="color: --var;"></i>Notes</a>
+                <a class="topnav-link" href="documentation.html"><i class="fa-solid fa-book" style="color: --var;"></i>Guide</a>
+            </nav>
+
+            <div class="topbar-actions">
+                <button type="button" id="navSignOutBtn" class="topbar-btn" hidden>Sign Out</button>
+                <a id="loginLink" class="topbar-btn" href="login.html">Sign In</a>
+                <a id="profileLink" class="topbar-btn" href="profile.html" style="display:none;">Profile</a>
+            </div>
+        </div>
+    </header>
+
+<div class="app-shell">
+    <aside class="sidebar" id="historySidebar" style="display:none;">
+        <div class="sidebar-header">
+            <div>
+                <div class="sidebar-title">Worksheet Generations</div>
+                <div class="sidebar-subtitle">Reload previous personalized tests.</div>
+            </div>
+        </div>
+        <div class="portal-meta" id="historyStatus"></div>
+        <div id="historyList" class="history-list"></div>
+    </aside>
+
+    <div class="container">
+    <header class="page-header">
+        <div class="page-header-top">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="images/favicon.png" class="zoom" style="width: 200px;" id="logo-bar">
+                <h1 id="title">Quiz-Wiz : Learning Empowered </h1>
+            </div>
+            
+        </div>
+        
+        <div style="text-align: right;">
+            <h3 style="margin-left: 0px; margin-top: 10px; color: #3995ff; margin: 0px;">By Kavin</h3>
+            <a href="https://forms.gle/xgShJmiiLuexyVt98" target="_blank" rel="noopener noreferrer" style="margin-left: 8%; margin-top: -100px;">Please Give Feedback ⭐ !</a>
+        </div>
+
+        
+    </header>
+    <hr>
+    <br>
+    
+
+    <div class="form-grid">
+        <div class="field">
+            <label>Test Name</label>
+            <input id="genName" placeholder="e.g. Week 3 Quiz">
+         </div>
+        <div class="field">
+            <label>Subject</label>
+            <input id="subject"  placeholder="e.g. Mathematics">
+        </div>
+        <div class="field">
+            <label>Topic</label>
+            <input id="topic"  placeholder="e.g. Addition">
+        </div>
+        
+        <div class="field">
+            <label>Grade Level</label>
+            <select id="grade">
+                <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
+                <option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>
+                <option selected>Grade 7</option><option>Grade 8</option><option>Grade 9</option>
+                <option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Curriculum</label>
+            <select id="curriculum">
+                <option>KSSR</option><option>KSSM</option>
+                <option selected>IGCSE</option><option>IB</option><option>AP</option>
+                <option>ICSE</option><option>CBSE</option><option>Samacheer Kalvi</option>
+            </select>
+        </div>
+        
+        <div class="field">
+            <label>Marks Out Of</label>
+            <input type="number" id="mMax"  placeholder="e.g. 100">
+        </div>
+        <div class="field">
+            <label>Questions per Student</label>
+            <input type="number" id="qCount" placeholder="e.g. 20" min="1" max="50">
+        </div>
+        <div class="field">
+            <label>Question Style</label>
+            <select id="answerFormat">
+                <option value="blank">Blank lines</option>
+                <option value="mcq" selected>Multiple choice (A-D)</option>
+            </select>
+        </div>
+        
+        <div class="field">
+            <label >Upload Student Names & Marks (CSV/Excel)</label>
+            <input type="file" id="csvFile" accept=".csv,.xlsx,.xls">
+        </div>
+        
+        <div class="field full-width">
+            <label>Learning Materials (Optional)</label>
+            <div style="display:flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <button type="button" id="materialsOpenBtn" style="padding: 10px 12px; margin-top: 0;">Add learning materials</button>
+                <div id="materialsBadge" style="color: var(--muted); font-size: 0.9rem;"></div>
+            </div>
+        </div>
+        <div class="field full-width">
+            <label>Special Requests (Optional)</label>
+            <textarea id="requests" rows="2" placeholder="e.g. Include 1 word problem, funny tone..."></textarea>
+        </div>
+    </div>
+
+    <br>
+
+    <button id="genBtn" onclick="run()">Generate Worksheets</button>
+    <div class="portal-card" id="teacherViewCard" style="margin-top: 16px; display:none;">
+        <div class="portal-row" style="justify-content: space-between; align-items: center;">
+            <div style="font-weight: 800;">Teacher View</div>
+            <button type="button" id="hostAllBtn" style="padding: 10px 12px; margin-top: 0;">Host Quiz for All</button>
+        </div>
+        <div class="portal-meta" id="teacherViewHint" style="margin-top: 6px;">
+            Worksheets are ready. Use "Host Quiz for All" to generate hosted quizzes for every student.
+        </div>
+        <div class="portal-meta" id="teacherViewHostStatus" style="margin-top: 6px; display:none;"></div>
+    </div>
+    <div id="status"></div>
+    <div id="output"></div>
+
+    <div id="csvModal" style="display:none; position: fixed; inset: 0; z-index: 9999;">
+        <div id="csvModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
+        <div role="dialog" aria-modal="true" aria-labelledby="csvModalTitle" style="position: relative; max-width: 1100px; margin: 6vh auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;">
+            <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
+                <div>
+                    <div id="csvModalTitle" style="font-weight: 800; font-size: 1.05rem;">Select Range</div>
+                    <div id="csvModalSubtitle" style="color: var(--muted); font-size: 0.9rem;"></div>
+                </div>
+                <button type="button" id="csvModalClose">❌</button>
+            </div>
+
+                <div style="padding: 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px;">
+                    <div style="display:flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+                        <div id="csvStepHint" style="color: var(--muted); font-size: 0.92rem;"></div>
+                        <div style="display:flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;">
+                            <button type="button" id="csvModalBack" style="padding: 12px 14px; background: transparent; color: inherit; border: 1px solid var(--border); display:none;">Back</button>
+                            <button type="button" id="csvModalUse" style="padding: 12px 14px;">Use Selection</button>
+                        </div>
+                    </div>
+
+                <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                    <div id="csvPreviewScroll" style="max-height: 52vh; overflow: auto; background: rgba(127,127,127,0.04);">
+                        <table id="csvPreviewTable" class="csv-equal-table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="materialsModal" style="display:none; position: fixed; inset: 0; z-index: 10000; overflow: auto; padding: 6vh 12px; box-sizing: border-box;">
+        <div id="materialsModalBackdrop" style="position:absolute; inset:0; background: rgba(0,0,0,0.55);"></div>
+        <div role="dialog" aria-modal="true" aria-labelledby="materialsModalTitle" style="position: relative; width: 100%; max-width: 860px; margin: 0 auto; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);">
+                <div>
+                    <div id="materialsModalTitle" style="font-weight: 800; font-size: 1.05rem;">Learning Materials</div>
+                    <div style="color: var(--muted); font-size: 0.9rem;">Upload PDFs, DOCX, and/or PowerPoint files (PPT/PPTX), or paste notes. Then analyze to personalize quizzes.</div>
+                </div>
+                <button type="button" id="materialsModalClose">❌</button>
+            </div>
+
+            <div style="padding: 16px 18px; display: grid; gap: 12px; flex: 1; overflow: auto; min-height: 0;">
+                <div class="field">
+                    <label>Upload file(s)</label>
+                    <input type="file" id="materialsFiles" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx" multiple>
+                    <div style="color: var(--muted); font-size: 0.85rem;">Max 5 files, 4MB each.</div>
+                </div>
+                <div class="field">
+                    <label>Paste text (optional)</label>
+                    <textarea id="materialsText" rows="5" placeholder="Paste notes / what was taught"></textarea>
+                </div>
+                <div class="field">
+                    <label>Use Presentation History</label>
+                    <select id="materialsPresentationSelect">
+                        <option value="">(Select a presentation to summarize)</option>
+                    </select>
+                    <div style="color: var(--muted); font-size: 0.85rem;">Select a saved Presentation Maker generation to auto-generate a learning summary.</div>
+                </div>
+    
+
+                <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button type="button" id="materialsAnalyzeBtn" style="padding: 10px 12px; margin-top: 0;">Analyze materials</button>
+                    <button type="button" id="materialsClearBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Clear</button>
+                    <div id="materialsStatus" style="color: var(--muted); font-size: 0.9rem;"></div>
+                </div>
+
+                <div class="field">
+                    <label>Summary used for quizzes</label>
+                    <textarea id="materialsPreview" rows="6" readonly placeholder="Material summary used for personalized quizzes will appear here..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+<p id="ncol" style="position: absolute; visibility: hidden;"></p>
+<p id="mcol" style="position: absolute; visibility: hidden;"></p>
+
+<!-- Account modal removed (use login.html) -->
+<!-- <div id="accountModal" class="account-modal">
+    <div class="account-backdrop" id="accountBackdrop"></div>
+    <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+        <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+            <div>
+                <div id="accountTitle" style="font-weight: 800; font-size: 1.1rem;">Account</div>
+                <div class="portal-meta" id="authStatus">Not signed in.</div>
+            </div>
+            <button type="button" id="accountClose">❌</button>
+        </div>
+
+        <div id="accountSignedOut" style="display:none;">
+            <div class="field">
+                <label>Email</label>
+                <input id="authEmail" type="email" placeholder="teacher@school.edu">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+            </div>
+            <div class="portal-row" style="margin-top: 12px;">
+                <button type="button" id="signUpBtn" style="padding: 10px 12px; margin-top: 0;">Create Account</button>
+                <button type="button" id="signInBtn" style="padding: 10px 12px; margin-top: 0;">Sign In</button>
+            </div>
+        </div>
+
+        <div id="accountSignedIn" style="display:none;">
+            <div class="portal-meta">Signed in as</div>
+            <div id="accountEmailDisplay" style="font-weight: 700; margin-bottom: 10px;"></div>
+            <button type="button" id="signOutBtn" style="padding: 10px 12px; margin-top: 0; background: transparent; color: inherit; border: 1px solid var(--border);">Sign Out</button>
+        </div>
+    </div>
+</div> -->
+
+<div id="responsesModal" class="account-modal">
+    <div class="account-backdrop" id="responsesBackdrop"></div>
+    <div class="account-panel" role="dialog" aria-modal="true" aria-labelledby="responsesTitle" style="max-width: 720px;">
+        <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 12px;">
+            <div>
+                <div id="responsesTitle" style="font-weight: 800; font-size: 1.1rem;">Quiz Responses</div>
+                <div class="portal-meta" id="responsesSubtitle"></div>
+            </div>
+            <button type="button" id="responsesClose">❌</button>
+        </div>
+        <div id="responsesBody" class="response-list"></div>
+    </div>
+</div>
+ 
+<footer class="bottombar">
+    <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
+</footer>
+
+<script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+<script src="login.js"></script>
+<script>
+
+    let FIREBASE_CONFIG = null;
+
+    let firebaseReady = false;
+    let currentUser = null;
+    let historyItems = [];
+    let historyPdfUrls = [];
+    let historyAutoLoaded = false;
+    let authChecked = false;
+    const HISTORY_TYPE = "personalized";
+    let currentQuizCards = [];
+    let currentHistoryEntries = [];
+    let currentHistoryPayloadBase = null;
+    let currentHistoryId = null;
+
+    function showTeacherViewCard() {
+        const card = document.getElementById("teacherViewCard");
+        if (card) card.style.display = "block";
+        updateHostAllUi();
+    }
+
+    function setTeacherView() {
+        const panels = document.querySelectorAll(".view-panel");
+        panels.forEach((panel) => {
+            panel.classList.remove("hidden");
+        });
+    }
+
+    function setHostAllStatus(text) {
+        const el = document.getElementById("teacherViewHostStatus");
+        if (!el) return;
+        if (!text) {
+            el.style.display = "none";
+            el.innerText = "";
+            return;
+        }
+        el.style.display = "block";
+        el.innerText = text;
+    }
+
+    function updateHostAllUi() {
+        const btn = document.getElementById("hostAllBtn");
+        if (!btn) return;
+        const hasCards = currentQuizCards.length > 0;
+        btn.disabled = !currentUser || !hasCards;
+        btn.title = !currentUser
+            ? "Sign in to host quizzes."
+            : hasCards
+                ? ""
+                : "Generate worksheets first.";
+    }
+
+    function setAuthStatus(text) {
+        const status = document.getElementById("authStatus");
+        if (status) status.innerText = text || "";
+    }
+
+    function setHistoryStatus(text) {
+        const status = document.getElementById("historyStatus");
+        if (status) status.innerText = text || "";
+    }
+
+    function updateAuthUi(user) {
+        const historySidebar = document.getElementById("historySidebar");
+        const signOutBtn = document.getElementById("signOutBtn");
+        const signedOut = document.getElementById("accountSignedOut");
+        const signedIn = document.getElementById("accountSignedIn");
+        const emailDisplay = document.getElementById("accountEmailDisplay");
+        const loginLink = document.getElementById("loginLink");
+        const profileLink = document.getElementById("profileLink");
+        if (loginLink) loginLink.style.display = user ? "none" : "inline-flex";
+        if (profileLink) profileLink.style.display = user ? "inline-flex" : "none";
+        if (user) {
+            setAuthStatus(``);
+            if (historySidebar) historySidebar.style.display = "block";
+            if (signOutBtn) signOutBtn.disabled = false;
+            if (signedOut) signedOut.style.display = "none";
+            if (signedIn) signedIn.style.display = "block";
+            if (emailDisplay) emailDisplay.innerText = user.email || "teacher";
+            updateHostAllUi();
+        } else {
+            setAuthStatus("Enter email and password to sign in.");
+            if (historySidebar) historySidebar.style.display = "block";
+            if (signOutBtn) signOutBtn.disabled = true;
+            const list = document.getElementById("historyList");
+            if (list) {
+                list.innerHTML = authChecked
+                    ? "<div class=\"portal-meta\">Please sign in to see history.</div>"
+                    : "<div class=\"portal-meta\"></div>";
+            }
+            if (signedOut) signedOut.style.display = "block";
+            if (signedIn) signedIn.style.display = "none";
+            if (emailDisplay) emailDisplay.innerText = "";
+            updateHostAllUi();
+        }
+    }
+
+    function openAccountModal() {
+        if (window.QuizWizAuth && QuizWizAuth.openAccountModal) {
+            QuizWizAuth.openAccountModal();
+            return;
+        }
+        try {
+            window.location.href = "login.html?returnTo=" + encodeURIComponent((window.location.pathname.split("/").pop() || "personalized.html") + window.location.search + window.location.hash);
+        } catch (_) {}
+    }
+
+    function closeAccountModal() {
+        if (currentUser) autoLoadHistory({ force: true });
+    }
+
+    async function autoLoadHistory({ force = false } = {}) {
+        if (!currentUser) return;
+        if (!force && historyAutoLoaded) return;
+        historyAutoLoaded = true;
+        await loadHistory();
+    }
+
+    async function initFirebase() {
+        if (!window.QuizWizAuth) {
+            setAuthStatus("Login not loaded.");
+            return;
+        }
+
+        try {
+            await QuizWizAuth.init();
+            firebaseReady = true;
+        } catch (err) {
+            firebaseReady = false;
+            setAuthStatus(err?.message || "Firebase config missing. Set FIREBASE_WEB_CONFIG_JSON.");
+            return;
+        }
+
+        QuizWizAuth.onChange((user) => {
+            currentUser = user || null;
+            historyAutoLoaded = false;
+            authChecked = true;
+            updateAuthUi(currentUser);
+            if (currentUser) autoLoadHistory({ force: true });
+        });
+    }
+
+    async function signUp() {
+        if (!firebaseReady) return alert("Firebase is not configured yet.");
+        const email = String(document.getElementById("authEmail")?.value || "").trim();
+        const password = String(document.getElementById("authPassword")?.value || "");
+        if (!email || !password) return alert("Enter an email and password.");
+        try {
+            await firebase.auth().createUserWithEmailAndPassword(email, password);
+            closeAccountModal();
+        } catch (err) {
+            alert(err?.message || "Sign-up failed.");
+        }
+    }
+
+    async function signIn() {
+        if (!firebaseReady) return alert("Firebase is not configured yet.");
+        const email = String(document.getElementById("authEmail")?.value || "").trim();
+        const password = String(document.getElementById("authPassword")?.value || "");
+        if (!email || !password) return alert("Enter an email and password.");
+        try {
+            await firebase.auth().signInWithEmailAndPassword(email, password);
+            closeAccountModal();
+        } catch (err) {
+            alert(err?.message || "Sign-in failed.");
+        }
+    }
+
+    async function signOut() {
+        if (!firebaseReady) return;
+        await firebase.auth().signOut();
+        closeAccountModal();
+    }
+
+    async function getAuthToken() {
+        if (!window.QuizWizAuth) return "";
+        return QuizWizAuth.getAuthToken();
+    }
+
+    function buildHostedQuizLink(session, mode) {
+        const quizId = session?.quizId || "";
+        const code = session?.accessCode || "";
+        if (!quizId || !code) return "";
+        const resolvedMode = mode || "personalized";
+        try {
+            const url = new URL("quiz.html", window.location.href);
+            url.searchParams.set("quizId", quizId);
+            url.searchParams.set("code", code);
+            url.searchParams.set("mode", resolvedMode);
+            return url.toString();
+        } catch (_) {
+            return `quiz.html?quizId=${encodeURIComponent(quizId)}&code=${encodeURIComponent(code)}&mode=${encodeURIComponent(resolvedMode)}`;
+        }
+    }
+
+    async function copyText(text) {
+        if (!text) return false;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (_) {}
+
+        try {
+            const area = document.createElement("textarea");
+            area.value = text;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.focus();
+            area.select();
+            const ok = document.execCommand("copy");
+            area.remove();
+            return ok;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    async function createHostedQuizSession(quiz, meta) {
+        if (!currentUser) return null;
+        const token = await getAuthToken();
+        if (!token) return null;
+        const res = await fetch("/.netlify/functions/quiz-host", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ quiz, meta, mode: "personalized" })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to host quiz.");
+        if (!data?.quizId || !data?.accessCode) return null;
+        return { quizId: data.quizId, accessCode: data.accessCode };
+    }
+
+    async function hostQuizForAll() {
+        if (!currentUser) {
+            alert("Sign in to host quizzes.");
+            return;
+        }
+        if (!currentQuizCards.length) {
+            alert("Generate worksheets first.");
+            return;
+        }
+
+        const btn = document.getElementById("hostAllBtn");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Hosting quizzes...";
+        }
+        setHostAllStatus("Hosting quizzes for all students...");
+
+        let hostedCount = 0;
+        let skippedCount = 0;
+        let failedCount = 0;
+
+        for (let i = 0; i < currentQuizCards.length; i++) {
+            const item = currentQuizCards[i];
+            const existing = item?.quizSession;
+            if (existing?.quizId && existing?.accessCode) {
+                skippedCount += 1;
+                continue;
+            }
+            try {
+                const hosted = await createHostedQuizSession(item.quiz, item.meta);
+                if (hosted) {
+                    hostedCount += 1;
+                    item.quizSession = hosted;
+                    if (item.card?.__setQuizSession) item.card.__setQuizSession(hosted);
+                    if (Number.isFinite(item.entryIndex) && currentHistoryEntries[item.entryIndex]) {
+                        currentHistoryEntries[item.entryIndex].quizSession = hosted;
+                    }
+                } else {
+                    failedCount += 1;
+                }
+            } catch (err) {
+                console.warn("Failed to host quiz for", item?.quiz?.studentName, err);
+                failedCount += 1;
+            }
+        }
+
+        const total = currentQuizCards.length;
+        const statusParts = [
+            hostedCount ? `Hosted ${hostedCount}/${total}` : null,
+            skippedCount ? `Skipped ${skippedCount}` : null,
+            failedCount ? `Failed ${failedCount}` : null
+        ].filter(Boolean);
+        setHostAllStatus(statusParts.length ? statusParts.join(" \u2022 ") : "No quizzes hosted.");
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Host Quiz for All";
+        }
+        updateHostAllUi();
+
+        if (currentUser && currentHistoryPayloadBase && currentHistoryEntries.length) {
+            try {
+                const payload = {
+                    ...currentHistoryPayloadBase,
+                    createdAt: new Date().toISOString(),
+                    students: currentHistoryEntries
+                };
+                if (currentHistoryId) {
+                    await updateHistoryEntry(currentHistoryId, payload);
+                } else {
+                    await saveHistory(payload);
+                }
+                await loadHistory();
+            } catch (err) {
+                console.warn("Failed to save hosted quiz history", err);
+            }
+        }
+    }
+
+    async function fetchQuizResponses(quizId) {
+        const token = await getAuthToken();
+        if (!token) throw new Error("Please sign in to view responses.");
+        const res = await fetch(`/.netlify/functions/quiz-responses?quizId=${encodeURIComponent(quizId)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to load responses.");
+        return data;
+    }
+
+    function openResponsesModal({ title, subtitle, responses }) {
+        const modal = document.getElementById("responsesModal");
+        const titleEl = document.getElementById("responsesTitle");
+        const subtitleEl = document.getElementById("responsesSubtitle");
+        const body = document.getElementById("responsesBody");
+        if (!modal || !body) return;
+
+        if (titleEl) titleEl.innerText = title || "Quiz Responses";
+        if (subtitleEl) subtitleEl.innerText = subtitle || "";
+
+        body.innerHTML = "";
+        const list = Array.isArray(responses) ? responses : [];
+        if (!list.length) {
+            const empty = document.createElement("div");
+            empty.className = "portal-meta";
+            empty.innerText = "No responses yet.";
+            body.appendChild(empty);
+        } else {
+            list.forEach((item) => {
+                const card = document.createElement("div");
+                card.className = "response-card";
+
+                const name = document.createElement("div");
+                name.style.fontWeight = "700";
+                name.innerText = item.studentName || "Student";
+                card.appendChild(name);
+
+                if (item.submittedAt) {
+                    const time = document.createElement("div");
+                    time.className = "portal-meta";
+                    time.innerText = new Date(item.submittedAt).toLocaleString();
+                    card.appendChild(time);
+                }
+
+                if (Number.isFinite(item.autoScore)) {
+                    const score = document.createElement("div");
+                    score.className = "portal-meta";
+                    score.innerText = `Score: ${item.autoScore}/${item.maxScore || 0}`;
+                    card.appendChild(score);
+                }
+
+                if (Array.isArray(item.answers) && item.answers.length) {
+                    const pre = document.createElement("pre");
+                    pre.innerText = item.answers
+                        .map((a) => `${a.number}. ${a.answer || a.selectedOption || ""}`.trim())
+                        .join("\n\n");
+                    card.appendChild(pre);
+                }
+
+                body.appendChild(card);
+            });
+        }
+
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeResponsesModal() {
+        const modal = document.getElementById("responsesModal");
+        if (modal) modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+
+    function summarizeQuestions(questions) {
+        if (!Array.isArray(questions)) return "";
+        return questions.map((q) => `${q.number}. ${q.question}`).join("\n\n");
+    }
+
+    function revokeHistoryPdfUrls() {
+        for (const url of historyPdfUrls) URL.revokeObjectURL(url);
+        historyPdfUrls = [];
+    }
+
+    function clearOutputArea() {
+        revokeHistoryPdfUrls();
+        const output = document.getElementById("output");
+        if (output) output.innerHTML = "";
+        currentQuizCards = [];
+        currentHistoryEntries = [];
+        currentHistoryPayloadBase = null;
+        currentHistoryId = null;
+        setHostAllStatus("");
+        updateHostAllUi();
+    }
+
+    function setFormValue(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = value ?? "";
+    }
+
+    function detectAnswerFormat(payload) {
+        if (payload?.answerFormat) return payload.answerFormat;
+        const students = Array.isArray(payload?.students) ? payload.students : [];
+        const first = students[0];
+        const questions = Array.isArray(first?.questions) ? first.questions : (Array.isArray(payload?.questions) ? payload.questions : []);
+        const hasOptions = questions.some((q) => Array.isArray(q?.options) && q.options.length);
+        return hasOptions ? "mcq" : "blank";
+    }
+
+    function normalizeQuestions(raw) {
+        const list = Array.isArray(raw) ? raw : [];
+        return list
+            .map((q, idx) => {
+                if (!q || typeof q !== "object") return null;
+                const question = String(q.question || "").trim();
+                if (!question) return null;
+                const number = Number.isFinite(q.number) ? q.number : idx + 1;
+                return { ...q, number, question };
+            })
+            .filter(Boolean);
+    }
+
+    function applyHistoryPayload(payload) {
+        if (!payload || typeof payload !== "object") return;
+        setFormValue("subject", payload.subject || "");
+        setFormValue("topic", payload.topic || "");
+        setFormValue("genName", payload.title || "");
+        setFormValue("grade", payload.grade || "");
+        setFormValue("curriculum", payload.curriculum || "");
+        setFormValue("mMax", payload.maxMarks || "");
+        setFormValue("qCount", payload.questionCount || "");
+        setFormValue("answerFormat", detectAnswerFormat(payload));
+        setFormValue("requests", payload.requests || "");
+
+        if (typeof payload.learnedContext === "string") {
+            learnedContext = payload.learnedContext.trim();
+            if (learnedContext) {
+                setMaterialsUi({
+                    statusText: "Loaded learning materials summary from history.",
+                    previewText: learnedContext
+                });
+                updateMaterialsBadge();
+                saveMaterialsToStorage();
+            } else {
+                setMaterialsUi({ statusText: "", previewText: "" });
+                updateMaterialsBadge();
+            }
+        }
+    }
+
+    function parseScore(raw) {
+        const str = String(raw || "").trim();
+        if (!str) return "";
+        const match = str.match(/^(\d+(?:\.\d+)?)/);
+        return match ? match[1] : str;
+    }
+
+    async function buildPdfLinks(quiz, meta, marksValue = "") {
+        const qBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false, marksValue });
+        const aBytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true, marksValue });
+        const qUrl = URL.createObjectURL(new Blob([qBytes], { type: "application/pdf" }));
+        const aUrl = URL.createObjectURL(new Blob([aBytes], { type: "application/pdf" }));
+        historyPdfUrls.push(qUrl, aUrl);
+        return { qUrl, aUrl };
+    }
+
+    async function buildQuizCard({ quiz, meta, marksValue = "", links = null, quizSession = null }) {
+        const card = document.createElement('div');
+        card.className = 'quiz-card';
+
+        const title = document.createElement('div');
+        title.style.fontWeight = "800";
+        title.style.marginBottom = "10px";
+        title.innerText = `${quiz.studentName}${marksValue ? ` \u2022 Marks: ${marksValue}/${meta.maxMarks}` : ""}`;
+
+        const viewWorksheets = document.createElement('div');
+        viewWorksheets.className = "view-panel";
+        viewWorksheets.dataset.view = "worksheets";
+
+        const btnRow = document.createElement('div');
+        btnRow.style.display = "flex";
+        btnRow.style.gap = "10px";
+        btnRow.style.flexWrap = "wrap";
+        btnRow.style.marginBottom = "12px";
+
+        if (links?.qUrl && links?.aUrl) {
+            const qLink = document.createElement('a');
+            qLink.href = links.qUrl;
+            qLink.download = `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`;
+            qLink.className = "download-link";
+            qLink.innerText = "🡻 Question Sheet";
+
+            const aLink = document.createElement('a');
+            aLink.href = links.aUrl;
+            aLink.download = `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`;
+            aLink.className = "download-link";
+            aLink.innerText = "🡻 Answer Sheet";
+
+            btnRow.appendChild(qLink);
+            btnRow.appendChild(aLink);
+        } else {
+            const qBtn = document.createElement('button');
+            qBtn.type = "button";
+            qBtn.innerText = "🡻 Question Sheet";
+            qBtn.style.padding = "10px 12px";
+            qBtn.style.marginTop = "0";
+
+            const aBtn = document.createElement('button');
+            aBtn.type = "button";
+            aBtn.innerText = "🡻 Answer Sheet";
+            aBtn.style.padding = "10px 12px";
+            aBtn.style.marginTop = "0";
+
+            qBtn.onclick = async () => {
+                qBtn.disabled = true;
+                try {
+                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: false, marksValue });
+                    await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Question Sheet.pdf`);
+                } finally {
+                    qBtn.disabled = false;
+                }
+            };
+
+            aBtn.onclick = async () => {
+                aBtn.disabled = true;
+                try {
+                    const bytes = await buildWorksheetPdf({ quiz, meta, includeAnswers: true, marksValue });
+                    await downloadPdf(bytes, `${sanitizeFilename(quiz.studentName)} - Answer Sheet.pdf`);
+                } finally {
+                    aBtn.disabled = false;
+                }
+            };
+
+            btnRow.appendChild(qBtn);
+            btnRow.appendChild(aBtn);
+        }
+
+        const blooketBtn = document.createElement("button");
+        blooketBtn.type = "button";
+        blooketBtn.className = "download-link";
+        blooketBtn.innerHTML = "<i class='fa-solid fa-file-csv'></i> Export To Blooket";
+        blooketBtn.onclick = () => {
+            const csv = buildBlooketCsv(quiz, meta);
+            const label = meta?.generationName ? `${meta.generationName} - ${quiz.studentName}` : quiz.studentName;
+            downloadCsv(csv, `${sanitizeFilename(label)} - Blooket.csv`);
+        };
+        btnRow.appendChild(blooketBtn);
+
+        viewWorksheets.appendChild(btnRow);
+
+        const viewQuizzes = document.createElement('div');
+        viewQuizzes.className = "view-panel";
+        viewQuizzes.dataset.view = "quizzes";
+
+        const renderQuizPanel = (session) => {
+            viewQuizzes.innerHTML = "";
+            const sectionTitle = document.createElement("div");
+            sectionTitle.style.fontWeight = "700";
+            sectionTitle.style.marginBottom = "8px";
+            sectionTitle.innerText = "Hosted Quiz";
+            viewQuizzes.appendChild(sectionTitle);
+
+            if (!session) {
+                const note = document.createElement("div");
+                note.className = "portal-meta";
+                note.innerText = currentUser
+                    ? "Use \"Host Quiz for All\" above to create quiz links."
+                    : "Sign in to host quizzes and collect responses.";
+                viewQuizzes.appendChild(note);
+                return;
+            }
+
+            const row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.gap = "10px";
+            row.style.flexWrap = "wrap";
+            row.style.marginBottom = "10px";
+
+            const link = buildHostedQuizLink(session, "personalized");
+            const openBtn = document.createElement("a");
+            openBtn.href = link;
+            openBtn.target = "_blank";
+            openBtn.rel = "noopener noreferrer";
+            openBtn.className = "quiz-link";
+            openBtn.innerText = "Open Hosted Quiz";
+
+            const copyBtn = document.createElement("button");
+            copyBtn.type = "button";
+            copyBtn.innerText = "Copy Link";
+            copyBtn.style.padding = "10px 12px";
+            copyBtn.style.marginTop = "0";
+            copyBtn.onclick = async () => {
+                const ok = await copyText(link);
+                copyBtn.innerText = ok ? "Copied!" : "Copy Link";
+                setTimeout(() => { copyBtn.innerText = "Copy Link"; }, 1500);
+            };
+
+            const responsesBtn = document.createElement("button");
+            responsesBtn.type = "button";
+            responsesBtn.innerText = "View Responses";
+            responsesBtn.style.padding = "10px 12px";
+            responsesBtn.style.marginTop = "0";
+            responsesBtn.onclick = async () => {
+                responsesBtn.disabled = true;
+                try {
+                    const data = await fetchQuizResponses(session.quizId);
+                    const subtitle = `${quiz.studentName} \u2022 ${data?.count || 0} responses`;
+                    openResponsesModal({
+                        title: "Quiz Responses",
+                        subtitle,
+                        responses: data?.items || []
+                    });
+                } catch (err) {
+                    alert(err?.message || "Failed to load responses.");
+                } finally {
+                    responsesBtn.disabled = false;
+                }
+            };
+
+            
+
+            row.appendChild(openBtn);
+            row.appendChild(copyBtn);
+            row.appendChild(responsesBtn);
+            row.appendChild(blooketBtn);
+            viewQuizzes.appendChild(row);
+
+            const hint = document.createElement("div");
+            hint.className = "portal-meta";
+            hint.innerText = "Share the hosted quiz link with this student.";
+            viewQuizzes.appendChild(hint);
+        };
+
+        renderQuizPanel(quizSession);
+        card.__setQuizSession = (session) => {
+            quizSession = session;
+            renderQuizPanel(session);
+        };
+
+        const preview = document.createElement('pre');
+        preview.innerText = quiz.questions.map(q => `${q.number}. ${q.question}`).join("\n\n");
+
+        card.appendChild(title);
+        card.appendChild(viewWorksheets);
+        card.appendChild(viewQuizzes);
+        card.appendChild(preview);
+
+        return card;
+    }
+
+    function matchesHistoryType(payload) {
+        if (!payload || typeof payload !== "object") return false;
+        if (payload.type) return payload.type === HISTORY_TYPE;
+        const title = String(payload.title || "").toLowerCase();
+        const students = Array.isArray(payload.students) ? payload.students : [];
+        if (HISTORY_TYPE === "baseline") {
+            return title.includes("baseline") || students[0]?.studentName === "Baseline Worksheet";
+        }
+        return !title.includes("baseline");
+    }
+
+    function renderHistory(items) {
+        const list = document.getElementById("historyList");
+        if (!list) return;
+        list.innerHTML = "";
+        historyItems = items.map((item) => {
+            let payload = null;
+            try {
+                payload = item.payloadJson ? JSON.parse(item.payloadJson) : null;
+            } catch (_) {
+                payload = null;
+            }
+            return { ...item, payload };
+        }).filter((item) => matchesHistoryType(item.payload));
+
+        if (!historyItems.length) {
+            list.innerHTML = "<div class=\"portal-meta\">No history found yet.</div>";
+            return;
+        }
+
+        historyItems.forEach((item, index) => {
+            const entry = document.createElement("div");
+            entry.className = "history-entry";
+            entry.setAttribute("role", "button");
+            entry.setAttribute("tabindex", "0");
+
+            const row = document.createElement("div");
+            row.className = "history-entry-row";
+
+            const title = document.createElement("div");
+            title.className = "history-entry-title";
+            title.innerText = item.payload?.title || "Generation";
+            row.appendChild(title);
+
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.className = "history-delete";
+            delBtn.innerText = "Delete";
+            delBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                deleteHistoryEntry(item.id);
+            });
+            row.appendChild(delBtn);
+            entry.appendChild(row);
+
+            const createdAt = item.payload?.createdAt || item.createdAt || "";
+            const meta = document.createElement("div");
+            meta.className = "history-entry-meta";
+            meta.innerText = createdAt ? new Date(createdAt).toLocaleString() : "Saved history";
+            entry.appendChild(meta);
+
+            if (item.payload?.summary) {
+                const summary = document.createElement("div");
+                summary.className = "history-entry-meta";
+                summary.innerText = item.payload.summary;
+                entry.appendChild(summary);
+            }
+
+            entry.addEventListener("click", () => loadHistoryEntry(index));
+            entry.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    loadHistoryEntry(index);
+                }
+            });
+            list.appendChild(entry);
+        });
+    }
+
+    function setActiveHistory(index) {
+        const entries = document.querySelectorAll(".history-entry");
+        entries.forEach((entry, i) => {
+            if (i === index) entry.classList.add("active");
+            else entry.classList.remove("active");
+        });
+    }
+
+    async function loadHistoryEntry(index) {
+        const item = historyItems[index];
+        if (!item?.payload) return alert("History entry missing data.");
+        currentHistoryId = item.id || null;
+        setActiveHistory(index);
+        applyHistoryPayload(item.payload);
+        await generateFromHistory(item.payload);
+    }
+
+    async function generateFromHistory(payload) {
+        const status = document.getElementById("status");
+        const output = document.getElementById("output");
+        if (!status || !output) return;
+
+        const historyAnswerFormat = detectAnswerFormat(payload);
+        setFormValue("answerFormat", historyAnswerFormat);
+
+        const students = Array.isArray(payload?.students) ? payload.students : [];
+        if (!students.length) {
+            alert("No students found in this history entry.");
+            return;
+        }
+
+        clearOutputArea();
+        status.style.display = "block";
+        currentHistoryEntries = students.map((student) => ({ ...student }));
+        currentHistoryPayloadBase = { ...payload };
+        delete currentHistoryPayloadBase.students;
+
+        const meta = {
+            subject: document.getElementById('subject').value,
+            topic: document.getElementById('topic').value,
+            grade: document.getElementById('grade').value,
+            curriculum: document.getElementById('curriculum').value,
+            maxMarks: document.getElementById('mMax').value,
+            answerFormat: historyAnswerFormat,
+            generationName: payload?.title || "",
+            mode: "personalized"
+        };
+
+        let rendered = 0;
+        for (let i = 0; i < students.length; i++) {
+            const student = students[i] || {};
+            const studentName = student.studentName || "Student";
+            const scoreRaw = student.score ?? parseScore(student.marks) ?? parseScore(student.marksValue);
+            status.innerText = `Loading quiz ${i + 1} of ${students.length} - ${studentName}`;
+
+            const savedQuestions = normalizeQuestions(
+                Array.isArray(student.questions) ? student.questions : (Array.isArray(payload?.questions) ? payload.questions : [])
+            );
+            if (!savedQuestions.length) {
+                continue;
+            }
+            const quiz = { studentName, questions: savedQuestions };
+
+            const links = await buildPdfLinks(quiz, meta, scoreRaw ? String(scoreRaw) : "");
+            const card = await buildQuizCard({
+                quiz,
+                meta,
+                marksValue: scoreRaw ? String(scoreRaw) : "",
+                links,
+                quizSession: student.quizSession || null
+            });
+            output.appendChild(card);
+            currentQuizCards.push({
+                quiz,
+                meta,
+                card,
+                quizSession: student.quizSession || null,
+                entryIndex: i
+            });
+            rendered += 1;
+        }
+
+        if (!rendered) {
+            status.innerText = "No questions found in this history entry.";
+            alert("No questions found in this history entry.");
+            return;
+        }
+
+        status.innerText = "History loaded.";
+        showTeacherViewCard();
+        setTeacherView();
+        updateHostAllUi();
+    }
+
+    async function loadHistory() {
+        if (!firebaseReady || !currentUser) return;
+        setHistoryStatus("Loading history...");
+        try {
+            const token = await getAuthToken();
+            const res = await fetch("/.netlify/functions/history?limit=20", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data?.error || "Failed to load history.");
+            renderHistory(Array.isArray(data?.items) ? data.items : []);
+            setHistoryStatus("");
+        } catch (err) {
+            setHistoryStatus("Could not load history.");
+            alert(err?.message || "Failed to load history.");
+        }
+    }
+
+    async function saveHistory(payload) {
+        if (!firebaseReady || !currentUser) return;
+        const token = await getAuthToken();
+        const res = await fetch("/.netlify/functions/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ payload })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to save history.");
+        if (data?.id) currentHistoryId = data.id;
+        return data;
+    }
+
+    async function updateHistoryEntry(id, payload) {
+        if (!firebaseReady || !currentUser) return;
+        const safeId = String(id || "").trim();
+        if (!safeId) return;
+        const token = await getAuthToken();
+        const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id: safeId, payload })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Failed to update history.");
+        if (data?.id) currentHistoryId = data.id;
+        return data;
+    }
+
+    async function deleteHistoryEntry(id) {
+        if (!firebaseReady || !currentUser) return alert("Sign in to delete history.");
+        const safeId = String(id || "").trim();
+        if (!safeId) return;
+        const ok = confirm("Delete this history entry?");
+        if (!ok) return;
+        const token = await getAuthToken();
+        const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+            alert(data?.error || "Failed to delete history.");
+            return;
+        }
+        if (currentHistoryId === safeId) currentHistoryId = null;
+        await loadHistory();
+    }
+
+    document.getElementById("historyLoadBtn")?.addEventListener("click", loadHistory);
+    document.getElementById("hostAllBtn")?.addEventListener("click", hostQuizForAll);
+    document.getElementById("responsesClose")?.addEventListener("click", closeResponsesModal);
+    document.getElementById("responsesBackdrop")?.addEventListener("click", closeResponsesModal);
+    updateAuthUi(null);
+    initFirebase();
+    setTeacherView();
+
+    function sanitizeFilename(name) {
+        return String(name || "Student")
+            .trim()
+            .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+            .replace(/\s+/g, " ")
+            .slice(0, 80);
+    }
+
+    function csvEscape(value) {
+        const text = String(value ?? "");
+        const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        if (/[",\n]/.test(normalized)) return `"${normalized.replace(/"/g, '""')}"`;
+        return normalized;
+    }
+
+    function buildBlooketCsv(quiz, meta) {
+        // Matches Blooket's Spreadsheet Import template column order.
+        // Columns A-H are required; Column J can be set to "typing" for typing-answer questions.
+        const header = [
+            "Question #",
+            "Question Text",
+            "Answer 1",
+            "Answer 2",
+            "Answer 3",
+            "Answer 4",
+            "Time Limit (sec)",
+            "Correct Answer(s)",
+            "",
+            ""
+        ];
+        const rows = [header];
+        const answerFormat = String(meta?.answerFormat || "").toLowerCase();
+        const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+        const labelToIndex = { A: 0, B: 1, C: 2, D: 3 };
+
+        for (let i = 0; i < questions.length; i++) {
+            const q = questions[i];
+            const questionText = String(q?.question || "").trim();
+            if (!questionText) continue;
+
+            const qNum = Number.isFinite(q?.number) ? q.number : i + 1;
+            const timeLimit = "20";
+
+            const options = Array.isArray(q?.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
+            const answerText = String(q?.answer || "").trim();
+
+            if (answerFormat === "mcq" && options.length >= 2) {
+                const rawLabel = String(q?.correctOption || "").trim().toUpperCase();
+                let correctIdx = Object.prototype.hasOwnProperty.call(labelToIndex, rawLabel) ? labelToIndex[rawLabel] : -1;
+
+                if (correctIdx < 0 && answerText) {
+                    const match = options.findIndex((opt) => opt && opt === answerText);
+                    if (match >= 0) correctIdx = match;
+                }
+                if (correctIdx < 0) correctIdx = 0;
+
+                rows.push([
+                    qNum,
+                    questionText,
+                    options[0] || "",
+                    options[1] || "",
+                    options[2] || "",
+                    options[3] || "",
+                    timeLimit,
+                    String(correctIdx + 1),
+                    "",
+                    ""
+                ]);
+            } else {
+                // Blank-line format -> import as typing-answer (uses Answer columns as acceptable exact answers).
+                rows.push([
+                    qNum,
+                    questionText,
+                    answerText || "",
+                    "",
+                    "",
+                    "",
+                    timeLimit,
+                    "1",
+                    "",
+                    "typing"
+                ]);
+            }
+        }
+
+        return rows.map((r) => r.map(csvEscape).join(",")).join("\r\n");
+    }
+
+    function downloadCsv(text, filename) {
+        const csvText = String(text || "");
+        const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    function wrapLines(text, font, size, maxWidth) {
+        const inputLines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+        const out = [];
+
+        for (const rawLine of inputLines) {
+            const words = rawLine.split(/\s+/).filter(Boolean);
+            if (words.length === 0) {
+                out.push("");
+                continue;
+            }
+
+            let line = words[0];
+            for (let i = 1; i < words.length; i++) {
+                const candidate = line + " " + words[i];
+                const width = font.widthOfTextAtSize(candidate, size);
+                if (width <= maxWidth) {
+                    line = candidate;
+                } else {
+                    out.push(line);
+                    line = words[i];
+                }
+            }
+            out.push(line);
+        }
+
+        return out;
+    }
+
+    function sanitizePdfText(text) {
+        return String(text || "")
+            .replace(/[\u2010-\u2015\u2212]/g, "-")
+            .replace(/[\u0000-\u001F\u007F]/g, " ");
+    }
+
+    async function buildWorksheetPdf({ quiz, meta, includeAnswers, marksValue = "" }) {
+        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const answerFormat = meta?.answerFormat === "mcq" ? "mcq" : "blank";
+
+        const doc = await PDFDocument.create();
+        const font = await doc.embedFont(StandardFonts.Helvetica);
+        const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+        const form = doc.getForm();
+
+        const margin = 48;
+        const headerText = "Quiz-Wiz : Learning Empowered";
+        const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+
+        const typeLabel = meta?.mode === "baseline" ? "Baseline" : "Personalized";
+        const sheetTitle = includeAnswers ? "Answer Sheet" : "Question Sheet";
+
+        const startPage = ({ withMarks }) => {
+            const page = doc.addPage();
+            const { width, height } = page.getSize();
+            const maxWidth = width - margin * 2;
+            let y = height - margin;
+
+            page.drawText(sanitizePdfText(headerText), {
+                x: margin,
+                y,
+                size: 14,
+                font: fontBold,
+                color: rgb(0.12, 0.2, 0.35),
+            });
+            y -= 18;
+            page.drawText(sanitizePdfText(`Type: ${typeLabel} | ${sheetTitle}`), {
+                x: margin,
+                y,
+                size: 10,
+                font,
+                color: rgb(0.35, 0.45, 0.55),
+            });
+            y -= 16;
+            page.drawText(sanitizePdfText(`Generated: ${dateStr}`), {
+                x: margin,
+                y,
+                size: 10,
+                font,
+                color: rgb(0.35, 0.45, 0.55),
+            });
+            y -= 18;
+
+            if (meta?.generationName) {
+                page.drawText(sanitizePdfText(`Test: ${sanitizePdfText(meta.generationName)}`), { x: margin, y, size: 11, font: fontBold });
+                y -= 18;
+            }
+
+        if (typeLabel === "Personalized") {
+                page.drawText(sanitizePdfText(`Student: ${sanitizePdfText(quiz.studentName)}`), { x: margin, y, size: 12, font: fontBold });
+                y -= 18;
+                page.drawText("Marks:", { x: margin, y, size: 11, font: fontBold });
+                const marksField = form.createTextField(`marks_${Math.random().toString(16).slice(2)}`);
+                marksField.setText("");
+                marksField.addToPage(page, { x: margin + 52, y: y - 2, width: 120, height: 16 });
+                page.drawText(sanitizePdfText(`/ ${sanitizePdfText(meta.maxMarks)}`), { x: margin + 180, y, size: 11, font });
+                y -= 24;
+            }
+
+            page.drawText(
+                sanitizePdfText(
+                    `${sanitizePdfText(meta.subject)} | ${sanitizePdfText(meta.topic)} | ${sanitizePdfText(meta.grade)} | ${sanitizePdfText(meta.curriculum)}`
+                ),
+                { x: margin, y, size: 10, font, color: rgb(0.35, 0.45, 0.55) }
+            );
+            y -= 24;
+
+            page.drawText(sanitizePdfText(sheetTitle), { x: margin, y, size: 12, font: fontBold });
+            y -= 18;
+
+            return { page, y, maxWidth };
+        };
+
+        let { page, y, maxWidth } = startPage({ withMarks: !includeAnswers });
+
+        const qFontSize = 11;
+        const aFontSize = 10;
+        const qLineGap = 14;
+        const aLineGap = 12;
+        const minY = margin + 54;
+
+        const ensureSpace = (needed) => {
+            if (y - needed < minY) {
+                ({ page, y, maxWidth } = startPage({ withMarks: false }));
+            }
+        };
+
+        for (const q of quiz.questions) {
+            const qText = `${q.number}. ${sanitizePdfText(q.question)}`;
+            const qLines = wrapLines(qText, font, qFontSize, maxWidth);
+
+            ensureSpace(qLines.length * qLineGap + 18);
+            for (const line of qLines) {
+                page.drawText(sanitizePdfText(line), { x: margin, y, size: qFontSize, font });
+                y -= qLineGap;
+            }
+
+            if (includeAnswers) {
+                const extra =
+                    answerFormat === "mcq" && typeof q.correctOption === "string"
+                        ? `Correct option: ${q.correctOption}`
+                        : "";
+                const aText = extra ? `${extra}\nAnswer: ${sanitizePdfText(q.answer)}` : `Answer: ${sanitizePdfText(q.answer)}`;
+                const aLines = wrapLines(aText, font, aFontSize, maxWidth - 18);
+                ensureSpace(aLines.length * aLineGap + 12);
+                for (const line of aLines) {
+                    page.drawText(sanitizePdfText(line), { x: margin + 18, y, size: aFontSize, font, color: rgb(0.15, 0.3, 0.2) });
+                    y -= aLineGap;
+                }
+            } else {
+                if (answerFormat === "mcq" && Array.isArray(q.options) && q.options.length) {
+                    const labels = ["A", "B", "C", "D", "E", "F"];
+                    const optFontSize = 10;
+                    const optLineGap = 12;
+
+                    const optLines = [];
+                    for (let idx = 0; idx < q.options.length; idx++) {
+                        const label = labels[idx] || String(idx + 1);
+                        const txt = `${label}) ${sanitizePdfText(q.options[idx])}`;
+                        optLines.push(...wrapLines(txt, font, optFontSize, maxWidth - 18));
+                    }
+
+                    ensureSpace(optLines.length * optLineGap + 10);
+                    for (const line of optLines) {
+                        page.drawText(sanitizePdfText(line), { x: margin + 18, y, size: optFontSize, font, color: rgb(0.2, 0.25, 0.32) });
+                        y -= optLineGap;
+                    }
+                } else {
+                    ensureSpace(46);
+                    for (let i = 0; i < 3; i++) {
+                        page.drawLine({
+                            start: { x: margin, y: y - 2 },
+                            end: { x: margin + maxWidth, y: y - 2 },
+                            thickness: 1,
+                            color: rgb(0.86, 0.89, 0.92),
+                        });
+                        y -= 14;
+                    }
+                }
+            }
+
+            y -= 10;
+        }
+
+        if (form?.updateFieldAppearances) form.updateFieldAppearances(font);
+        return await doc.save();
+    }
+
+    async function downloadPdf(bytes, filename) {
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    async function readTextSmart(file) {
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+
+        const hasUtf8Bom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+        const hasUtf16leBom = bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe;
+        const hasUtf16beBom = bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff;
+
+        const nulCount = bytes.reduce((n, b) => n + (b === 0 ? 1 : 0), 0);
+        const nulRatio = bytes.length ? nulCount / bytes.length : 0;
+
+        let encoding = "utf-8";
+        if (hasUtf16leBom) encoding = "utf-16le";
+        else if (hasUtf16beBom) encoding = "utf-16be";
+        else if (hasUtf8Bom) encoding = "utf-8";
+        else if (nulRatio > 0.2) encoding = "utf-16le";
+
+        try {
+            return new TextDecoder(encoding).decode(bytes);
+        } catch (_) {
+            return new TextDecoder("utf-8").decode(bytes);
+        }
+    }
+
+    async function readArrayBufferSmart(file) {
+        if (!file) return new ArrayBuffer(0);
+        return await file.arrayBuffer();
+    }
+
+    function guessDelimiter(text) {
+        const sample = text.slice(0, 4096);
+        const counts = {
+            ",": (sample.match(/,/g) || []).length,
+            ";": (sample.match(/;/g) || []).length,
+            "\t": (sample.match(/\t/g) || []).length,
+        };
+        const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        return best && best[1] > 0 ? best[0] : ",";
+    }
+
+    function parseDelimited(text, delimiter) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+
+            if (ch === '"') {
+                if (inQuotes && text[i + 1] === '"') {
+                    field += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+
+            if (!inQuotes && ch === delimiter) {
+                row.push(field);
+                field = "";
+                continue;
+            }
+
+            if (!inQuotes && (ch === "\n" || ch === "\r")) {
+                row.push(field);
+                field = "";
+                rows.push(row);
+                row = [];
+                if (ch === "\r" && text[i + 1] === "\n") i++;
+                continue;
+            }
+
+            field += ch;
+        }
+
+        row.push(field);
+        rows.push(row);
+
+        while (rows.length && rows[rows.length - 1].every((c) => String(c ?? "").trim() === "")) {
+            rows.pop();
+        }
+
+        return rows;
+    }
+
+    function rowsToObjects(rows) {
+        if (!rows.length) return { headers: [], records: [] };
+
+        const maxCols = rows.reduce((m, r) => Math.max(m, Array.isArray(r) ? r.length : 0), 0);
+        const headers = Array.from({ length: Math.max(1, maxCols) }, (_, idx) => `Column${idx + 1}`);
+
+        const records = [];
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || r.every((c) => String(c ?? "").trim() === "")) continue;
+            const obj = {};
+            for (let j = 0; j < headers.length; j++) {
+                let v = String(r[j] ?? "");
+                if (i === 0 && j === 0) v = v.replace(/^\uFEFF/, "");
+                obj[headers[j]] = v.trim();
+            }
+            obj.__rowIndex = i;
+            records.push(obj);
+        }
+        return { headers, records };
+    }
+
+    let csvState = null;
+
+    function fileKey(file) {
+        return file ? `${file.name}|${file.size}|${file.lastModified}` : "";
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function guessMarksHeader(headers) {
+        const re = /(mark|marks|score|points|total|result|grade)/i;
+        const hit = headers.find((h) => re.test(String(h)));
+        return hit || headers[1] || headers[0] || "";
+    }
+
+    function guessNameHeader(headers) {
+        const re = /(name|student|learner|candidate)/i;
+        const hit = headers.find((h) => re.test(String(h)));
+        return hit || "";
+    }
+
+    let csvSelection = null;
+
+    function buildCsvPreviewTable(table, headers, dataRows) {
+        table.textContent = "";
+
+        const cols = Math.max(1, headers?.length || 0);
+        const colWidth = 160;
+
+        const colgroup = document.createElement("colgroup");
+        for (let c = 0; c < cols; c++) {
+            const col = document.createElement("col");
+            col.style.width = `${colWidth}px`;
+            colgroup.appendChild(col);
+        }
+        table.appendChild(colgroup);
+
+        const thead = document.createElement("thead");
+        const trHead = document.createElement("tr");
+        for (let c = 0; c < cols; c++) {
+            const th = document.createElement("th");
+            th.textContent = String(`Column${c + 1}`);
+            th.dataset.r = "-1";
+            th.dataset.c = String(c);
+            trHead.appendChild(th);
+        }
+        thead.appendChild(trHead);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        const rows = Array.isArray(dataRows) ? dataRows : [];
+        for (let r = 0; r < rows.length; r++) {
+            const tr = document.createElement("tr");
+            for (let c = 0; c < cols; c++) {
+                const td = document.createElement("td");
+                td.textContent = String(rows?.[r]?.[c] ?? "");
+                td.dataset.r = String(r);
+                td.dataset.c = String(c);
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+    }
+
+    function getCsvCell(table, r, c) {
+        const col = Number(c);
+        if (!Number.isFinite(col) || col < 0) return null;
+
+        if (Number(r) === -1) {
+            const th = table.tHead?.rows?.[0]?.cells?.[col] || null;
+            return th;
+        }
+
+        const row = Number(r);
+        if (!Number.isFinite(row) || row < 0) return null;
+        const td = table.tBodies?.[0]?.rows?.[row]?.cells?.[col] || null;
+        return td;
+    }
+
+    function getCsvSelectedRange() {
+        if (!csvSelection?.start || !csvSelection?.end) return null;
+
+        const r1 = Number(csvSelection.start.r);
+        const r2 = Number(csvSelection.end.r);
+        const c1 = Number(csvSelection.start.c);
+        const c2 = Number(csvSelection.end.c);
+        if (![r1, r2, c1, c2].every((n) => Number.isFinite(n))) return null;
+
+        const rMin = Math.min(r1, r2);
+        const rMax = Math.max(r1, r2);
+        const cMin = Math.min(c1, c2);
+        const cMax = Math.max(c1, c2);
+
+        return { rMin, rMax, cMin, cMax };
+    }
+
+    function applyCsvSelectionHighlight(table) {
+        // Fix for ghost highlights: use table property instead of the csvSelection object
+        // so highlights can be safely cleared even when csvSelection is set to null.
+        if (table._highlightedCells && Array.isArray(table._highlightedCells)) {
+            for (const el of table._highlightedCells) {
+                if (el && el.classList) el.classList.remove("csv-cell-selected");
+            }
+        }
+        table._highlightedCells = [];
+
+        if (!csvSelection) return;
+
+        const range = getCsvSelectedRange();
+        if (!range) return;
+
+        for (let r = range.rMin; r <= range.rMax; r++) {
+            for (let c = range.cMin; c <= range.cMax; c++) {
+                const el = getCsvCell(table, r, c);
+                if (!el) continue;
+                el.classList.add("csv-cell-selected");
+                table._highlightedCells.push(el);
+            }
+        }
+    }
+
+    function getCsvSelectedColumnRange() {
+        const range = getCsvSelectedRange();
+        if (!range) return null;
+        return { cMin: range.cMin, cMax: range.cMax };
+    }
+
+    function applySavedRanges(table, state) {
+        const clear = (key, className) => {
+            const prev = state?.[key];
+            if (Array.isArray(prev)) {
+                for (const el of prev) el?.classList?.remove?.(className);
+            }
+            state[key] = [];
+        };
+
+        const paint = (range, className, storeKey) => {
+            if (!range) return;
+            const out = state[storeKey];
+            for (let r = range.rMin; r <= range.rMax; r++) {
+                for (let c = range.cMin; c <= range.cMax; c++) {
+                    const el = getCsvCell(table, r, c);
+                    if (!el) continue;
+                    el.classList.add(className);
+                    out.push(el);
+                }
+            }
+        };
+
+        clear("_nameEls", "csv-cell-name");
+        clear("_marksEls", "csv-cell-marks");
+
+        if (state?.nameRange) paint(state.nameRange, "csv-cell-name", "_nameEls");
+        if (state?.marksRange) paint(state.marksRange, "csv-cell-marks", "_marksEls");
+    }
+
+    function initCsvDragSelection(table) {
+        if (table.dataset.dragSelectInit) return;
+        table.dataset.dragSelectInit = "1";
+
+        let isDragging = false;
+        let startCell = null;
+        let clickedAlreadySelected = false;
+        let lastPointer = { x: 0, y: 0 };
+        let autoScrollRaf = 0;
+
+        const scrollEl =
+            document.getElementById("csvPreviewScroll") ||
+            table?.parentElement ||
+            null;
+
+        const getCellFromEvent = (ev) => {
+            let cell = ev.target?.closest?.("td,th") || null;
+            if (!cell && typeof document.elementFromPoint === "function") {
+                const el = document.elementFromPoint(ev.clientX, ev.clientY);
+                cell = el?.closest?.("td,th") || null;
+            }
+            return cell;
+        };
+
+        const getCellFromPoint = (x, y) => {
+            if (typeof document.elementFromPoint !== "function") return null;
+            const el = document.elementFromPoint(x, y);
+            return el?.closest?.("td,th") || null;
+        };
+
+        const stopAutoScroll = () => {
+            if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf);
+            autoScrollRaf = 0;
+        };
+
+        const ensureAutoScroll = () => {
+            if (autoScrollRaf) return;
+            autoScrollRaf = requestAnimationFrame(tickAutoScroll);
+        };
+
+        const tickAutoScroll = () => {
+            autoScrollRaf = 0;
+            if (!isDragging || !scrollEl || !csvSelection) return;
+
+            const rect = scrollEl.getBoundingClientRect();
+            const x = Number(lastPointer?.x || 0);
+            const y = Number(lastPointer?.y || 0);
+
+            const margin = 36;
+            const maxStep = 26;
+
+            const leftDist = rect.left + margin - x;
+            const rightDist = x - (rect.right - margin);
+            const topDist = rect.top + margin - y;
+            const bottomDist = y - (rect.bottom - margin);
+
+            let dx = 0;
+            let dy = 0;
+
+            if (leftDist > 0) dx = -Math.min(maxStep, Math.max(6, leftDist * 0.25));
+            else if (rightDist > 0) dx = Math.min(maxStep, Math.max(6, rightDist * 0.25));
+
+            if (topDist > 0) dy = -Math.min(maxStep, Math.max(6, topDist * 0.25));
+            else if (bottomDist > 0) dy = Math.min(maxStep, Math.max(6, bottomDist * 0.25));
+
+            if (dx !== 0 || dy !== 0) {
+                scrollEl.scrollLeft += dx;
+                scrollEl.scrollTop += dy;
+
+                const cx = Math.min(rect.right - 2, Math.max(rect.left + 2, x));
+                const cy = Math.min(rect.bottom - 2, Math.max(rect.top + 2, y));
+                const cell = getCellFromPoint(cx, cy);
+                if (cell && cell.dataset) {
+                    const r = Number(cell.dataset.r);
+                    const c = Number(cell.dataset.c);
+                    if (Number.isFinite(r) && Number.isFinite(c) && (csvSelection.end.r !== r || csvSelection.end.c !== c)) {
+                        csvSelection.end = { r, c };
+                        applyCsvSelectionHighlight(table);
+                    }
+                }
+
+                ensureAutoScroll();
+            } else {
+                // Still update selection while dragging even if not scrolling,
+                // because pointer capture means the cursor may be outside the cell.
+                const cx = Math.min(rect.right - 2, Math.max(rect.left + 2, x));
+                const cy = Math.min(rect.bottom - 2, Math.max(rect.top + 2, y));
+                const cell = getCellFromPoint(cx, cy);
+                if (cell && cell.dataset) {
+                    const r = Number(cell.dataset.r);
+                    const c = Number(cell.dataset.c);
+                    if (Number.isFinite(r) && Number.isFinite(c) && (csvSelection.end.r !== r || csvSelection.end.c !== c)) {
+                        csvSelection.end = { r, c };
+                        applyCsvSelectionHighlight(table);
+                    }
+                }
+            }
+        };
+
+        const isCellSelected = (r, c) => {
+            const range = getCsvSelectedRange();
+            if (!range) return false;
+            return r >= range.rMin && r <= range.rMax && c >= range.cMin && c <= range.cMax;
+        };
+
+        table.addEventListener("pointerdown", (ev) => {
+            if (ev.button !== 0) return; // Only process left-clicks
+            lastPointer = { x: ev.clientX, y: ev.clientY };
+            const cell = getCellFromEvent(ev);
+            if (!cell || !cell.dataset) return;
+
+            const r = Number(cell.dataset.r);
+            const c = Number(cell.dataset.c);
+
+            // Remember if we are clicking a cell that is already selected
+            clickedAlreadySelected = isCellSelected(r, c);
+
+            isDragging = true;
+            startCell = cell;
+
+            // Start a new selection tracking bounds
+            csvSelection = {
+                start: { r, c },
+                end: { r, c }
+            };
+
+            table.classList.add("is-selecting");
+            try { table.setPointerCapture(ev.pointerId); } catch (_) {}
+
+            applyCsvSelectionHighlight(table);
+            ensureAutoScroll();
+            ev.preventDefault();
+        });
+
+        table.addEventListener("pointermove", (ev) => {
+            if (!isDragging) return;
+            lastPointer = { x: ev.clientX, y: ev.clientY };
+            const cell = getCellFromEvent(ev);
+            if (!cell || !cell.dataset || !csvSelection) return;
+
+            const r = Number(cell.dataset.r);
+            const c = Number(cell.dataset.c);
+
+            // Only update DOM if the boundary cell actually changed to avoid UI lag
+            if (csvSelection.end.r !== r || csvSelection.end.c !== c) {
+                csvSelection.end = { r, c };
+                applyCsvSelectionHighlight(table);
+            }
+
+            ensureAutoScroll();
+        });
+
+        const endDrag = (ev) => {
+            if (!isDragging) return;
+            isDragging = false;
+            table.classList.remove("is-selecting");
+            stopAutoScroll();
+            try { table.releasePointerCapture(ev.pointerId); } catch (_) {}
+
+            const cell = getCellFromEvent(ev);
+            
+            // Toggle logic: If the user just clicked (pointer up on the same cell) 
+            // and the cell was already selected before the click, unselect everything.
+            if (cell && cell === startCell && clickedAlreadySelected) {
+                csvSelection = null;
+                applyCsvSelectionHighlight(table);
+            }
+            
+            startCell = null;
+        };
+
+        table.addEventListener("pointerup", endDrag);
+        table.addEventListener("pointercancel", endDrag);
+        
+        // Fix for buggy drag drops:
+        // We catch pointerup globally if the user releases the mouse outside the table container
+        window.addEventListener("pointerup", (ev) => {
+             if (isDragging) endDrag(ev);
+        });
+    }
+
+    function closeCsvModal() {
+        const modal = document.getElementById("csvModal");
+        if (modal) modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+
+    function openCsvModal(state, step) {
+        const modal = document.getElementById("csvModal");
+        const title = document.getElementById("csvModalTitle");
+        const subtitle = document.getElementById("csvModalSubtitle");
+        const hint = document.getElementById("csvStepHint");
+        const backBtn = document.getElementById("csvModalBack");
+        const useBtn = document.getElementById("csvModalUse");
+        const table = document.getElementById("csvPreviewTable");
+
+        if (!modal || !table || !useBtn) return;
+
+        const modalStep = step || state?.step || "name";
+        state.step = modalStep;
+        csvSelection = null;
+
+        if (title) {
+            title.textContent = modalStep === "marks" ? "Select Marks Cells" : "Select Name Cells";
+        }
+
+        if (subtitle) {
+            subtitle.textContent = `${state.fileName} • ${state.records.length} student rows • Drag to select cells like Excel`;
+        }
+
+        if (hint) {
+            hint.textContent =
+                modalStep === "marks"
+                    ? "Drag to select the cells containing marks (one column)."
+                    : "Drag to select the cells containing student names (one column).";
+        }
+
+        if (backBtn) backBtn.style.display = modalStep === "marks" ? "inline-block" : "none";
+        useBtn.textContent = modalStep === "marks" ? "Use Marks Selection" : "Use Name Selection";
+
+        buildCsvPreviewTable(table, state.headers, state.dataRows);
+        initCsvDragSelection(table);
+        applyCsvSelectionHighlight(table);
+        applySavedRanges(table, state);
+
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    async function parseCsvToState(file) {
+        const text = await readTextSmart(file);
+        const delimiter = guessDelimiter(text);
+        const parsedRows = parseDelimited(text, delimiter);
+        const { headers, records } = rowsToObjects(parsedRows);
+
+        return {
+            key: fileKey(file),
+            fileName: file?.name || "CSV",
+            headers,
+            records,
+            dataRows: parsedRows,
+            marksColumn: "",
+            nameColumn: "",
+            nameRange: null,
+            marksRange: null,
+            step: "name",
+        };
+    }
+
+    function isExcelFile(file) {
+        const name = String(file?.name || "").toLowerCase();
+        return name.endsWith(".xlsx") || name.endsWith(".xls");
+    }
+
+    async function parseExcelToState(file) {
+        if (typeof XLSX === "undefined") {
+            throw new Error("Excel support failed to load. Please refresh and try again.");
+        }
+
+        const buf = await readArrayBufferSmart(file);
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheetName = wb.SheetNames?.[0];
+        if (!sheetName) throw new Error("No sheets found in this Excel file.");
+        const ws = wb.Sheets[sheetName];
+        const parsedRows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
+        const { headers, records } = rowsToObjects(parsedRows);
+
+        return {
+            key: fileKey(file),
+            fileName: file?.name || "Excel",
+            headers,
+            records,
+            dataRows: parsedRows,
+            marksColumn: "",
+            nameColumn: "",
+            nameRange: null,
+            marksRange: null,
+            step: "name",
+        };
+    }
+
+    async function parseFileToState(file) {
+        if (isExcelFile(file)) return await parseExcelToState(file);
+        return await parseCsvToState(file);
+    }
+
+    function ensureCsvStateMatchesFile(file) {
+        const key = fileKey(file);
+        if (!csvState || csvState.key !== key) return false;
+        return true;
+    }
+
+    (function initCsvModal() {
+        const fileInput = document.getElementById("csvFile");
+        const closeBtn = document.getElementById("csvModalClose");
+        const useBtn = document.getElementById("csvModalUse");
+        const backBtn = document.getElementById("csvModalBack");
+        const backdrop = document.getElementById("csvModalBackdrop");
+
+        const close = () => closeCsvModal();
+        if (closeBtn) closeBtn.addEventListener("click", close);
+        if (backdrop) backdrop.addEventListener("click", close);
+
+        if (backBtn) {
+            backBtn.addEventListener("click", () => {
+                if (!csvState) return;
+                if (csvState.step === "marks") openCsvModal(csvState, "name");
+            });
+        }
+
+        if (useBtn) {
+            useBtn.addEventListener("click", () => {
+                if (!csvState) return closeCsvModal();
+
+                const headers = Array.isArray(csvState.headers) ? csvState.headers : [];
+                if (!headers.length) return;
+
+                const range = getCsvSelectedRange();
+                if (!range) return alert("Drag to select cells first.");
+
+                const rMin = Math.max(0, range.rMin);
+                const rMax = Math.max(0, range.rMax);
+                const cMin = Math.max(0, Math.min(headers.length - 1, range.cMin));
+                const cMax = Math.max(0, Math.min(headers.length - 1, range.cMax));
+
+                if (rMax < rMin) return alert("Please select at least 1 row of cells.");
+                if (cMin !== cMax) return alert("Please select exactly 1 column (like Excel).");
+
+                const columnHeader = headers[cMin] || "";
+                const normalizedRange = { rMin, rMax, cMin, cMax };
+
+                const table = document.getElementById("csvPreviewTable");
+
+                if (csvState.step === "marks") {
+                    csvState.marksRange = normalizedRange;
+                    csvState.marksColumn = columnHeader;
+                    const mCol = document.getElementById("mCol");
+                    if (mCol) mCol.value = columnHeader;
+                    if (table) applySavedRanges(table, csvState);
+                    closeCsvModal();
+                    return;
+                }
+
+                csvState.nameRange = normalizedRange;
+                csvState.nameColumn = columnHeader;
+                const nCol = document.getElementById("nCol");
+                if (nCol) nCol.value = columnHeader;
+                if (table) applySavedRanges(table, csvState);
+                openCsvModal(csvState, "marks");
+            });
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener("change", async () => {
+                const file = fileInput.files?.[0];
+                if (!file) return;
+                try {
+                    closeCsvModal();
+                    csvState = null;
+                    const mCol = document.getElementById("mCol");
+                    if (mCol) mCol.value = "";
+                    const nCol = document.getElementById("nCol");
+                    if (nCol) nCol.value = "";
+                    csvSelection = null;
+                    csvState = await parseFileToState(file);
+                    csvState.nameRange = null;
+                    csvState.marksRange = null;
+                    csvState.step = "name";
+                    openCsvModal(csvState, "name");
+                } catch (e) {
+                    alert("Could not read this CSV. Please re-export as CSV UTF-8.\n\n" + (e?.message || String(e)));
+                }
+            });
+        }
+    })();
+
+    function buildRowTextForAi(rowObject, marksColumn, nameColumn) {
+        if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return "";
+
+        const keys = Object.keys(rowObject).filter((k) => !String(k).startsWith("__"));
+        const nameKeys = keys.filter((k) => /(name|student|learner|candidate)/i.test(k));
+        const idKeys = keys.filter((k) => /(id|adm|admission|roll|index)/i.test(k));
+        const selected = [];
+
+        const addKey = (k) => {
+            if (!k) return;
+            if (selected.includes(k)) return;
+            selected.push(k);
+        };
+
+        addKey(nameColumn);
+        for (const k of nameKeys.slice(0, 2)) addKey(k);
+        for (const k of idKeys.slice(0, 1)) addKey(k);
+        addKey(marksColumn);
+
+        if (selected.length === 0) {
+            for (const k of keys.slice(0, 6)) addKey(k);
+        }
+
+        const lines = [];
+        for (const k of selected) {
+            const raw = String(rowObject[k] ?? "");
+            const v = raw.trim().slice(0, 300);
+            if (!v) continue;
+            lines.push(`${k}: ${v}${raw.trim().length > 300 ? " (truncated)" : ""}`);
+        }
+
+        return lines.join("\n");
+    }
+
+    function buildRowTextAllColumns(rowObject) {
+        if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return "";
+
+        const keys = Object.keys(rowObject).filter((k) => !String(k).startsWith("__"));
+        const lines = [];
+        let used = 0;
+
+        for (const k of keys) {
+            const raw = String(rowObject[k] ?? "");
+            const v = raw.trim().slice(0, 400);
+            if (!v) continue;
+            const line = `${k}: ${v}${raw.trim().length > 400 ? " (truncated)" : ""}`;
+            lines.push(line);
+            used += line.length + 1;
+            if (lines.length >= 60) break;
+            if (used >= 9000) break;
+        }
+
+        return lines.join("\n");
+    }
+
+    function shouldSendTxtToAi(rowObject) {
+        if (!rowObject || typeof rowObject !== "object" || Array.isArray(rowObject)) return true;
+
+        const keys = Object.keys(rowObject);
+        if (keys.length > 30) return true;
+
+        let totalLen = 0;
+        for (const k of keys) totalLen += String(rowObject[k] ?? "").length;
+        if (totalLen > 5000) return true;
+
+        const sample = keys.slice(0, 10).map((k) => String(rowObject[k] ?? "")).join("\n").slice(0, 1000);
+        const nonPrintable = (sample.match(/[^\x09\x0A\x0D\x20-\x7E]/g) || []).length;
+        if (sample.length && nonPrintable / sample.length > 0.2) return true;
+
+        return false;
+    }
+
+    async function requestQuiz(payload) {
+        const response = await fetch('/.netlify/functions/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (_) {
+            data = null;
+        }
+
+        if (!response.ok) {
+            const errMsg = data?.error ? String(data.error) : `Request failed (${response.status})`;
+            const errRid = data?.requestId ? `\nRequest ID: ${data.requestId}` : "";
+            throw new Error(errMsg + errRid);
+        }
+
+        const quiz = data?.quiz;
+        if (!quiz || typeof quiz.studentName !== "string" || !Array.isArray(quiz.questions)) {
+            throw new Error("Server returned an unexpected quiz format.");
+        }
+        return quiz;
+    }
+
+    const MATERIALS_STORAGE_KEY = "quizwiz_materials_v1";
+    let learnedContext = "";
+    let materialsPresentationItems = [];
+
+    function openMaterialsModal() {
+        const modal = document.getElementById("materialsModal");
+        if (!modal) return;
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden";
+        loadPresentationHistoryForMaterials();
+    }
+
+    function closeMaterialsModal() {
+        const modal = document.getElementById("materialsModal");
+        if (!modal) return;
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+
+    function updateMaterialsBadge() {
+        const badge = document.getElementById("materialsBadge");
+        const btn = document.getElementById("materialsOpenBtn");
+        if (!badge || !btn) return;
+
+        if (learnedContext && learnedContext.trim()) {
+            badge.innerText = "Ready";
+            btn.innerText = "Edit learning materials";
+        } else {
+            badge.innerText = "";
+            btn.innerText = "Add learning materials";
+        }
+    }
+
+    function setMaterialsUi({ statusText = "", previewText = "" } = {}) {
+        const statusEl = document.getElementById("materialsStatus");
+        const previewEl = document.getElementById("materialsPreview");
+        if (statusEl) statusEl.innerText = statusText || "";
+        if (previewEl) previewEl.value = previewText || "";
+    }
+
+    function getMaterialsStore() {
+        try {
+            const raw = localStorage.getItem(MATERIALS_STORAGE_KEY);
+            if (!raw) return { learnedContext: "", presets: [] };
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object") {
+                const presets = Array.isArray(parsed.presets) ? parsed.presets : [];
+                const ctx = typeof parsed.learnedContext === "string" ? parsed.learnedContext : "";
+                return { learnedContext: ctx, presets };
+            }
+            if (parsed && typeof parsed.learnedContext === "string") {
+                return { learnedContext: parsed.learnedContext, presets: [] };
+            }
+            return { learnedContext: "", presets: [] };
+        } catch (_) {
+            return { learnedContext: "", presets: [] };
+        }
+    }
+
+    function saveMaterialsStore(store) {
+        try {
+            localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(store));
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function ensureLegacyPreset() {
+        const store = getMaterialsStore();
+        const ctx = String(store.learnedContext || "").trim();
+        const presets = Array.isArray(store.presets) ? store.presets : [];
+        if (!ctx) return;
+        if (presets.some((p) => String(p?.learnedContext || "").trim() === ctx)) return;
+
+        store.presets = [
+            {
+                id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                title: "Saved summary",
+                createdAt: new Date().toISOString(),
+                subject: "",
+                topic: "",
+                grade: "",
+                curriculum: "",
+                learnedContext: ctx
+            },
+            ...presets
+        ].slice(0, 30);
+        saveMaterialsStore(store);
+    }
+
+    function loadMaterialsFromStorage() {
+        ensureLegacyPreset();
+        const store = getMaterialsStore();
+        learnedContext = String(store.learnedContext || "").trim();
+        if (learnedContext) {
+            setMaterialsUi({
+                statusText: "Using saved learning materials summary.",
+                previewText: learnedContext
+            });
+        }
+        updateMaterialsBadge();
+        renderMaterialsPresets();
+    }
+
+    function saveMaterialsToStorage() {
+        const store = getMaterialsStore();
+        store.learnedContext = learnedContext || "";
+        saveMaterialsStore(store);
+    }
+
+    function addMaterialsPreset({ title, learnedContextText, subject, topic, grade, curriculum } = {}) {
+        const ctx = String(learnedContextText || "").trim();
+        if (!ctx) return;
+        const store = getMaterialsStore();
+        const preset = {
+            id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+            title: String(title || "").trim() || "Materials Summary",
+            createdAt: new Date().toISOString(),
+            subject: String(subject || "").trim(),
+            topic: String(topic || "").trim(),
+            grade: String(grade || "").trim(),
+            curriculum: String(curriculum || "").trim(),
+            learnedContext: ctx
+        };
+        store.presets = [preset, ...(Array.isArray(store.presets) ? store.presets : [])].slice(0, 30);
+        store.learnedContext = ctx;
+        saveMaterialsStore(store);
+    }
+
+    function renderMaterialsPresets() {
+        const select = document.getElementById("materialsPresetSelect");
+        if (!select) return;
+        const store = getMaterialsStore();
+        const presets = Array.isArray(store.presets) ? store.presets : [];
+        const current = String(select.value || "");
+
+        select.innerHTML = "";
+        const opt0 = document.createElement("option");
+        opt0.value = "";
+        opt0.innerText = "(Select a saved summary)";
+        select.appendChild(opt0);
+
+        for (const p of presets) {
+            if (!p || typeof p !== "object") continue;
+            const opt = document.createElement("option");
+            opt.value = String(p.id || "");
+            const created = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "";
+            const label = String(p.title || "Summary");
+            opt.innerText = created ? `${label} (${created})` : label;
+            select.appendChild(opt);
+        }
+
+        if (current && presets.some((p) => String(p?.id || "") === current)) {
+            select.value = current;
+        } else {
+            select.value = "";
+        }
+    }
+
+    function applyMaterialsPreset(presetId) {
+        const id = String(presetId || "").trim();
+        if (!id) return;
+        const store = getMaterialsStore();
+        const preset = (Array.isArray(store.presets) ? store.presets : []).find((p) => String(p?.id || "") === id);
+        if (!preset) return;
+        learnedContext = String(preset.learnedContext || "").trim();
+        if (learnedContext) {
+            setMaterialsUi({ statusText: "Loaded saved summary.", previewText: learnedContext });
+            updateMaterialsBadge();
+            saveMaterialsToStorage();
+        }
+    }
+
+    function clearMaterials() {
+        learnedContext = "";
+        const filesEl = document.getElementById("materialsFiles");
+        const textEl = document.getElementById("materialsText");
+        if (filesEl) filesEl.value = "";
+        if (textEl) textEl.value = "";
+        setMaterialsUi({ statusText: "Cleared.", previewText: "" });
+        updateMaterialsBadge();
+        saveMaterialsToStorage();
+        const select = document.getElementById("materialsPresetSelect");
+        if (select) select.value = "";
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error("Failed to read file."));
+            reader.onload = () => {
+                const result = String(reader.result || "");
+                const comma = result.indexOf(",");
+                resolve(comma >= 0 ? result.slice(comma + 1) : result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function buildPresentationText(deck) {
+        const lines = [];
+        const title = String(deck?.title || "").trim();
+        const subtitle = String(deck?.subtitle || "").trim();
+        if (title) lines.push(title);
+        if (subtitle) lines.push(subtitle);
+
+        const slides = Array.isArray(deck?.slides) ? deck.slides : [];
+        slides.forEach((s, idx) => {
+            const heading = String(s?.heading || "").trim();
+            if (heading) lines.push(`Slide ${idx + 1}: ${heading}`);
+            const paragraphs = Array.isArray(s?.paragraphs) ? s.paragraphs : [];
+            for (const p of paragraphs) {
+                const t = String(p || "").trim();
+                if (t) lines.push(t);
+            }
+            const bullets = Array.isArray(s?.bullets) ? s.bullets : [];
+            for (const b of bullets) {
+                const t = String(b || "").trim();
+                if (t) lines.push(`- ${t}`);
+            }
+        });
+
+        return lines.join("\n"); 
+    } 
+ 
+    function htmlToText(html) { 
+        try { 
+            const doc = new DOMParser().parseFromString(String(html || ""), "text/html"); 
+            return String(doc?.body?.innerText || "").replace(/\n{3,}/g, "\n\n").trim(); 
+        } catch (_) { 
+            return ""; 
+        } 
+    } 
+ 
+    async function loadPresentationHistoryForMaterials() { 
+        const select = document.getElementById("materialsPresentationSelect"); 
+        if (!select) return; 
+ 
+        select.disabled = true;
+        select.innerHTML = "<option value=\"\">Loading presentations…</option>";
+        materialsPresentationItems = [];
+
+        if (!firebaseReady || !currentUser) {
+            select.innerHTML = "<option value=\"\">(Sign in to load presentation history)</option>";
+            return;
+        }
+
+        try {
+            const token = await getAuthToken();
+            const res = await fetch("/.netlify/functions/history?limit=50", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data?.error || "Failed to load history.");
+
+            const rawItems = Array.isArray(data?.items) ? data.items : [];
+            const items = rawItems.map((item) => { 
+                let payload = null; 
+                try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; } 
+                return { ...item, payload }; 
+            }).filter((x) => x?.payload?.type === "presentation" && (x?.payload?.deck || x?.payload?.html)); 
+ 
+            materialsPresentationItems = items; 
+ 
+            select.innerHTML = "<option value=\"\">(Select a presentation to summarize)</option>"; 
+            for (const item of items) { 
+                const opt = document.createElement("option");
+                opt.value = item.id;
+                const createdAt = item.payload?.createdAt || item.createdAt || "";
+                const label = String(item.payload?.title || "Presentation");
+                opt.innerText = createdAt ? `${label} (${new Date(createdAt).toLocaleDateString()})` : label;
+                select.appendChild(opt);
+            }
+        } catch (_) {
+            select.innerHTML = "<option value=\"\">(Could not load presentation history)</option>";
+        } finally {
+            select.disabled = false;
+        }
+    }
+
+    async function onMaterialsPresentationSelected(presentationId) { 
+        const id = String(presentationId || "").trim(); 
+        if (!id) return; 
+        const item = materialsPresentationItems.find((x) => String(x?.id || "") === id); 
+        const deck = item?.payload?.deck; 
+        const html = item?.payload?.html; 
+        const text = deck ? buildPresentationText(deck) : htmlToText(html); 
+        if (!text) return; 
+        const filesEl = document.getElementById("materialsFiles"); 
+        const textEl = document.getElementById("materialsText"); 
+        if (filesEl) filesEl.value = ""; 
+        if (textEl) textEl.value = text; 
+ 
+        await analyzeMaterials();
+    }
+
+    async function analyzeMaterials() {
+        const btn = document.getElementById("materialsAnalyzeBtn");
+        const filesEl = document.getElementById("materialsFiles");
+        const textEl = document.getElementById("materialsText");
+
+        const files = filesEl?.files ? Array.from(filesEl.files) : [];
+        const pastedText = String(textEl?.value || "").trim();
+
+        if (!files.length && !pastedText) {
+            alert("Add at least one file (PDF/DOCX/PPT/PPTX) or paste some text.");
+            return;
+        }
+
+        btn.disabled = true;
+        setMaterialsUi({ statusText: "Analyzing materials...", previewText: "" });
+
+        try {
+            const maxBytesPerFile = 4 * 1024 * 1024;
+            const materialsFiles = [];
+
+            for (const f of files.slice(0, 5)) {
+                if (f.size > maxBytesPerFile) throw new Error(`File too large: ${f.name} (max 4MB).`);
+                const data = await fileToBase64(f);
+                materialsFiles.push({ name: f.name, data, mime: f.type || "" });
+            }
+
+            const payload = {
+                files: materialsFiles,
+                pastedText,
+                subject: document.getElementById('subject').value,
+                topic: document.getElementById('topic').value,
+                grade: document.getElementById('grade').value,
+                curriculum: document.getElementById('curriculum').value
+            };
+
+            const res = await fetch("/.netlify/functions/materials", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                const errMsg = data?.error ? String(data.error) : `Request failed (${res.status})`;
+                const errRid = data?.requestId ? `\nRequest ID: ${data.requestId}` : "";
+                throw new Error(errMsg + errRid);
+            }
+
+            const summary = typeof data?.learnedContext === "string" ? data.learnedContext.trim() : "";
+            if (!summary) throw new Error("No summary returned.");
+
+            learnedContext = summary;
+            saveMaterialsToStorage();
+            addMaterialsPreset({
+                title: `${payload.subject || "Subject"} - ${payload.topic || "Topic"}`,
+                learnedContextText: learnedContext,
+                subject: payload.subject,
+                topic: payload.topic,
+                grade: payload.grade,
+                curriculum: payload.curriculum
+            });
+            renderMaterialsPresets();
+
+            const warnText = Array.isArray(data?.warnings) && data.warnings.length ? ` Warnings: ${data.warnings.join(" | ")}` : "";
+            setMaterialsUi({ statusText: "Materials summary ready. It will be used for quiz generation." + warnText, previewText: learnedContext });
+            updateMaterialsBadge();
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    document.getElementById("materialsAnalyzeBtn")?.addEventListener("click", analyzeMaterials);
+    document.getElementById("materialsClearBtn")?.addEventListener("click", clearMaterials);
+    document.getElementById("materialsPresentationSelect")?.addEventListener("change", (e) => onMaterialsPresentationSelected(e.target.value));
+    document.getElementById("materialsOpenBtn")?.addEventListener("click", openMaterialsModal);
+    document.getElementById("materialsModalClose")?.addEventListener("click", closeMaterialsModal);
+    document.getElementById("materialsModalBackdrop")?.addEventListener("click", closeMaterialsModal);
+    loadMaterialsFromStorage();
+    updateMaterialsBadge();
+
+    async function run() {
+        const file = document.getElementById('csvFile').files[0];
+        if (!file) return alert("Please upload a CSV file.");
+
+        const btn = document.getElementById('genBtn');
+        const status = document.getElementById('status');
+        const output = document.getElementById('output');
+        const historyEntries = [];
+
+        btn.disabled = true;
+        status.style.display = "block";
+        clearOutputArea();
+
+        try {
+            if (!ensureCsvStateMatchesFile(file)) {
+                csvState = await parseFileToState(file);
+                csvState.step = "name";
+                openCsvModal(csvState, "name");
+                status.innerText = "First select the Name cells, then the Marks cells.";
+                return;
+            }
+
+            if (!csvState.records.length) throw new Error("No data rows found in the CSV.");
+            if (!csvState.marksColumn) {
+                openCsvModal(csvState, csvState.nameColumn ? "marks" : "name");
+                status.innerText = "First select the Name cells, then the Marks cells.";
+                return;
+            }
+
+            const records = csvState.records;
+            const marksColumn = csvState.marksColumn;
+            const nameColumn = csvState.nameColumn || "";
+
+            const marksRange = csvState.marksRange;
+            const nameRange = csvState.nameRange;
+
+            let rMin = null;
+            let rMax = null;
+            if (marksRange) {
+                rMin = Number(marksRange.rMin);
+                rMax = Number(marksRange.rMax);
+            }
+            if (nameRange) {
+                const nrMin = Number(nameRange.rMin);
+                const nrMax = Number(nameRange.rMax);
+                if (rMin === null || rMax === null) {
+                    rMin = nrMin;
+                    rMax = nrMax;
+                } else if (Number.isFinite(nrMin) && Number.isFinite(nrMax)) {
+                    const iMin = Math.max(rMin, nrMin);
+                    const iMax = Math.min(rMax, nrMax);
+                    if (iMax >= iMin) {
+                        rMin = iMin;
+                        rMax = iMax;
+                    }
+                }
+            }
+
+            const hasRowRange = Number.isFinite(rMin) && Number.isFinite(rMax) && rMax >= rMin;
+            const selectedRecords = hasRowRange
+                ? records.filter((r) => {
+                      const idx = Number(r?.__rowIndex);
+                      return Number.isFinite(idx) && idx >= rMin && idx <= rMax;
+                  })
+                : records;
+
+            if (!selectedRecords.length) {
+                throw new Error("No non-empty student rows found inside the selected range.");
+            }
+
+            for (let i = 0; i < selectedRecords.length; i++) {
+                const rowObject = selectedRecords[i];
+                const marksValue = String(rowObject?.[marksColumn] ?? "").trim();
+                const nameHint = nameColumn ? String(rowObject?.[nameColumn] ?? "").trim() : "";
+                const marksText = marksValue ? `Marks: ${marksValue}/${document.getElementById('mMax').value}` : "Marks: (blank)";
+                const nameText = nameHint ? ` • ${nameHint}` : "";
+                status.innerText = `Generating quiz ${i + 1} of ${selectedRecords.length} ${nameText}`;
+
+                const rowTextAll = buildRowTextAllColumns(rowObject);
+                const rowTextFiltered = buildRowTextForAi(rowObject, marksColumn, nameColumn);
+                const isMessy = shouldSendTxtToAi(rowObject);
+
+                const basePayload = {
+                    marksColumn,
+                    nameColumn,
+                    studentNameHint: nameColumn ? String(rowObject?.[nameColumn] ?? "").trim() : "",
+                    score: rowObject?.[marksColumn] ?? "",
+                    learnedContext,
+                    subject: document.getElementById('subject').value,
+                    topic: document.getElementById('topic').value,
+                    grade: document.getElementById('grade').value,
+                    curriculum: document.getElementById('curriculum').value,
+                    maxMarks: document.getElementById('mMax').value,
+                    questionCount: parseInt(document.getElementById('qCount').value, 10),
+                    answerFormat: document.getElementById('answerFormat').value,
+                    requests: document.getElementById('requests').value
+                };
+
+                let quiz = null;
+                try {
+                    quiz = await requestQuiz({
+                        ...basePayload,
+                        rowText: rowTextAll || rowTextFiltered
+                    });
+                } catch (e1) {
+                    if (isMessy && rowTextFiltered) {
+                        quiz = await requestQuiz({ ...basePayload, rowText: rowTextFiltered });
+                    } else {
+                        throw e1;
+                    }
+                }
+
+                const meta = {
+                    subject: document.getElementById('subject').value,
+                    topic: document.getElementById('topic').value,
+                    grade: document.getElementById('grade').value,
+                    curriculum: document.getElementById('curriculum').value,
+                    maxMarks: document.getElementById('mMax').value,
+                    answerFormat: document.getElementById('answerFormat').value,
+                    generationName: String(document.getElementById('genName')?.value || "").trim(),
+                    mode: "personalized"
+                };
+
+                const card = await buildQuizCard({
+                    quiz,
+                    meta,
+                    marksValue: marksValue ? String(marksValue) : "",
+                    quizSession: null
+                });
+                output.appendChild(card);
+
+                const entryIndex = historyEntries.length;
+                historyEntries.push({
+                    studentName: quiz.studentName,
+                    score: marksValue ? String(marksValue).trim() : "",
+                    marksValue: marksValue ? String(marksValue).trim() : "",
+                    marks: marksValue ? `${marksValue}/${meta.maxMarks}` : "",
+                    questions: quiz.questions,
+                    quizSession: null
+                });
+                currentQuizCards.push({ quiz, meta, card, quizSession: null, entryIndex });
+            }
+            status.innerText = "All Worksheets generated successfully!";
+            showTeacherViewCard();
+            setTeacherView();
+            currentHistoryEntries = historyEntries;
+            updateHostAllUi();
+
+            if (historyEntries.length) {
+                const generationName = String(document.getElementById('genName')?.value || "").trim();
+                const payload = {
+                    title: generationName || `${document.getElementById('subject').value} - ${document.getElementById('topic').value}`,
+                    createdAt: new Date().toISOString(),
+                    summary: `${historyEntries.length} worksheet(s) generated for ${document.getElementById('grade').value} (${document.getElementById('curriculum').value}).`,
+                    type: HISTORY_TYPE,
+                    subject: document.getElementById('subject').value,
+                    topic: document.getElementById('topic').value,
+                    grade: document.getElementById('grade').value,
+                    curriculum: document.getElementById('curriculum').value,
+                    maxMarks: document.getElementById('mMax').value,
+                    questionCount: parseInt(document.getElementById('qCount').value, 10),
+                    answerFormat: document.getElementById('answerFormat').value,
+                    requests: document.getElementById('requests').value,
+                    learnedContext,
+                    studentCount: historyEntries.length,
+                    students: historyEntries
+                };
+                currentHistoryPayloadBase = { ...payload };
+                delete currentHistoryPayloadBase.students;
+                if (currentUser) {
+                    try {
+                        await saveHistory(payload);
+                        await loadHistory();
+                    } catch (err) {
+                        status.innerText += " History save failed.";
+                    }
+                }
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+</script>
+
+<script src="global-search.js"></script>
+</body>
+</html>
