@@ -24,6 +24,20 @@
     .auth-status { margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(37, 99, 235, 0.10); color: var(--text); }
     .link-row { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
     @media (max-width: 980px) { .auth-shell { grid-template-columns: 1fr; } }
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .field label {
+      width: 70px;
+      text-align: left;
+    }
+
+    .field input {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -60,18 +74,18 @@
 
       <form id="accountSignedOut" onsubmit="return false;" style="margin-top: 14px; display:none;">
         <div class="field">
-          <label>Email</label>
+          <label >Email : </label>
           <input id="authEmail" type="email" placeholder="teacher@school.edu" autocomplete="email">
         </div>
         <div class="field" style="margin-top: 12px;">
-          <label>Password</label>
+          <label>Password : </label>
           <input id="authPassword" type="password" placeholder="Minimum 6 characters" autocomplete="current-password">
         </div>
         <div class="auth-row">
           <button type="button" id="signInBtn">Sign In</button>
           <button type="button" id="signUpBtn" class="btn-secondary">Create Account</button>
         </div>
-        <div class="auth-hint">Tip: create an account once, then your history will follow your login.</div>
+      
       </form>
 
       <div id="accountSignedIn" style="display:none; margin-top: 14px;">
@@ -83,10 +97,7 @@
         </div>
       </div>
 
-      <div class="link-row">
-        <a class="download-link secondary" href="index.html">Back to Home</a>
-        <a class="download-link secondary" href="documentation.html">Read Guide</a>
-      </div>
+      
     </section>
 
     <section class="auth-card">
@@ -94,24 +105,24 @@
       <div class="steps">
         <div class="step">
           <i class="fa-solid fa-clock" aria-hidden="true"></i>
-          <div><b>Save time</b><span>Load past worksheets and notes instantly.</span></div>
+          <b>Save time</b> : 
+          <div>Load past worksheets and notes instantly.</div>
         </div>
+        <br>
         <div class="step">
           <i class="fa-solid fa-cloud" aria-hidden="true"></i>
-          <div><b>Cloud history</b><span>Your generated content is saved to your account.</span></div>
+          <b>Cloud history</b> : 
+          <div>Your generated content is saved to your account.</div>
         </div>
+        <br>
         <div class="step">
           <i class="fa-solid fa-link" aria-hidden="true"></i>
-          <div><b>Hosting</b><span>Host notes/quizzes for students with sign-in required.</span></div>
+          <b>Hosting</b> : 
+          <div>Host notes/quizzes for students with sign-in required.</div>
         </div>
       </div>
-      <p style="margin-top: 14px; color: var(--muted);">After signing in, you’ll be redirected back to where you came from (when applicable).</p>
     </section>
   </main>
-
-  <footer class="bottombar">
-    <h3 style="letter-spacing: 6px; margin: 0;">Quiz-Wiz</h3>
-  </footer>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>

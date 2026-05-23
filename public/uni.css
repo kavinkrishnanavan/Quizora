@@ -269,3 +269,9 @@ input[type="file"]::file-selector-button {
   margin-right: 10px;
   cursor: pointer;
 }
+
+a {
+
+  text-decoration: none;
+
+}
