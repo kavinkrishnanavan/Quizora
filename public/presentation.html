@@ -24,6 +24,20 @@
         iframe { width: 100%; height: 72vh; border: 0; background: white; } 
         .host-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; } 
         .host-row input { max-width: 520px; } 
+
+        .portal-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+        .portal-meta { color: var(--muted); font-size: 0.9rem; }
+        .sidebar-title { font-weight: 800; font-size: 1.05rem; }
+        .sidebar-subtitle { color: var(--muted); font-size: 0.85rem; }
+        .history-list { display: grid; gap: 10px; margin-top: 12px; max-height: 520px; overflow: auto; padding-right: 4px; }
+        .history-entry { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(127,127,127,0.04); text-align: left; display: grid; gap: 6px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+        .history-entry:hover { border-color: rgba(37, 99, 235, 0.45); background: rgba(37, 99, 235, 0.08); transform: translateY(-1px); }
+        .history-entry.active { border-color: rgba(37, 99, 235, 0.8); background: rgba(37, 99, 235, 0.12); }
+        .history-entry-title { font-weight: 700; font-size: 0.98rem; }
+        .history-entry-meta { color: var(--muted); font-size: 0.82rem; }
+        .history-entry-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .history-delete { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .history-delete:hover { border-color: rgba(239, 68, 68, 0.55); color: #ef4444; }
     </style> 
 </head>
 
@@ -52,6 +66,15 @@
     </header>
 
     <div class="app-shell">
+        <aside class="sidebar" id="historyCard">
+            <div class="portal-row">
+                <div class="sidebar-title">Presentations</div>
+
+            </div>
+            <div class="sidebar-subtitle" id="historySubtitle">Click a saved presentation to reload it.</div>
+            <div class="portal-meta" id="historyStatus"></div>
+            <div id="historyList" class="history-list"></div>
+        </aside>
         <div class="container">
             <header class="page-header">
                 <div class="page-header-top">
@@ -73,16 +96,8 @@
                         <label>Topic</label> 
                         <input id="topic" placeholder="e.g. Photosynthesis, World War 2, Fractions"> 
                     </div> 
-                    <div class="field"> 
-                        <label>Presentation History</label> 
-                        <select id="presentationHistorySelect"> 
-                            <option value="">(Load a previous presentation)</option> 
-                        </select> 
-                        <div style="color: var(--muted); font-size: 0.85rem;">Your generated presentations (sign in required).</div> 
-                    </div> 
                     <button type="button" id="generateBtn">Generate Notes</button> 
                     <button type="button" id="hostBtn" class="btn-secondary" disabled>Host Notes</button> 
-                    <button type="button" id="refreshHistoryBtn" class="btn-secondary">Refresh History</button> 
  
                 </div> 
  
@@ -163,12 +178,15 @@
         const hostLinkEl = document.getElementById("hostLink"); 
         const copyHostLinkBtn = document.getElementById("copyHostLinkBtn"); 
         const openHostLinkBtn = document.getElementById("openHostLinkBtn"); 
-        const historySelect = document.getElementById("presentationHistorySelect"); 
+        const historyList = document.getElementById("historyList");
+        const historyStatus = document.getElementById("historyStatus");
+        const historySubtitle = document.getElementById("historySubtitle");
         const refreshHistoryBtn = document.getElementById("refreshHistoryBtn"); 
  
         let lastHtml = ""; 
         let lastTopic = ""; 
         let presentationHistoryItems = []; 
+        let activeHistoryId = "";
  
         function setStatus(text, kind) { 
             if (!statusEl) return; 
@@ -212,78 +230,165 @@
             } 
         } 
  
-        function formatHistoryLabel(item) { 
-            const payload = item?.payload || {}; 
-            const createdAt = payload?.createdAt || item?.createdAt || ""; 
-            const label = String(payload?.title || payload?.topic || "Presentation"); 
-            try { 
-                return createdAt ? `${label} (${new Date(createdAt).toLocaleDateString()})` : label; 
-            } catch (_) { 
-                return label; 
-            } 
-        } 
- 
-        async function loadPresentationHistory() { 
-            if (!historySelect) return; 
- 
-            historySelect.disabled = true; 
-            historySelect.innerHTML = "<option value=\"\">Loading presentations...</option>"; 
-            presentationHistoryItems = []; 
- 
-            const token = window.QuizWizAuth ? await QuizWizAuth.getAuthToken() : ""; 
-            if (!token) { 
-                historySelect.innerHTML = "<option value=\"\">(Sign in to load history)</option>"; 
-                historySelect.disabled = false; 
-                return; 
-            } 
- 
-            try { 
-                const res = await fetch("/.netlify/functions/history?limit=50", { 
-                    headers: { Authorization: `Bearer ${token}` } 
-                }); 
-                const data = await res.json().catch(() => null); 
-                if (!res.ok) throw new Error(data?.error || "Failed to load history."); 
- 
-                const rawItems = Array.isArray(data?.items) ? data.items : []; 
-                const items = rawItems.map((item) => { 
-                    let payload = null; 
-                    try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; } 
-                    return { ...item, payload }; 
-                }).filter((x) => x?.payload?.type === "presentation" && x?.payload?.html); 
- 
-                presentationHistoryItems = items; 
- 
-                historySelect.innerHTML = "<option value=\"\">(Load a previous presentation)</option>"; 
-                for (const item of items) { 
-                    const opt = document.createElement("option"); 
-                    opt.value = item.id; 
-                    opt.innerText = formatHistoryLabel(item); 
-                    historySelect.appendChild(opt); 
-                } 
-            } catch (_) { 
-                historySelect.innerHTML = "<option value=\"\">(Could not load history)</option>"; 
-            } finally { 
-                historySelect.disabled = false; 
-            } 
-        } 
- 
-        function onHistorySelected(historyId) { 
-            const id = String(historyId || "").trim(); 
-            if (!id) return; 
-            const item = presentationHistoryItems.find((x) => String(x?.id || "") === id); 
-            const html = String(item?.payload?.html || "").trim(); 
-            if (!html) return; 
- 
-            const topic = String(item?.payload?.topic || item?.payload?.title || "").trim(); 
-            if (topicEl && topic) topicEl.value = topic; 
-            lastTopic = topic || lastTopic; 
-            lastHtml = html; 
-            frame.srcdoc = html; 
-            useMaterialsBtn.disabled = false; 
-            hostBtn.disabled = false; 
-            hostPanel.style.display = "none"; 
-            setStatus("Loaded from history."); 
-        } 
+        function setHistoryStatus(text) {
+            if (!historyStatus) return;
+            historyStatus.innerText = text || "";
+        }
+
+        function applyActiveHighlight() {
+            const entries = document.querySelectorAll(".history-entry");
+            entries.forEach((entry) => {
+                if (entry.dataset?.historyId === activeHistoryId) entry.classList.add("active");
+                else entry.classList.remove("active");
+            });
+        }
+
+        function renderPresentationHistory() {
+            if (!historyList) return;
+            historyList.innerHTML = "";
+
+            const hasAuth = !!(window.QuizWizAuth && QuizWizAuth.getUser && QuizWizAuth.getUser());
+            if (!hasAuth) {
+                historyList.innerHTML = "<div class=\"portal-meta\">Please sign in to see history.</div>";
+                if (historySubtitle) historySubtitle.innerText = "Sign in to load saved presentations.";
+                return;
+            }
+
+            if (historySubtitle) historySubtitle.innerText = "Click a saved presentation to reload it.";
+
+            if (!presentationHistoryItems.length) {
+                historyList.innerHTML = "<div class=\"portal-meta\">No saved presentations yet.</div>";
+                return;
+            }
+
+            presentationHistoryItems.forEach((item) => {
+                const payload = item?.payload || {};
+                const title = String(payload?.title || payload?.topic || "Presentation").trim() || "Presentation";
+                const whenIso = String(item?.createdAt || payload?.createdAt || "").trim();
+                const whenText = whenIso ? new Date(whenIso).toLocaleString() : "";
+
+                const entry = document.createElement("div");
+                entry.className = "history-entry";
+                entry.dataset.historyId = item.id;
+
+                const row = document.createElement("div");
+                row.className = "history-entry-row";
+
+                const titleEl = document.createElement("div");
+                titleEl.className = "history-entry-title";
+                titleEl.innerText = title;
+
+                const delBtn = document.createElement("button");
+                delBtn.type = "button";
+                delBtn.className = "history-delete";
+                delBtn.innerText = "Delete";
+                delBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    deleteHistoryEntry(item.id);
+                });
+
+                row.appendChild(titleEl);
+                row.appendChild(delBtn);
+
+                const meta = document.createElement("div");
+                meta.className = "history-entry-meta";
+                meta.innerText = whenText ? `Saved ${whenText}` : "Saved history";
+
+                entry.appendChild(row);
+                entry.appendChild(meta);
+
+                entry.addEventListener("click", () => loadFromHistory(item.id));
+
+                historyList.appendChild(entry);
+            });
+
+            applyActiveHighlight();
+        }
+
+        async function loadPresentationHistory() {
+            if (!historyList) return;
+
+            setHistoryStatus("Loading history...");
+            presentationHistoryItems = [];
+
+            const token = window.QuizWizAuth ? await QuizWizAuth.getAuthToken() : "";
+            if (!token) {
+                setHistoryStatus("");
+                renderPresentationHistory();
+                return;
+            }
+
+            try {
+                const res = await fetch("/.netlify/functions/history?limit=50", {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Failed to load history.");
+
+                const rawItems = Array.isArray(data?.items) ? data.items : [];
+                const items = rawItems.map((item) => {
+                    let payload = null;
+                    try { payload = item.payloadJson ? JSON.parse(item.payloadJson) : null; } catch (_) { payload = null; }
+                    return { ...item, payload };
+                }).filter((x) => x?.payload?.type === "presentation" && x?.payload?.html);
+
+                presentationHistoryItems = items;
+                setHistoryStatus("");
+                renderPresentationHistory();
+            } catch (err) {
+                console.warn("Failed to load presentation history", err);
+                setHistoryStatus("Could not load history.");
+                presentationHistoryItems = [];
+                renderPresentationHistory();
+            }
+        }
+
+        function loadFromHistory(historyId) {
+            const id = String(historyId || "").trim();
+            if (!id) return;
+            const item = presentationHistoryItems.find((x) => String(x?.id || "") === id);
+            const html = String(item?.payload?.html || "").trim();
+            if (!html) return;
+
+            const topic = String(item?.payload?.topic || item?.payload?.title || "").trim();
+            if (topicEl && topic) topicEl.value = topic;
+            lastTopic = topic || lastTopic;
+            lastHtml = html;
+            frame.srcdoc = html;
+            useMaterialsBtn.disabled = false;
+            hostBtn.disabled = false;
+            hostPanel.style.display = "none";
+
+            activeHistoryId = id;
+            applyActiveHighlight();
+            setStatus("Loaded from history.");
+        }
+
+        async function deleteHistoryEntry(historyId) {
+            const safeId = String(historyId || "").trim();
+            if (!safeId) return;
+
+            const token = window.QuizWizAuth ? await QuizWizAuth.getAuthToken() : "";
+            if (!token) return alert("Sign in to delete history.");
+
+            const ok = confirm("Delete this history entry?");
+            if (!ok) return;
+
+            try {
+                const res = await fetch(`/.netlify/functions/history?id=${encodeURIComponent(safeId)}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(data?.error || "Failed to delete history.");
+
+                if (activeHistoryId === safeId) activeHistoryId = "";
+                await loadPresentationHistory();
+                setStatus("Deleted history entry.");
+            } catch (err) {
+                alert(err?.message || "Failed to delete history.");
+            }
+        }
  
         async function savePresentationToHistory() { 
             const html = String(lastHtml || "").trim(); 
@@ -429,7 +534,6 @@
         useMaterialsBtn?.addEventListener("click", useAsLearningMaterial); 
         hostBtn?.addEventListener("click", hostNotes); 
         copyHostLinkBtn?.addEventListener("click", copyHostLink); 
-        historySelect?.addEventListener("change", (e) => onHistorySelected(e.target.value)); 
         refreshHistoryBtn?.addEventListener("click", loadPresentationHistory); 
         if (window.QuizWizAuth) QuizWizAuth.onChange(loadPresentationHistory); 
         loadPresentationHistory(); 
