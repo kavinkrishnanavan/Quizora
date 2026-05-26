@@ -52,7 +52,7 @@ button {
   border: 1px solid transparent;
   border-radius: 12px;
   font-weight: 800;
-  cursor: pointer;
+
   font-family: inherit;
   transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
@@ -62,7 +62,7 @@ button:active { transform: translateY(0); }
 
 button:disabled {
   background: #94a3b8;
-  cursor: not-allowed;
+
   opacity: 1;
   transform: none;
 }
@@ -88,7 +88,7 @@ button.primary { background: var(--primary); }
   font-weight: 800;
   text-decoration: none;
   border: none;
-  cursor: pointer;
+ 
   transition: 0.2s;
 }
 
@@ -100,7 +100,6 @@ button.primary { background: var(--primary); }
 .tab:hover { background: rgba(127,127,127,0.08); }
 .tab.active { background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.45); color: var(--text); }
 button.tab { font-family: inherit; }
-.tab-button { cursor: pointer; }
 
 .topbar {
  
@@ -175,7 +174,7 @@ button.tab { font-family: inherit; }
   background: rgba(127,127,127,0.06);
   color: inherit;
   font-weight: 800;
-  cursor: pointer;
+
   margin: 0;
 }
 
@@ -231,7 +230,14 @@ select option {
 
 }
 
+* { cursor: none !important; }
+*:hover { cursor: none !important; }
+*:active { cursor: none !important; }
+a, button, [role="button"], label, select { cursor: none !important; }
+input, textarea { cursor: none !important; }
+
 body {
+
   background: url("images/background.jpeg");
 
   padding-bottom: 7%;
@@ -245,7 +251,7 @@ body {
   background-size: cover;
   background-attachment: fixed;
 
-  cursor: url('/images/cursor.png') 16 16, auto;
+
   
 }
 
@@ -269,7 +275,7 @@ input[type="file"]::file-selector-button {
   background: #4f46e5;
   color: white;
   margin-right: 10px;
-  cursor: pointer;
+
 }
 
 a {
