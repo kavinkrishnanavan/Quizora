@@ -281,3 +281,9 @@ a {
   text-decoration: none;
 
 }
+
+#navSignOutBtn {
+
+  display: none;
+
+}
