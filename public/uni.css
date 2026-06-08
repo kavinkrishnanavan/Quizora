@@ -230,11 +230,9 @@ select option {
 
 }
 
-* { cursor: none !important; }
-*:hover { cursor: none !important; }
-*:active { cursor: none !important; }
-a, button, [role="button"], label, select { cursor: none !important; }
-input, textarea { cursor: none !important; }
+
+a, button, [role="button"], label, select { cursor: grab !important; }
+input, textarea { cursor: text !important; }
 
 body {
 

@@ -196,12 +196,7 @@
 
   function redirectAfterAuth() {
     var returnTo = getReturnTo();
-    if (!returnTo) {
-      if (window.location.pathname.split("/").pop() === "login.html") {
-        window.location.href = "profile.html";
-      }
-      return;
-    }
+    if (!returnTo) return;
 
     try {
       var url = new URL(returnTo, window.location.origin);

@@ -9,8 +9,7 @@
     { title: "Marker", url: "image.html", keywords: ["marker", "mark", "image", "scan", "grade", "worksheet marker"] },
     { title: "Notes", url: "presentation.html", keywords: ["notes", "presentation", "slides", "deck"] },
     { title: "Docs", url: "documentation.html", keywords: ["docs", "documentation", "help", "guide"] },
-    { title: "Login", url: "login.html", keywords: ["login", "signin", "sign in", "account", "create"] },
-    { title: "Profile", url: "profile.html", keywords: ["profile", "account", "sign out"] },
+    { title: "Account", url: "login.html", keywords: ["login", "signin", "sign in", "account", "profile", "create", "sign out"] },
     
   ];
 
