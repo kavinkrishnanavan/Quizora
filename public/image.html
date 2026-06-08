@@ -293,7 +293,7 @@
         </div>
     </div> -->
     
-<script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
+    <script src="https://kit.fontawesome.com/2e6f714ae6.js" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
     <script src="login.js"></script>
@@ -301,47 +301,6 @@
     <footer class="bottombar">
         <h3 style="letter-spacing: 15px;">  Built by Students, inspired by Teachers. ♥️</h3>
     </footer>
-
-  <script>
-    const svg    = document.getElementById('cursor-svg');
-    const cArrow = document.getElementById('c-arrow');
-    const cGrab  = document.getElementById('c-grab');
-    const cText  = document.getElementById('c-text');
-
-    function showCursor(type) {
-      cArrow.setAttribute('display', type === 'arrow' ? '' : 'none');
-      cGrab.setAttribute('display',  type === 'grab'  ? '' : 'none');
-      cText.setAttribute('display',  type === 'text'  ? '' : 'none');
-    }
-
-    document.addEventListener('mousemove', (e) => {
-      svg.style.left = e.clientX + 'px';
-      svg.style.top  = e.clientY + 'px';
-    });
-
-    document.addEventListener('mouseover', (e) => {
-      const el = e.target;
-
-      if (el.matches('a, button, [role="button"], label, select')) {
-        showCursor('grab');
-      } else if (
-        el.matches('input, textarea, [contenteditable="true"]') ||
-        el.closest('input, textarea')
-      ) {
-        showCursor('text');
-      } else {
-        showCursor('arrow');
-      }
-    });
-
-    document.addEventListener('mouseleave', () => {
-      svg.style.display = 'none';
-    });
-
-    document.addEventListener('mouseenter', () => {
-      svg.style.display = 'block';
-    });
-  </script>
 
     <script>
         const imageInput = document.getElementById("imageInput");
