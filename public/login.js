@@ -59,7 +59,7 @@
     if (!signedOut || !signedIn) return;
 
     if (user) {
-      setText(status, "");
+      setText(status, "Signed in.");
       show(signedOut, false);
       show(signedIn, true);
       setText(emailDisplay, user.email || "");
